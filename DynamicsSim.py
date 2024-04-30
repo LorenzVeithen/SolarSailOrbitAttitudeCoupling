@@ -21,16 +21,16 @@ class sailCoupledDynamicsProblem(sail_craft):
 
     def __init__(self,
                  num_panels,
-                 total_mass,
+                 nominal_sail_mass,
                  initial_CoM_position_body_frame,
                  initial_inertia_tensor_body_frame,
-                 initial_panel_coordinates_body_frame,
-                 initial_pabel_optical_properties,
+                 initial_panels_coordinates_body_frame,
+                 initial_panels_optical_properties,
                  ACS_system,
-                 initial_state,                             # 1 x 12 vector [translational, rotational]
+                 initial_state,  # 1 x 12 vector [translational, rotational]
                  simulation_start_epoch,
                  simulation_end_epoch):
-        super(sail_craft).__init__(num_panels, total_mass, initial_CoM_position_body_frame, initial_inertia_tensor_body_frame, initial_panel_coordinates_body_frame, initial_pabel_optical_properties, ACS_system)
+        super(sail_craft).__init__(num_panels, nominal_sail_mass, initial_CoM_position_body_frame, initial_inertia_tensor_body_frame, initial_panels_coordinates_body_frame, initial_panels_optical_properties, ACS_system)
         self.simulation_start_epoch = simulation_start_epoch
         self.simulation_end_epoch = simulation_end_epoch
         self.sail_num_panels = num_panels
@@ -69,21 +69,32 @@ class sailCoupledDynamicsProblem(sail_craft):
             inertia_tensor_function=sail_craft.get_sail_inertia_tensor)
 
         # Written such that it can be extended in the future
+        # Compile the panel properties
         panels_settings = []
-        for i in range(self.sail_num_panels):
-            ith_panel_normal = lambda t: sail_craft.get_ith_panel_surface_normal(self, t, panel_id=i)
-            ith_panel_area = lambda t: sail_craft.get_ith_panel_area(self, t, panel_id=i)
-            ith_panel_centroid = lambda t: sail_craft.get_ith_panel_centroid(self, t, panel_id=i)
-            ith_panel_properties_list = [lambda t: sail_craft.get_ith_panel_centroid(self, t, panel_id=i)[j] for j in range(10)]
-            panel_geom = environment_setup.vehicle_systems.time_varying_panel_geometry(surface_normal=ith_panel_normal,
-                                                                                        area=single_panel_area,
-                                                                                        frame_orientation="VehicleFixed")
-            reflection_law = environment_setup.radiation_pressure.solar_sail_optical_body_panel_reflection(1, 1, 0, 0, 0, 0,
-                                                                                                           0, 0, 0, 0)
-            panel = environment_setup.vehicle_systems.body_panel_settings(panel_type_id="Sail",
-                                                                           panel_reflection_law=reflection_law,
-                                                                           panel_geometry=panel_geom)
-            panels_settings.append(panel)
+        for j in range(2):
+            if (j == 0):
+                panel_type_str = "Sail"
+                number_of_panels = self.sail_num_panels
+            else:
+                panel_type_str = "Vane"
+                number_of_panels = self.sail_num_vanes
+
+            for i in range(number_of_panels):
+                ith_panel_normal = lambda t: sail_craft.get_ith_panel_surface_normal(self, t, panel_id=i, panel_type=panel_type_str)
+                ith_panel_area = lambda t: sail_craft.get_ith_panel_area(self, t, panel_id=i, panel_type=panel_type_str)
+                ith_panel_centroid = lambda t: sail_craft.get_ith_panel_centroid(self, t, panel_id=i, panel_type=panel_type_str)
+                ith_panel_properties_list = [lambda t: sail_craft.get_ith_panel_optical_properties(self, t, panel_id=i, panel_type=panel_type_str)[j] for j in range(10)]
+                panel_geom = environment_setup.vehicle_systems.time_varying_panel_geometry(surface_normal=ith_panel_normal,
+                                                                                            area=single_panel_area,
+                                                                                            frame_orientation="VehicleFixed")
+
+                reflection_law = environment_setup.radiation_pressure.solar_sail_optical_body_panel_reflection(1, 1, 0, 0, 0, 0,
+                                                                                                               0, 0, 0, 0)
+                panel = environment_setup.vehicle_systems.body_panel_settings(panel_type_id=panel_type_str,
+                                                                               panel_reflection_law=reflection_law,
+                                                                               panel_geometry=panel_geom)
+                panels_settings.append(panel)
+
         panelled_body = environment_setup.vehicle_systems.full_panelled_body_settings(
                 panel_settings=panels_settings)  # No rotational models for the panels
         body_settings.get('ACS3').vehicle_shape_settings = panelled_body

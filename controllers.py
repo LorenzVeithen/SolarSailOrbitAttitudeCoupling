@@ -1,131 +1,262 @@
 from constants import sail_mass, sail_I
+from scipy.spatial.transform import Rotation as R
 import numpy as np
 
 
-class sail_attitude_control_systems():
+class sail_attitude_control_systems:
 
-    def __init__(self, ACS_system):
+    def __init__(self, ACS_system, default_panel_coordinates, ):
         self.sail_attitude_control_system = ACS_system
-        self.vane_attachment_positions = None
+        self.sail_default_panel_coordinates = default_panel_coordinates            # Default coordinates of the panels, when no control has been applied
+        self.vane_reference_frame_origin = None
         self.vane_panels_coordinates = None
-        self.vane_panels_orientations = None
-    def attitude_control(self, bodies, desired_sail_state):
+        self.vane_reference_frame_rotation_matrix = None
+        self.sliding_masses = [None, None]
+        self.gimball_mass = None
+        self.bool_mass_based_controller = True if (ACS_system=="...") else False
 
+
+    def attitude_control(self, bodies, desired_sail_state):
+        # Returns an empty array if nothing has changed
+        thrust_levels = []
+        panel_optical_properties = []
+        moving_mass_position = []
+        panel_coordinates = []
+        vane_coordinates = []
         match self.sail_attitude_control_system:
             case "gimball_mass":
-                self.gimball_mass(bodies, desired_sail_state)
+                self.__pure_gimball_mass(bodies, desired_sail_state)
+            case "vanes":
+                pass
+            case "test":
+                vane_coordinates = self.__vane_dynamics([90, 90, 90, 90], [-90, -90, -90, -90])
             case _:
                 print("ACS not available yet")
-        CoM_shift = np.zeros(3)
-        vane_deflection = []
-        panel_reflectivity_change = []
-        panel_shift = []
-        panel_twist = []
-        return CoM_shift, vane_deflection, panel_reflectivity_change, panel_shift, panel_twist
 
-    def gimball_mass(self, current_sail_state, desired_sail_state):
+        # the attitude-control algorithm should give the output
+        return panel_coordinates, vane_coordinates, panel_optical_properties, moving_mass_position, thrust_levels
+
+    def __pure_gimball_mass(self, current_sail_state, desired_sail_state):
 
         return
 
-    def set_vane_characteristics(self, vanes_coordinates_list, vanes_orientations):
+    def __pure_vane_controller(self, desired_sail_state):
+
+        return
+
+    def set_vane_characteristics(self, vane_reference_frame_origin_list, vanes_coordinates_list, vanes_reference_frame_rotation_matrix_list):
         # vanes_coordinates_list: num_vanes long list of num_coordinates_per_vane x 3 array, first point is the vane attachement point in body fixed frame
         # vanes_orientations: num_vanes long list of 3x3 rotation matrices from the body fixed frame to the vane fixed frame
-        self.vane_attachment_positions = vanes_coordinates_list[0][0, :]
+        self.vane_reference_frame_origin = vane_reference_frame_origin_list  # Maybe change to avoid stupid conventions
         self.vane_panels_coordinates = vanes_coordinates_list
-        self.vane_panels_orientations = vanes_orientations
-        return 0
+        self.vane_reference_frame_rotation_matrix = vanes_reference_frame_rotation_matrix_list
+        self.number_of_vanes = len(vane_reference_frame_origin_list)
+        return True
 
     def __vane_dynamics(self, rotation_x_deg, rotation_y_deg):
         # Get the vane panel coordinates as a result of the rotation
         # Based on the initial vane position and orientation in the body frame
-        if ( not (-90 <  rotation_x_deg < 90) or not (-90 <  rotation_y_deg < 90)):
+        if (not all(-90 <= angle <= 90 for angle in rotation_x_deg) or not all(-90 <= angle <= 90 for angle in rotation_y_deg)):
             print("Requested vane deflection is not permitted:" + f"x-rotation={rotation_x_deg} degrees and y-rotation={rotation_y_deg} degrees")
             return False
 
-        if (self.vane_attachment_positions == None
+        if (self.vane_reference_frame_origin == None
                 or self.vane_panels_coordinates == None
-                or self.vane_panels_orientations == None):
-            print("Vane positions have not been set by the user")
+                or self.vane_reference_frame_rotation_matrix == None):
+            print("Vane characteristics have not been set by the user")
             return False
 
-        for i in range(len(rotation_x_deg)):
-            # For each vane
-            for j in range(len(self.vane_panels_coordinates[i][:, 0])):
-                # For each coordinate of the panel
+        new_vane_coordinates = []
+        for i in range(self.number_of_vanes):    # For each vane
+            current_vane_origin = self.vane_reference_frame_origin[i]
+            current_vane_coordinates = self.vane_panels_coordinates[i]
+            current_vane_frame_rotation_matrix = self.vane_reference_frame_rotation_matrix[i]
 
-                # Get the panel coordinate points in the vane-fixed coordinate system
-                current_coord = self.vane_panels_coordinates[i][j, :] - self.vane_attachment_positions
+            rotated_vane_coordinates = np.zeros(np.shape(current_vane_coordinates))
+            for j in range(len(current_vane_coordinates[:, 0])):    # For each coordinate of the panel
+                # Get the panel coordinate points in the vane-centered coordinate system
+                current_vane_coordinate_vane_reference_frame = np.matmul(np.linalg.inv(current_vane_frame_rotation_matrix), current_vane_coordinates[j, :] - current_vane_origin)
+                # Now rotate along the vane-fixed x-axis and then y-axis
+                Rx = R.from_euler('x', rotation_x_deg[i], degrees=True).as_matrix()
+                Ry = R.from_euler('y', rotation_y_deg[i], degrees=True).as_matrix()
+                vane_rotation_matrix = np.matmul(Ry, Rx)
+                current_vane_coordinate_rotated_vane_reference_frame = np.matmul(vane_rotation_matrix, current_vane_coordinate_vane_reference_frame)
 
 
+                # Convert back to the body fixed reference frame
+                current_vane_coordinate_rotated_body_fixed_reference_frame = np.matmul(current_vane_frame_rotation_matrix, current_vane_coordinate_rotated_vane_reference_frame) + current_vane_origin
+                rotated_vane_coordinates[j, :] = current_vane_coordinate_rotated_body_fixed_reference_frame
+            new_vane_coordinates.append(rotated_vane_coordinates)
+        return new_vane_coordinates
+
+    def set_shifted_panel_characteristics(self, panel_coordinates_list):
+        self.panel_coordinates = panel_coordinates_list
+        return False
+
+    def __shifted_panel_dynamics(self):
+        pass
+    def is_mass_based(self):
+        return self.bool_mass_based_controller
+
+    def set_gimball_mass_chateristics(self, mass_of_gimbaled_ballast):
+        self.gimbaled_mass = mass_of_gimbaled_ballast
+        return True
+
+    def set_sliding_masses_characteristics(self):
+        pass
+
+    def get_attitude_system_mass(self):
+        if (self.is_mass_based()):
+            if ((all(self.sliding_masses) != None) and (self.gimball_mass != None)):
+                return sum(self.sliding_masses) + self.gimball_mass
+            elif (all(self.sliding_masses) != None):
+                return sum(self.sliding_masses)
+            elif (self.gimball_mass != None):
+                return self.gimball_mass
+        else:
+            return 0                    # to be expanded
 
 
-
-        return 0
-
-
-class sail_craft(sail_attitude_control_systems):
+class sail_craft:
     def __init__(self,
                  num_panels,
-                 total_mass,
-                 initial_CoM_position_body_frame,
+                 num_vanes,
+                 initial_panels_coordinates_body_frame,
+                 initial_vanes_coordinates_body_frame,
+                 initial_panels_optical_properties,
+                 initial_vanes_optical_properties,
                  initial_inertia_tensor_body_frame,
-                 initial_panel_coordinates_body_frame,
-                 initial_pabel_optical_properties,
-                 ACS_system):
-        self.sail_num_panels = num_panels
-        self.sail_mass = total_mass
-        self.sail_center_of_mass_position = initial_CoM_position_body_frame             # 3D vector
-        self.sail_inertia_tensor = initial_inertia_tensor_body_frame                    # 3x3 tensor
-        self.sail_panel_coordinates = initial_panel_coordinates_body_frame              # List of num_points x 3 arrays- Assuming points {p_i}, 0<=i<n, forms a counterclockwise polygon,
-        self.sail_panels_areas = np.zeros(num_panels)                                   # List of panel areas
-        self.sail_panels_centroids = np.zeros(num_panels)                               # List of panel centroids
-        self.sail_panels_surface_normals = [None] * num_panels                          # List of panel surface normal
-        self.sail_panels_properties = initial_pabel_optical_properties                  # num_panels x 10 array of panel surface properties
-        self.compute_panel_properties(panel_id_list=list(range(self.sail_num_panels)))  # Compute the individual panel properties
-        self.current_time = None
+                 sail_mass_without_ACS,
+                 spacecraft_mass_without_sail,
+                 sail_CoM_without_ACS,
+                 sail_material_areal_density,
+                 attitude_control_object):
+
+        # Link to other classes
         self.bodies = None
-        super(sail_attitude_control_systems).__init__(ACS_system)                       # Initialise the ACS parent class
+        self.attitude_control_system = attitude_control_object                          # The ACS class object to obtain all control mechanisms
 
-    def compute_panel_properties(self, panel_id_list):  # should enable the possibility of only recomputing a specific panel
-        # For each panel, obtain coordinates of panels and compute the panel area
-        for p_id in panel_id_list:
-            current_panel_coordinates = self.sail_panel_coordinates[p_id]
-            number_of_attachment_points = len(current_panel_coordinates[:, 0])
+        # Non-varying sail characteristics
+        self.sail_num_panels = num_panels
+        self.sail_num_vanes = num_vanes
+        self.sail_mass_without_attitude_control_system = sail_mass_without_ACS
+        self.spacecraft_mass_without_sail = spacecraft_mass_without_sail
+        self.attitude_conctrol_system_mass = attitude_control_object.get_attitude_system_mass()
+        self.sail_mass = sail_mass_without_ACS + self.attitude_conctrol_system_mass   # Without mass-based attitude control system,
+        self.sail_center_of_mass_body_fixed_position_without_ACS = sail_CoM_without_ACS
+        self.desired_sail_state = None
+        self.sail_material_areal_density = sail_material_areal_density
 
-            # Compute centroid
-            current_panel_centroid = np.array([np.sum(current_panel_coordinates[:, 0])/number_of_attachment_points,
-                                      np.sum(current_panel_coordinates[:, 1])/number_of_attachment_points,
-                                      np.sum(current_panel_coordinates[:, 2])/number_of_attachment_points])
+        # Time-varying variables
+        ## Panels
+        self.sail_panels_coordinates = initial_panels_coordinates_body_frame            # List of num_points x 3 arrays - assuming points {p_i}, 0<=i<n, forms a counterclockwise polygon,
+        self.sail_panels_optical_properties = initial_panels_optical_properties         # num_panels x 10 array of panel surface properties
+        self.sail_panels_areas = np.zeros(num_panels)                                   # List of panel areas
+        self.sail_panels_centroids = [None] * num_panels                                # List of panel centroids
+        self.sail_panels_surface_normals = [None] * num_panels                          # List of panel surface normal
 
-            # Compute area
-            ref_point_area_calculation = current_panel_coordinates[0, :]
-            current_panel_coordinates_wrt_ref_point = current_panel_coordinates - ref_point_area_calculation
-            current_panel_coordinates_wrt_ref_point = current_panel_coordinates_wrt_ref_point[1:, :]
-            cross_product_sum = np.array([0, 0, 0])
-            for i in range(number_of_attachment_points-2):
-                cross_product_sum += np.cross(current_panel_coordinates_wrt_ref_point[i], current_panel_coordinates_wrt_ref_point[i+1])
-            current_panel_area = (1/2) * np.linalg.norm(cross_product_sum)
+        ## Vanes
+        self.sail_vanes_coordinates = initial_vanes_coordinates_body_frame              # List of num_points x 3 arrays - assuming points {p_i}, 0<=i<n, forms a counterclockwise polygon,
+        self.sail_vanes_optical_properties = initial_vanes_optical_properties           # num_panels x 10 array of panel surface properties
+        self.sail_vanes_areas = np.zeros(num_vanes)                                     # List of panel areas
+        self.sail_vanes_centroids = [None] * num_vanes                                  # List of panel centroids
+        self.sail_vanes_surface_normals = [None] * num_vanes                            # List of panel surface normal
 
-            # Compute surface normal
-            cross_product_sum /= np.linalg.norm(cross_product_sum)  # Stokes theorem
+        ## Gimball and moving masses systems
+        self.sail_attitude_control_system_center_of_mass = sail_mass_without_ACS        # Mass of the ACS as an independent system, intialised at the sail CoM without ACS - TODO: check that this makes sense, and if the CoM is updated fast enough for this to be "allowed"
 
-            # Mass moment of inertia
+        ## General spacecraft
+        self.sail_center_of_mass_position = sail_CoM_without_ACS                        # 3D vector - initialised to value without ACS
+        self.sail_inertia_tensor = initial_inertia_tensor_body_frame                    # 3x3 tensor
 
+        # Initialising some properties
+        self.compute_reflective_panels_properties(panel_id_list=list(range(self.sail_num_panels)), vanes_id_list=list(range(self.sail_num_vanes)))  # Compute the individual panel properties
 
-            self.sail_panels_centroids[p_id] = current_panel_centroid
-            self.sail_panels_areas[p_id] = current_panel_area
-            self.sail_panels_surface_normals[p_id] = cross_product_sum
+        # Total vane mass
+        vane_mass = 0
+        for i in range(self.sail_num_vanes):
+            vane_mass += self.sail_vanes_areas[i] * self.sail_material_areal_density
+        self.sail_vanes_total_mass = vane_mass
+
+        # Bookkeeping variables
+        self.current_time = None
+
+    def compute_reflective_panels_properties(self, panel_id_list, vanes_id_list):  # should enable the possibility of only recomputing a specific panel
+        # For each panel and vane, obtain coordinates of panels and compute the panel area
+        for j, id_list in enumerate([panel_id_list, vanes_id_list]):
+            if (j==0):
+                coordinates_list_pointer = self.sail_panels_coordinates
+                centroids_list_pointer = self.sail_panels_centroids
+                areas_list_pointer = self.sail_panels_areas
+                surface_normals_list_pointer = self.sail_panels_surface_normals
+            else:
+                coordinates_list_pointer = self.sail_vanes_coordinates
+                centroids_list_pointer = self.sail_vanes_centroids
+                areas_list_pointer = self.sail_vanes_areas
+                surface_normals_list_pointer = self.sail_vanes_surface_normals
+
+            for p_id in id_list:
+                current_panel_coordinates = coordinates_list_pointer[p_id]
+                number_of_attachment_points = len(current_panel_coordinates[:, 0])
+
+                # Compute centroid
+                current_panel_centroid = np.array([np.sum(current_panel_coordinates[:, 0])/number_of_attachment_points,
+                                          np.sum(current_panel_coordinates[:, 1])/number_of_attachment_points,
+                                          np.sum(current_panel_coordinates[:, 2])/number_of_attachment_points])
+
+                # Compute area
+                ref_point_area_calculation = current_panel_coordinates[0, :]
+                current_panel_coordinates_wrt_ref_point = current_panel_coordinates - ref_point_area_calculation
+                current_panel_coordinates_wrt_ref_point = current_panel_coordinates_wrt_ref_point[1:, :]
+                cross_product_sum = np.array([0, 0, 0], dtype='float64')
+                for i in range(number_of_attachment_points-2):
+                    cross_product_sum += np.cross(current_panel_coordinates_wrt_ref_point[i], current_panel_coordinates_wrt_ref_point[i+1])
+                current_panel_area = (1/2) * np.linalg.norm(cross_product_sum)
+
+                # Compute surface normal
+                current_panel_surface_normal = cross_product_sum/np.linalg.norm(cross_product_sum)  # Stokes theorem
+
+                # Assign to correct lists
+                centroids_list_pointer[p_id] = current_panel_centroid
+                areas_list_pointer[p_id] = current_panel_area
+                surface_normals_list_pointer[p_id] = current_panel_surface_normal
         return 0
+
+    def compute_sail_center_of_mass(self):
+        self.compute_reflective_panels_properties(list(range(self.sail_num_panels)), list(range(self.sail_num_vanes)))
+        sum = 0
+
+        # Fixed bus and booms
+        sum += self.spacecraft_mass_without_sail * self.sail_center_of_mass_body_fixed_position_without_ACS
+
+        # Compute contribution of panels
+        for i in range(self.sail_num_panels):
+            sum += self.sail_panels_centroids[i] * (self.sail_panels_areas[i] * self.sail_material_areal_density)
+
+        # Contribution of vanes
+        for i in range(self.sail_num_vanes):
+            sum += self.sail_vanes_centroids[i] * (self.sail_vanes_areas[i] * self.sail_material_areal_density)
+
+
+        sum += (self.attitude_conctrol_system_mass-self.sail_vanes_total_mass) * self.sail_attitude_control_system_center_of_mass
+        return sum/self.sail_mass
+
+    def compute_sail_inertia_tensor(self):  # TODO: handle both moving masses and moving panels
+        return self.sail_inertia_tensor
 
     # Control the sail craft
     def sail_attitude_control_system(self, t):
         # Calls the ACS, updating the spacecraft properties before sending it to the propagation
         if (t != self.current_time):
             # Call all ACS controllers here to change the spacecraft state and control the orbit
-            sail_attitude_control_systems.attitude_control(self.bodies, self.desired_sail_state)    # Find way to include the current state and the desired one
-            # Access the spacecraft state (translation and rotational) and determine the course of action
-            self.current_time = t
+            panels_coordinates, vanes_coordinates, panels_optical_properties, moving_mass_position, thrust_levels = self.attitude_control_system.attitude_control(self.bodies, self.desired_sail_state)    # Find way to include the current state and the desired one
+            self.sail_panels_coordinates = panels_coordinates if (len(panels_coordinates) != 0) else self.sail_panels_coordinates
+            self.sail_vanes_coordinates = vanes_coordinates if (len(vanes_coordinates) != 0) else self.sail_vanes_coordinates
+            self.sail_panels_optical_properties = panels_optical_properties if (len(panels_optical_properties) !=0) else self.sail_panels_optical_properties
+            # TODO: take care of the vanes optical properties, the moving masses and the thrust levels (and any other which will come in
 
+            self.compute_reflective_panels_properties(list(range(self.sail_num_panels)), list(range(self.sail_num_vanes)))        # Recompute the panel properties after the coordinates have been updated
+            self.current_time = t
         return 0
 
     # Pass body object to the class
@@ -154,21 +285,40 @@ class sail_craft(sail_attitude_control_systems):
         return self.sail_inertia_tensor
 
     # Get specific panel properties
-    def get_ith_panel_surface_normal(self, t, panel_id):
+    def get_ith_panel_surface_normal(self, t, panel_id, panel_type=""):
         self.sail_attitude_control_system(t)
-        return self.sail_panels_surface_normals[panel_id]
+        if (panel_type == "Vane"):
+            return self.sail_vanes_surface_normals[panel_id]
+        else:
+            return self.sail_panels_surface_normals[panel_id]
 
-    def get_ith_panel_area(self, t, panel_id):
+    def get_ith_panel_area(self, t, panel_id, panel_type=""):
         self.sail_attitude_control_system(t)
-        return self.sail_panels_areas[panel_id]
+        if (panel_type == "Vane"):
+            return self.sail_vanes_areas[panel_id]
+        else:
+            return self.sail_panels_areas[panel_id]
 
-    def get_ith_panel_centroid(self, t, panel_id):
+    def get_ith_panel_centroid(self, t, panel_id, panel_type=""):
         self.sail_attitude_control_system(t)
-        return self.sail_panels_centroids[panel_id]
+        if (panel_type == "Vane"):
+            return self.sail_vanes_centroids[panel_id]
+        else:
+            return self.sail_panels_centroids[panel_id]
 
-    def get_ith_panel_optical_properties(self, t, panel_id):
+    def get_ith_panel_optical_properties(self, t, panel_id, panel_type=""):
         self.sail_attitude_control_system(t)
-        return self.sail_panels_properties[panel_id]
+        if (panel_type == "Vane"):
+            return self.sail_vanes_optical_properties[panel_id]
+        else:
+            return self.sail_panels_optical_properties[panel_id]
+
+    def get_ith_panel_coordinates(self, t, panel_id, panel_type=""):
+        self.sail_attitude_control_system(t)
+        if (panel_type == "Vane"):
+            return self.sail_vanes_coordinates[panel_id]
+        else:
+            return self.sail_panels_coordinates[panel_id]
 
 def spacecraft_mass(t):
     return sail_mass

@@ -31,5 +31,6 @@ sail_cannonball_radiation_pressure_coefficient = 1.8  # [-]
 single_panel_area = 20  # m^2 area of a single panel
 n_panels = 4  # [-] number of panels
 
+boom_length = 7  # m
 # Sail performance metrics
 acc0 = 0.045 * 1E-3   # m/s/s characteristic sail acceleration
