@@ -10,10 +10,14 @@ class sail_attitude_control_systems:
         self.sail_default_panel_coordinates = default_panel_coordinates            # Default coordinates of the panels, when no control has been applied
         self.vane_reference_frame_origin = None
         self.vane_panels_coordinates = None
+        self.panel_coordinates_list = None
         self.vane_reference_frame_rotation_matrix = None
         self.sliding_masses = [None, None]
         self.gimball_mass = None
         self.bool_mass_based_controller = True if (ACS_system=="...") else False
+        self.number_of_vanes = None
+        self.number_of_panels = None
+        self.boom_tips_coordinates_list = None
 
 
     def attitude_control(self, bodies, desired_sail_state):
@@ -89,12 +93,51 @@ class sail_attitude_control_systems:
             new_vane_coordinates.append(rotated_vane_coordinates)
         return new_vane_coordinates
 
-    def set_shifted_panel_characteristics(self, panel_coordinates_list):
-        self.panel_coordinates = panel_coordinates_list
-        return False
+    def set_shifted_panel_characteristics(self, panel_coordinates_list, panel_areas_list, boom_tips_coordinates_list):
+        self.panel_coordinates_list = panel_coordinates_list
+        self.boom_coordinates_list = boom_tips_coordinates_list    # Assuming that the booms are straight only and going out from the origin. list 2x3 array (top is boom origin, bottom is boom tip)
+        self.number_of_panels = len(self.panel_coordinates_list)
+        self.panel_areas_list = panel_areas_list
 
-    def __shifted_panel_dynamics(self):
-        pass
+        # Determine which points are on which booms: check that the dot product between position vectors of the attachment point and the boom tip is positive and smaller than the boom length squared
+        # Do it only once in either case...
+        point_to_boom_belonging_list = []
+        for i in range(self.number_of_panels):
+            current_panel_coordinates = self.panel_coordinates_list[i]
+            point_to_boom_belonging = []
+            for point in current_panel_coordinates[:, :3]:
+                for j, boom in enumerate(self.boom_coordinates_list):
+                    point_position_vector_with_respect_to_boom_origin = point - boom[0, :3]
+                    boom_tip_position_vector_with_respect_to_boom_origin = boom[1, :3] - boom[0, :3]
+
+                    if (np.linalg.norm(np.cross(point_position_vector_with_respect_to_boom_origin,
+                                                boom_tip_position_vector_with_respect_to_boom_origin)) < 1e-15          # Check that the points are aligned
+                            and np.dot(point_position_vector_with_respect_to_boom_origin,
+                                       boom_tip_position_vector_with_respect_to_boom_origin) > 0                        # Check that you are on the correct side of the infinite line
+                            and np.linalg.norm(point_position_vector_with_respect_to_boom_origin) < np.linalg.norm(
+                                boom_tip_position_vector_with_respect_to_boom_origin)):                                 # Check that you are not beyond the line end
+                        # The point is on the selected boom
+                        point_to_boom_belonging.append(j)    # list index of the boom to which the point belongs
+                        break  # Can go to the next point
+                point_to_boom_belonging.append(None)  # The point was not found to belong to any boom
+            point_to_boom_belonging_list.append(point_to_boom_belonging)
+        self.point_to_boom_belonging_list = point_to_boom_belonging_list
+        return True
+
+    def __shifted_panel_dynamics(self, panel_shifts_list, keep_area_constant=True):
+        for i in range(self.number_of_panels):
+            current_panel_coordinates = self.panel_coordinates_list[i]
+            if (keep_area_constant):
+                if (np.shape(current_panel_coordinates)[0] == 3):
+                    pass
+                elif (np.shape(current_panel_coordinates)[0] == 4):
+                    pass
+                else:
+                    print('Unsupported constant area for more attachments points.')
+            else:
+                # Just shift the panels according to the inputs assuming that the material is extensible enough (simplifying assumption to avoid melting one's brain)
+                pass
+
     def is_mass_based(self):
         return self.bool_mass_based_controller
 
