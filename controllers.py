@@ -1,7 +1,7 @@
 from constants import sail_mass, sail_I
 from scipy.spatial.transform import Rotation as R
 import numpy as np
-from MiscFunctions import all_equal
+from MiscFunctions import all_equal, closest_point_on_a_line_to_a_third_point
 
 
 class sail_attitude_control_systems:
@@ -92,9 +92,9 @@ class sail_attitude_control_systems:
             new_vane_coordinates.append(rotated_vane_coordinates)
         return new_vane_coordinates
 
-    def set_shifted_panel_characteristics(self, wings_coordinates_list, wings_areas_list, wings_reference_frame_rotation_matrix_list, boom_tips_coordinates_list, keep_constant_area):
+    def set_shifted_panel_characteristics(self, wings_coordinates_list, wings_areas_list, wings_reference_frame_rotation_matrix_list, boom_coordinates_list, keep_constant_area):
         self.wings_coordinates_list = wings_coordinates_list       # The initial panel coordinates, in default state, not updated ones that move
-        self.boom_coordinates_list = boom_tips_coordinates_list    # Assuming that the booms are straight only and going out from the origin. list 2x3 array (top is boom origin, bottom is boom tip)
+        self.boom_coordinates_list = boom_coordinates_list    # Assuming that the booms are straight only and going out from the origin. list 2x3 array (top is boom origin, bottom is boom tip)
         self.number_of_wings = len(self.wings_coordinates_list)
         self.wings_areas_list = wings_areas_list
         self.wings_reference_frame_rotation_matrix_list = wings_reference_frame_rotation_matrix_list
@@ -108,15 +108,46 @@ class sail_attitude_control_systems:
             # There are some constraints on the defined geometry: need to have space between the boom and the attachment point to allow this move (see image in thesis document)
             # Check the necessary constraints on the geometry of the sail itself to be sure that it makes sense
             self.max_wings_inwards_translations_list = []
-            for wing_coords in wings_coordinates_list:
-                # TODO: determine the maximum local vertical translation of the panel shift
+            for i, wing_coords in enumerate(wings_coordinates_list):
+                wing_maximum_negative_vertical_displacement = -1e10
+                for point in wing_coords[:, :3]:
+                    # Determine the closest point on each point
+                    distance_to_booms_list = []
+                    for boom in self.boom_coordinates_list:
+                        boom_origin = boom[0, :]     # Boom origin
+                        boom_tip = boom[1, :]        # Boom tip
+                        closest_point = closest_point_on_a_line_to_a_third_point(boom_origin, boom_tip, point)
+                        distance = np.linalg.norm(point-closest_point)
+                        distance_to_booms_list.append(distance)
 
+                    # Determine closest boom
+                    closest_boom_index = distance_to_booms_list.index(min(distance_to_booms_list))  # Both booms could be valid for a single point in the 3 attachments case, but this does not matter too much
 
+                    # Determine the maximum translation along the Y-axis of the wing frame based on the geometry
+                    ## Get point coordinates in wing frame
+                    point_coordinates_wing_reference_frame = np.matmul(np.linalg.inv(
+                        self.wings_reference_frame_rotation_matrix_list[i]),
+                        point)
 
+                    boom_origin_coordinates_wing_reference_frame = np.matmul(np.linalg.inv(
+                        self.wings_reference_frame_rotation_matrix_list[i]),
+                        boom_coordinates_list[closest_boom_index][0, :])
 
-                self.max_wings_inwards_translations_list.append(0)
+                    boom_tip_coordinates_wing_reference_frame = np.matmul(
+                        np.linalg.inv(self.wings_reference_frame_rotation_matrix_list[i]),
+                        boom_coordinates_list[closest_boom_index][1, :])
 
+                    point_x_wing_reference_frame = point_coordinates_wing_reference_frame[0]
+                    point_y_wing_reference_frame = point_coordinates_wing_reference_frame[1]
 
+                    # Line equation of the selected boom in the wing reference frame
+                    a = (boom_tip_coordinates_wing_reference_frame[1]-boom_origin_coordinates_wing_reference_frame[1])/(boom_tip_coordinates_wing_reference_frame[0]-boom_origin_coordinates_wing_reference_frame[0])
+                    b = boom_tip_coordinates_wing_reference_frame[1] - a * boom_tip_coordinates_wing_reference_frame[0]
+                    point_maximum_negative_vertical_displacement = (a * point_x_wing_reference_frame + b) - point_y_wing_reference_frame
+                    if (point_maximum_negative_vertical_displacement > 0):
+                        raise Exception("Maximum negative vertical displacement is positive, weirdly...")
+                    wing_maximum_negative_vertical_displacement = max(point_maximum_negative_vertical_displacement, wing_maximum_negative_vertical_displacement)
+                self.max_wings_inwards_translations_list.append(wing_maximum_negative_vertical_displacement)
 
         if (not keep_constant_area):
             # Determine which points are on which booms: check that the dot product between position vectors of the attachment point and the boom tip is positive and smaller than the boom length squared
@@ -146,6 +177,7 @@ class sail_attitude_control_systems:
 
     def __shifted_panel_dynamics(self, wings_shifts_list):
         # panel_shifts_list: [[del_p1p1, del_p1p2, ...], [del_p2p1, del_p2p2, ...], ...] in meters along the boom
+        wing_coordinates_list = []
         for i in range(self.number_of_wings):
             current_wing_coordinates = self.wings_coordinates_list[i]
             current_wing_shifts = wings_shifts_list[i]
@@ -176,6 +208,8 @@ class sail_attitude_control_systems:
                     else:
                         new_point_coordinates_body_fixed_frame = point
                 new_current_panel_coordinates[j, :] = new_point_coordinates_body_fixed_frame
+            wing_coordinates_list.append(new_current_panel_coordinates)
+        return wing_coordinates_list
 
 
     def is_mass_based(self):
