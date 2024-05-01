@@ -1,6 +1,7 @@
 from constants import sail_mass, sail_I
 from scipy.spatial.transform import Rotation as R
 import numpy as np
+from MiscFunctions import all_equal
 
 
 class sail_attitude_control_systems:
@@ -10,13 +11,13 @@ class sail_attitude_control_systems:
         self.sail_default_panel_coordinates = default_panel_coordinates            # Default coordinates of the panels, when no control has been applied
         self.vane_reference_frame_origin = None
         self.vane_panels_coordinates = None
-        self.panel_coordinates_list = None
+        self.wings_coordinates_list = None
         self.vane_reference_frame_rotation_matrix = None
         self.sliding_masses = [None, None]
         self.gimball_mass = None
         self.bool_mass_based_controller = True if (ACS_system=="...") else False
         self.number_of_vanes = None
-        self.number_of_panels = None
+        self.number_of_wings = None
         self.boom_tips_coordinates_list = None
 
 
@@ -35,7 +36,7 @@ class sail_attitude_control_systems:
             case "test":
                 vane_coordinates = self.__vane_dynamics([90, 90, 90, 90], [-90, -90, -90, -90])
             case _:
-                print("ACS not available yet")
+                raise Exception("Selected ACS not available yet.")
 
         # the attitude-control algorithm should give the output
         return panel_coordinates, vane_coordinates, panel_optical_properties, moving_mass_position, thrust_levels
@@ -61,14 +62,12 @@ class sail_attitude_control_systems:
         # Get the vane panel coordinates as a result of the rotation
         # Based on the initial vane position and orientation in the body frame
         if (not all(-90 <= angle <= 90 for angle in rotation_x_deg) or not all(-90 <= angle <= 90 for angle in rotation_y_deg)):
-            print("Requested vane deflection is not permitted:" + f"x-rotation={rotation_x_deg} degrees and y-rotation={rotation_y_deg} degrees")
-            return False
+            raise Exception("Requested vane deflection is not permitted:" + f"x-rotation={rotation_x_deg} degrees and y-rotation={rotation_y_deg} degrees.")
 
         if (self.vane_reference_frame_origin == None
                 or self.vane_panels_coordinates == None
                 or self.vane_reference_frame_rotation_matrix == None):
-            print("Vane characteristics have not been set by the user")
-            return False
+            raise Exception("Vane characteristics have not been set by the user.")
 
         new_vane_coordinates = []
         for i in range(self.number_of_vanes):    # For each vane
@@ -93,50 +92,91 @@ class sail_attitude_control_systems:
             new_vane_coordinates.append(rotated_vane_coordinates)
         return new_vane_coordinates
 
-    def set_shifted_panel_characteristics(self, panel_coordinates_list, panel_areas_list, boom_tips_coordinates_list):
-        self.panel_coordinates_list = panel_coordinates_list
+    def set_shifted_panel_characteristics(self, wings_coordinates_list, wings_areas_list, wings_reference_frame_rotation_matrix_list, boom_tips_coordinates_list, keep_constant_area):
+        self.wings_coordinates_list = wings_coordinates_list       # The initial panel coordinates, in default state, not updated ones that move
         self.boom_coordinates_list = boom_tips_coordinates_list    # Assuming that the booms are straight only and going out from the origin. list 2x3 array (top is boom origin, bottom is boom tip)
-        self.number_of_panels = len(self.panel_coordinates_list)
-        self.panel_areas_list = panel_areas_list
+        self.number_of_wings = len(self.wings_coordinates_list)
+        self.wings_areas_list = wings_areas_list
+        self.wings_reference_frame_rotation_matrix_list = wings_reference_frame_rotation_matrix_list
+        self.keep_constant_area = keep_constant_area               # Bool indicating if the area of the panels should be conserved (pure translation of the panel)
 
-        # Determine which points are on which booms: check that the dot product between position vectors of the attachment point and the boom tip is positive and smaller than the boom length squared
-        # Do it only once in either case...
-        point_to_boom_belonging_list = []
-        for i in range(self.number_of_panels):
-            current_panel_coordinates = self.panel_coordinates_list[i]
-            point_to_boom_belonging = []
-            for point in current_panel_coordinates[:, :3]:
-                for j, boom in enumerate(self.boom_coordinates_list):
-                    point_position_vector_with_respect_to_boom_origin = point - boom[0, :3]
-                    boom_tip_position_vector_with_respect_to_boom_origin = boom[1, :3] - boom[0, :3]
 
-                    if (np.linalg.norm(np.cross(point_position_vector_with_respect_to_boom_origin,
-                                                boom_tip_position_vector_with_respect_to_boom_origin)) < 1e-15          # Check that the points are aligned
-                            and np.dot(point_position_vector_with_respect_to_boom_origin,
-                                       boom_tip_position_vector_with_respect_to_boom_origin) > 0                        # Check that you are on the correct side of the infinite line
-                            and np.linalg.norm(point_position_vector_with_respect_to_boom_origin) < np.linalg.norm(
-                                boom_tip_position_vector_with_respect_to_boom_origin)):                                 # Check that you are not beyond the line end
-                        # The point is on the selected boom
-                        point_to_boom_belonging.append(j)    # list index of the boom to which the point belongs
-                        break  # Can go to the next point
-                point_to_boom_belonging.append(None)  # The point was not found to belong to any boom
-            point_to_boom_belonging_list.append(point_to_boom_belonging)
-        self.point_to_boom_belonging_list = point_to_boom_belonging_list
+        if (keep_constant_area):
+            # Check that the sail geometry makes sense: the vertical space between the wings edge and the boom should be non-zero
+            # Determine the maximum vertical translation of each panel (should all be equal)
+
+            # There are some constraints on the defined geometry: need to have space between the boom and the attachment point to allow this move (see image in thesis document)
+            # Check the necessary constraints on the geometry of the sail itself to be sure that it makes sense
+            self.max_wings_inwards_translations_list = []
+            for wing_coords in wings_coordinates_list:
+                # TODO: determine the maximum local vertical translation of the panel shift
+
+
+
+
+                self.max_wings_inwards_translations_list.append(0)
+
+
+
+        if (not keep_constant_area):
+            # Determine which points are on which booms: check that the dot product between position vectors of the attachment point and the boom tip is positive and smaller than the boom length squared
+            # Do it only once in either case
+            point_to_boom_belonging_list = []
+            for i in range(self.number_of_wings):
+                current_panel_coordinates = self.wings_coordinates_list[i]
+                point_to_boom_belonging = []
+                for point in current_panel_coordinates[:, :3]:
+                    for j, boom in enumerate(self.boom_coordinates_list):
+                        point_position_vector_with_respect_to_boom_origin = point - boom[0, :]
+                        boom_tip_position_vector_with_respect_to_boom_origin = boom[1, :] - boom[0, :]
+
+                        if (np.linalg.norm(np.cross(point_position_vector_with_respect_to_boom_origin,
+                                                    boom_tip_position_vector_with_respect_to_boom_origin)) < 1e-15          # Check that the points are aligned
+                                and np.dot(point_position_vector_with_respect_to_boom_origin,
+                                           boom_tip_position_vector_with_respect_to_boom_origin) > 0                        # Check that you are on the correct side of the infinite line
+                                and np.linalg.norm(point_position_vector_with_respect_to_boom_origin) < np.linalg.norm(
+                                    boom_tip_position_vector_with_respect_to_boom_origin)):                                 # Check that you are not beyond the line end
+                            # The point is on the selected boom
+                            point_to_boom_belonging.append(j)    # list index of the boom to which the point belongs
+                            break  # Can go to the next point
+                    point_to_boom_belonging.append(None)  # The point was not found to belong to any boom
+                point_to_boom_belonging_list.append(point_to_boom_belonging)
+            self.point_to_boom_belonging_list = point_to_boom_belonging_list
         return True
 
-    def __shifted_panel_dynamics(self, panel_shifts_list, keep_area_constant=True):
-        for i in range(self.number_of_panels):
-            current_panel_coordinates = self.panel_coordinates_list[i]
-            if (keep_area_constant):
-                if (np.shape(current_panel_coordinates)[0] == 3):
-                    pass
-                elif (np.shape(current_panel_coordinates)[0] == 4):
-                    pass
+    def __shifted_panel_dynamics(self, wings_shifts_list):
+        # panel_shifts_list: [[del_p1p1, del_p1p2, ...], [del_p2p1, del_p2p2, ...], ...] in meters along the boom
+        for i in range(self.number_of_wings):
+            current_wing_coordinates = self.wings_coordinates_list[i]
+            current_wing_shifts = wings_shifts_list[i]
+            new_current_panel_coordinates = np.zeros(np.shape(current_wing_coordinates))
+            current_wing_reference_frame_rotation_matrix = self.wings_reference_frame_rotation_matrix_list[i]
+            for j, point in enumerate(current_wing_coordinates[:, :3]):
+                if (self.keep_constant_area):
+                    # Here, the panel is just shifted without any shape deformation. The shift is made along the Y-axis of the considered quadrant
+                    # The tether-spool system dictates the movement
+                    if (not all_equal(current_wing_shifts)):
+                        raise Exception("Inconsistent inputs for the shifted panels with constant area. All shifts need to be equal.")
+                    elif (current_wing_shifts[0] > 0 or current_wing_shifts[0] < self.max_wings_inwards_translations_list[i]):
+                        raise Exception("Requested shift is larger than allowable by the define geometry or positive (only negative are permitted). "
+                                        + f"requested shift: {current_wing_shifts[0]}, maximum negative shift: {self.max_wings_inwards_translations_list[i]}")
+                    else:
+                        # Rotate to the quadrant reference frame
+                        point_coordinates_wing_reference_frame = np.matmul(np.linalg.inv(current_wing_reference_frame_rotation_matrix), point)  # Get the position vector in the wing reference frame
+                        translated_point_coordinates_wing_reference_frame = point_coordinates_wing_reference_frame + current_wing_shifts[j] * np.array([0, 1, 0])               # Get the translated point in the wing reference frame
+                        new_point_coordinates_body_fixed_frame = np.matmul(current_wing_reference_frame_rotation_matrix, translated_point_coordinates_wing_reference_frame)     # Rotate back to body fixed reference frame
                 else:
-                    print('Unsupported constant area for more attachments points.')
-            else:
-                # Just shift the panels according to the inputs assuming that the material is extensible enough (simplifying assumption to avoid melting one's brain)
-                pass
+                    # Just shift the panels according to the inputs assuming that the material is extensible enough (simplifying assumption to avoid melting one's brain)
+                    # More general implementation but less realistic implementation for most cases
+                    related_boom = self.point_to_boom_belonging_list[j]
+                    if (related_boom != None):  #  Only do a shift if the attachment point belongs to a boom, not otherwise
+                        boom_vector = self.boom_coordinates_list[related_boom][1, :]-self.boom_coordinates_list[related_boom][1, :]
+                        boom_vector_unit = boom_vector/np.linalg.norm(boom_vector)
+                        new_point_coordinates_body_fixed_frame = point + boom_vector_unit * current_wing_shifts[j]  # Applying the panel shift
+                    else:
+                        new_point_coordinates_body_fixed_frame = point
+                new_current_panel_coordinates[j, :] = new_point_coordinates_body_fixed_frame
+
 
     def is_mass_based(self):
         return self.bool_mass_based_controller
