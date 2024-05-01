@@ -1,7 +1,7 @@
 from constants import sail_mass, sail_I
 from scipy.spatial.transform import Rotation as R
 import numpy as np
-from MiscFunctions import all_equal, closest_point_on_a_line_to_a_third_point
+from MiscFunctions import all_equal, closest_point_on_a_segment_to_a_third_point
 
 
 class sail_attitude_control_systems:
@@ -34,7 +34,12 @@ class sail_attitude_control_systems:
             case "vanes":
                 pass
             case "test":
-                vane_coordinates = self.__vane_dynamics([90, 90, 90, 90], [-90, -90, -90, -90])
+                #vane_coordinates = self.__vane_dynamics([90, 90, 90, 90], [-90, -90, -90, -90])
+                wing_shifts_list = [[0, 0, 0, 0],
+                                    [0, 0, 0, 0],
+                                    [0, 0, 0, 0],
+                                    [0, 0, 0, 0]]
+                panel_coordinates = self.__shifted_panel_dynamics(wing_shifts_list)
             case _:
                 raise Exception("Selected ACS not available yet.")
 
@@ -85,7 +90,6 @@ class sail_attitude_control_systems:
                 vane_rotation_matrix = np.matmul(Ry, Rx)
                 current_vane_coordinate_rotated_vane_reference_frame = np.matmul(vane_rotation_matrix, current_vane_coordinate_vane_reference_frame)
 
-
                 # Convert back to the body fixed reference frame
                 current_vane_coordinate_rotated_body_fixed_reference_frame = np.matmul(current_vane_frame_rotation_matrix, current_vane_coordinate_rotated_vane_reference_frame) + current_vane_origin
                 rotated_vane_coordinates[j, :] = current_vane_coordinate_rotated_body_fixed_reference_frame
@@ -99,7 +103,6 @@ class sail_attitude_control_systems:
         self.wings_areas_list = wings_areas_list
         self.wings_reference_frame_rotation_matrix_list = wings_reference_frame_rotation_matrix_list
         self.keep_constant_area = keep_constant_area               # Bool indicating if the area of the panels should be conserved (pure translation of the panel)
-
 
         if (keep_constant_area):
             # Check that the sail geometry makes sense: the vertical space between the wings edge and the boom should be non-zero
@@ -116,7 +119,7 @@ class sail_attitude_control_systems:
                     for boom in self.boom_coordinates_list:
                         boom_origin = boom[0, :]     # Boom origin
                         boom_tip = boom[1, :]        # Boom tip
-                        closest_point = closest_point_on_a_line_to_a_third_point(boom_origin, boom_tip, point)
+                        closest_point = closest_point_on_a_segment_to_a_third_point(boom_origin, boom_tip, point)
                         distance = np.linalg.norm(point-closest_point)
                         distance_to_booms_list.append(distance)
 
@@ -141,11 +144,15 @@ class sail_attitude_control_systems:
                     point_y_wing_reference_frame = point_coordinates_wing_reference_frame[1]
 
                     # Line equation of the selected boom in the wing reference frame
-                    a = (boom_tip_coordinates_wing_reference_frame[1]-boom_origin_coordinates_wing_reference_frame[1])/(boom_tip_coordinates_wing_reference_frame[0]-boom_origin_coordinates_wing_reference_frame[0])
+                    boom_dy = boom_tip_coordinates_wing_reference_frame[1]-boom_origin_coordinates_wing_reference_frame[1]
+                    boom_dx = boom_tip_coordinates_wing_reference_frame[0]-boom_origin_coordinates_wing_reference_frame[0]
+
+                    a = boom_dy/boom_dx
                     b = boom_tip_coordinates_wing_reference_frame[1] - a * boom_tip_coordinates_wing_reference_frame[0]
                     point_maximum_negative_vertical_displacement = (a * point_x_wing_reference_frame + b) - point_y_wing_reference_frame
-                    if (point_maximum_negative_vertical_displacement > 0):
-                        raise Exception("Maximum negative vertical displacement is positive, weirdly...")
+                    if (point_maximum_negative_vertical_displacement >= 0):
+                        print(point_maximum_negative_vertical_displacement)
+                        raise Exception("Maximum negative vertical displacement is positive or equal to zero")
                     wing_maximum_negative_vertical_displacement = max(point_maximum_negative_vertical_displacement, wing_maximum_negative_vertical_displacement)
                 self.max_wings_inwards_translations_list.append(wing_maximum_negative_vertical_displacement)
 
@@ -157,6 +164,7 @@ class sail_attitude_control_systems:
                 current_panel_coordinates = self.wings_coordinates_list[i]
                 point_to_boom_belonging = []
                 for point in current_panel_coordinates[:, :3]:
+                    found_boom = False
                     for j, boom in enumerate(self.boom_coordinates_list):
                         point_position_vector_with_respect_to_boom_origin = point - boom[0, :]
                         boom_tip_position_vector_with_respect_to_boom_origin = boom[1, :] - boom[0, :]
@@ -165,14 +173,18 @@ class sail_attitude_control_systems:
                                                     boom_tip_position_vector_with_respect_to_boom_origin)) < 1e-15          # Check that the points are aligned
                                 and np.dot(point_position_vector_with_respect_to_boom_origin,
                                            boom_tip_position_vector_with_respect_to_boom_origin) > 0                        # Check that you are on the correct side of the infinite line
-                                and np.linalg.norm(point_position_vector_with_respect_to_boom_origin) < np.linalg.norm(
+                                and np.linalg.norm(point_position_vector_with_respect_to_boom_origin) <= np.linalg.norm(
                                     boom_tip_position_vector_with_respect_to_boom_origin)):                                 # Check that you are not beyond the line end
                             # The point is on the selected boom
                             point_to_boom_belonging.append(j)    # list index of the boom to which the point belongs
+                            found_boom = True
                             break  # Can go to the next point
-                    point_to_boom_belonging.append(None)  # The point was not found to belong to any boom
+                    if (not found_boom): point_to_boom_belonging.append(None)  # The point was not found to belong to any boom
+                if (all(point_to_boom_belonging) == None):
+                    print(f"Warning. Boom {i} does not have any attachment point on the booms.")
                 point_to_boom_belonging_list.append(point_to_boom_belonging)
             self.point_to_boom_belonging_list = point_to_boom_belonging_list
+
         return True
 
     def __shifted_panel_dynamics(self, wings_shifts_list):
@@ -183,13 +195,14 @@ class sail_attitude_control_systems:
             current_wing_shifts = wings_shifts_list[i]
             new_current_panel_coordinates = np.zeros(np.shape(current_wing_coordinates))
             current_wing_reference_frame_rotation_matrix = self.wings_reference_frame_rotation_matrix_list[i]
+            if (not self.keep_constant_area): current_wing_boom_belongings = self.point_to_boom_belonging_list[i]
             for j, point in enumerate(current_wing_coordinates[:, :3]):
                 if (self.keep_constant_area):
                     # Here, the panel is just shifted without any shape deformation. The shift is made along the Y-axis of the considered quadrant
                     # The tether-spool system dictates the movement
                     if (not all_equal(current_wing_shifts)):
                         raise Exception("Inconsistent inputs for the shifted panels with constant area. All shifts need to be equal.")
-                    elif (current_wing_shifts[0] > 0 or current_wing_shifts[0] < self.max_wings_inwards_translations_list[i]):
+                    elif (current_wing_shifts[0] < self.max_wings_inwards_translations_list[i]):
                         raise Exception("Requested shift is larger than allowable by the define geometry or positive (only negative are permitted). "
                                         + f"requested shift: {current_wing_shifts[0]}, maximum negative shift: {self.max_wings_inwards_translations_list[i]}")
                     else:
@@ -200,11 +213,13 @@ class sail_attitude_control_systems:
                 else:
                     # Just shift the panels according to the inputs assuming that the material is extensible enough (simplifying assumption to avoid melting one's brain)
                     # More general implementation but less realistic implementation for most cases
-                    related_boom = self.point_to_boom_belonging_list[j]
+                    related_boom = current_wing_boom_belongings[j]
                     if (related_boom != None):  #  Only do a shift if the attachment point belongs to a boom, not otherwise
-                        boom_vector = self.boom_coordinates_list[related_boom][1, :]-self.boom_coordinates_list[related_boom][1, :]
+                        boom_vector = self.boom_coordinates_list[related_boom][1, :]-self.boom_coordinates_list[related_boom][0, :]
                         boom_vector_unit = boom_vector/np.linalg.norm(boom_vector)
                         new_point_coordinates_body_fixed_frame = point + boom_vector_unit * current_wing_shifts[j]  # Applying the panel shift
+                        if (np.linalg.norm(new_point_coordinates_body_fixed_frame) > np.linalg.norm(boom_vector)):
+                            raise Exception("Error. Wing shifted beyond the boom length")
                     else:
                         new_point_coordinates_body_fixed_frame = point
                 new_current_panel_coordinates[j, :] = new_point_coordinates_body_fixed_frame
@@ -296,7 +311,7 @@ class sail_craft:
         self.sail_vanes_total_mass = vane_mass
 
         # Bookkeeping variables
-        self.current_time = None
+        self.current_time = -1
 
     def compute_reflective_panels_properties(self, panel_id_list, vanes_id_list):  # should enable the possibility of only recomputing a specific panel
         # For each panel and vane, obtain coordinates of panels and compute the panel area

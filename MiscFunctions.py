@@ -1,17 +1,22 @@
 import numpy as np
 from itertools import groupby
 
-def closest_point_on_a_line_to_a_third_point(p1, p2, p3):
-    if ((p3 == p1) or (p3 ==p2)):
-        return p1 if (p3 == p1) else p2
+def closest_point_on_a_segment_to_a_third_point(p1, p2, p3):
+    if (all(p3[i] == p1[i] for i in range(len(p3)))):
+        return p1
+    elif (all(p3[i] == p2[i] for i in range(len(p3)))):
+        return p2
     else:
-        x1, y1 = p1
-        x2, y2 = p2
-        x3, y3 = p3
-        dx, dy = x2-x1, y2-y1
-        det = dx*dx + dy*dy
-        a = (dy*(y3-y1)+dx*(x3-x1))/det
-        return x1+a*dx, y1+a*dy
+        d = (p2-p1)/np.linalg.norm((p2-p1))
+        w = p3-p1
+        magnitude = np.dot(w, d)
+        p4 = d * np.dot(w, d)
+        if (magnitude < 0):
+            return p1
+        elif (magnitude > 0 and np.linalg.norm(p4-p1) > np.linalg.norm(p2-p1)):
+            return p2
+        else:
+            return p4
 
 def all_equal(iterable):
     g = groupby(iterable)
