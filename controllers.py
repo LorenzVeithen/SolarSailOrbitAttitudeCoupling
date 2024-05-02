@@ -13,9 +13,9 @@ class sail_attitude_control_systems:
         self.vane_panels_coordinates = None
         self.wings_coordinates_list = None
         self.vane_reference_frame_rotation_matrix = None
-        self.sliding_masses = [None, None]
+        self.sliding_masses = None
         self.gimball_mass = None
-        self.bool_mass_based_controller = True if (ACS_system=="...") else False
+        self.bool_mass_based_controller = None
         self.number_of_vanes = None
         self.number_of_wings = None
         self.boom_tips_coordinates_list = None
@@ -32,14 +32,15 @@ class sail_attitude_control_systems:
             case "gimball_mass":
                 self.__pure_gimball_mass(bodies, desired_sail_state)
             case "vanes":
-                pass
-            case "test":
-                #vane_coordinates = self.__vane_dynamics([90, 90, 90, 90], [-90, -90, -90, -90])
-                wing_shifts_list = [[0, 0, 0, 0],
+                vane_coordinates = self.__vane_dynamics([-20, -20, -20, -20], [-45, -45, -45, -45])
+            case "shifted_wings":
+                wing_shifts_list = [[-0.4, -0.4, -0.4, -0.4],
                                     [0, 0, 0, 0],
                                     [0, 0, 0, 0],
                                     [0, 0, 0, 0]]
                 panel_coordinates = self.__shifted_panel_dynamics(wing_shifts_list)
+            case "test":
+                pass
             case _:
                 raise Exception("Selected ACS not available yet.")
 
@@ -98,7 +99,7 @@ class sail_attitude_control_systems:
 
     def set_shifted_panel_characteristics(self, wings_coordinates_list, wings_areas_list, wings_reference_frame_rotation_matrix_list, boom_coordinates_list, keep_constant_area):
         self.wings_coordinates_list = wings_coordinates_list       # The initial panel coordinates, in default state, not updated ones that move
-        self.boom_coordinates_list = boom_coordinates_list    # Assuming that the booms are straight only and going out from the origin. list 2x3 array (top is boom origin, bottom is boom tip)
+        self.boom_coordinates_list = boom_coordinates_list         # Assuming that the booms are straight only and going out from the origin. list 2x3 array (top is boom origin, bottom is boom tip)
         self.number_of_wings = len(self.wings_coordinates_list)
         self.wings_areas_list = wings_areas_list
         self.wings_reference_frame_rotation_matrix_list = wings_reference_frame_rotation_matrix_list
@@ -216,7 +217,7 @@ class sail_attitude_control_systems:
                     related_boom = current_wing_boom_belongings[j]
                     if (related_boom != None):  #  Only do a shift if the attachment point belongs to a boom, not otherwise
                         boom_vector = self.boom_coordinates_list[related_boom][1, :]-self.boom_coordinates_list[related_boom][0, :]
-                        boom_vector_unit = boom_vector/np.linalg.norm(boom_vector)
+                        boom_vector_unit = boom_vector/np.linalg.norm(boom_vector)  # Could change to do it a single time and find it in a list
                         new_point_coordinates_body_fixed_frame = point + boom_vector_unit * current_wing_shifts[j]  # Applying the panel shift
                         if (np.linalg.norm(new_point_coordinates_body_fixed_frame) > np.linalg.norm(boom_vector)):
                             raise Exception("Error. Wing shifted beyond the boom length")
@@ -227,15 +228,83 @@ class sail_attitude_control_systems:
         return wing_coordinates_list
 
 
+    def set_sliding_masses_characteristics(self, sliding_masses_list, boom_coordinates_list, sliding_mass_system_type=0):
+        self.bool_mass_based_controller = True
+        self.sliding_masses_list = sliding_masses_list      # [m1, m2, m3, m4] in the same order as the booms or [m1, m2] if the system type is 1
+        self.boom_coordinates_list = boom_coordinates_list  # Assuming that the booms are straight only and going out from the origin. list 2x3 array (top is boom origin, bottom is boom tip)
+        if (sliding_mass_system_type == 0):
+            # 1 mass per boom (2 for a nominal square configuration)
+            ## Do nothing probably, as it is the easiest case
+            self.sliding_mass_extreme_positions_list = self.boom_coordinates_list
+            self.sliding_mass_system_is_accross_two_booms = [False] * len(self.boom_coordinates_list)
+        elif (sliding_mass_system_type == 1):
+            # 1 mass per aligned boom (2 for a nominal square configuration)
+            ## Determine which booms are aligned with each other
+            ## Assume that no more than 2 booms are aligned with each other (would not make sense otherwise
+            aligned_booms_list = []
+            temporary_boom_list = boom_coordinates_list
+            for i in range(len(boom_coordinates_list)):
+                boom_1_vector = boom_coordinates_list[i][1, :] - boom_coordinates_list[i][0, :]
+                if (temporary_boom_list[i] != None): # Only consider the element if it was not found as aligned before
+                    for j in range(i+1, len(temporary_boom_list)):
+                        if (temporary_boom_list[j] != None):
+                            boom_2_vector = temporary_boom_list[j][1, :] - temporary_boom_list[j][0, :]
+                            if (np.linalg.norm(np.cross(boom_1_vector, boom_2_vector)) < 1e-15):
+                                # Store that the two booms are linked
+                                aligned_booms_list.append((i, j))
+                                # Remove them from the list
+                                temporary_boom_list[i] = None
+                                temporary_boom_list[j] = None
+
+            # Determine booms which are not aligned with others
+            isolated_booms = list(np.where(temporary_boom_list != None))
+            independent_sliding_mass_systems = aligned_booms_list + isolated_booms
+
+            # Loop through the independent sliding masses and determine the end points
+            self.sliding_mass_system_is_accross_two_booms = []
+            for sliding_mass in independent_sliding_mass_systems:
+                if (type(sliding_mass)==tuple):
+                    self.sliding_mass_system_is_accross_two_booms.append(True)
+                    # These are combined booms, find the end points. Convention: points in quadrant I and IV are the "tip" of the direction vector
+                    first_point_is_tip = False  # First assume that the first point is not the tip
+                    first_point_x = boom_coordinates_list[sliding_mass[0]][1][0]
+                    first_point_y = boom_coordinates_list[sliding_mass[0]][1][1]
+                    if (first_point_x == 0):
+                        if (first_point_y > 0): first_point_is_tip = True
+                    elif (first_point_y == 0):
+                        if (first_point_x > 0): first_point_is_tip = True
+                    elif (first_point_y/first_point_x > 0):
+                        first_point_is_tip = True
+
+                    if (first_point_is_tip):
+                        origin = boom_coordinates_list[sliding_mass[1]][1]
+                        tip = boom_coordinates_list[sliding_mass[1]][1]
+                        self.sliding_mass_extreme_positions_list[sliding_mass] = np.array([origin, tip])
+                else:
+                    # individual boom, the end points of the mass movement are the coordinates of the origin and tip of the boom
+                    self.sliding_mass_extreme_positions_list[sliding_mass] = boom_coordinates_list[sliding_mass]
+                    self.sliding_mass_system_is_accross_two_booms.append(False)
+
+
+
+        self.sliding_mass_unit_direction = []
+        for sm in self.sliding_mass_extreme_positions_list:
+            sm_vector = sm[1, :] - sm[0, :]
+            sm_vector_unit = sm_vector / np.linalg.norm(sm_vector)
+            self.sliding_mass_unit_direction.append(sm_vector_unit)
+        return True
+
+    def __sliding_mass_dynamics(self, displacement_from_boom_origin):
+        # The displacement should be around the origin of the boom for an independent one, and wrt to the middle of the boom if it is an aligned one
+        pass
+
     def is_mass_based(self):
         return self.bool_mass_based_controller
 
     def set_gimball_mass_chateristics(self, mass_of_gimbaled_ballast):
+        self.bool_mass_based_controller = True
         self.gimbaled_mass = mass_of_gimbaled_ballast
         return True
-
-    def set_sliding_masses_characteristics(self):
-        pass
 
     def get_attitude_system_mass(self):
         if (self.is_mass_based()):
