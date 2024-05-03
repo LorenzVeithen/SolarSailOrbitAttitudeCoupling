@@ -88,11 +88,11 @@ if (not VANES_BOOL):
             panel_coordinates_list[i] = new_points
 
 if (VANES_BOOL):
-    acs_object = sail_attitude_control_systems("vanes", panel_coordinates_list)
-    acs_object.set_vane_characteristics(vane_origin_list, vane_coordinates_list, vanes_rotation_matrices_list)
+    acs_object = sail_attitude_control_systems("vanes", boom_list)
+    acs_object.set_vane_characteristics(vane_coordinates_list, vane_origin_list, vanes_rotation_matrices_list)
 
 else:
-    acs_object = sail_attitude_control_systems("shifted_wings", panel_coordinates_list)
+    acs_object = sail_attitude_control_systems("shifted_wings", boom_list)
 
 
 if VANES_BOOL:
