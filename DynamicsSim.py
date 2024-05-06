@@ -1,9 +1,19 @@
 # Load standard modules
+import matplotlib
+import numpy as np
+matplotlib.use('TkAgg')
+from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
 from constants import *
+from controllers import *
+
+import sys
+sys.path.insert(0, r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy")
 
 from tudatpy.astro.element_conversion import rotation_matrix_to_quaternion_entries
 from MiscFunctions import set_axes_equal, axisRotation
-from controllers import *
+
 
 # Load tudatpy modules
 from tudatpy.interface import spice
@@ -13,9 +23,6 @@ from tudatpy.astro import element_conversion
 from tudatpy import constants
 from tudatpy.util import result2array
 from tudatpy.astro.time_conversion import DateTime
-
-import sys
-sys.path.insert(0, r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy")
 
 class sailCoupledDynamicsProblem(sail_craft):
 

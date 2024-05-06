@@ -1,4 +1,10 @@
 # Load standard modules
+import numpy as np
+import matplotlib.pyplot as plt
+
+import sys
+sys.path.insert(0, r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy")
+
 from constants import *
 
 from tudatpy.astro.element_conversion import rotation_matrix_to_quaternion_entries
@@ -24,7 +30,7 @@ spice.load_standard_kernels()
 
 # Set simulation start and end epochs
 simulation_start_epoch = DateTime(2024, 6, 1, 0).epoch()
-simulation_end_epoch   = DateTime(2024, 6, 1, 9).epoch()
+simulation_end_epoch = DateTime(2024, 6, 1, 9).epoch()
 
 # Create default body settings for "Earth"
 bodies_to_create = ["Earth", "Sun"]
@@ -47,7 +53,10 @@ occulting_bodies_dict = dict()
 occulting_bodies_dict[ "Sun" ] = [ "Earth" ]
 
 # Written such that it can be extended in the future
-panel_geom_1 = environment_setup.vehicle_systems.frame_fixed_panel_geometry(surface_normal=np.array([0,0,1]), area=(n_panels * single_panel_area), frame_orientation="VehicleFixed")
+panel_geom_1 = environment_setup.vehicle_systems.frame_fixed_panel_geometry(surface_normal=np.array([[0.0], [0.0], [1.0]], dtype=np.float64),
+                                                                            position_vector=np.array([[10.0], [10.0], [10.0]], dtype=np.float64),
+                                                                            area=(n_panels * single_panel_area),
+                                                                            frame_orientation="VehicleFixed")
 reflection_law = environment_setup.radiation_pressure.solar_sail_optical_body_panel_reflection(1, 1, 0, 0, 0, 0, 0, 0, 0, 0)
 panel1 = environment_setup.vehicle_systems.body_panel_settings(panel_type_id="Sail", panel_reflection_law=reflection_law, panel_geometry=panel_geom_1)
 panelled_body = environment_setup.vehicle_systems.full_panelled_body_settings(panel_settings=[panel1])  # No rotational models for the panels
@@ -56,7 +65,7 @@ body_settings.get('ACS3').vehicle_shape_settings = panelled_body
 vehicle_target_settings = environment_setup.radiation_pressure.panelled_radiation_target(occulting_bodies_dict)
 
 
-constant_orientation = np.array([[1, 0, 0], [0, -1, 0], [0, 0, 1]])
+constant_orientation = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 # create rotation model settings and assign to body settings of "Earth"
 body_settings.get("ACS3").rotation_model_settings = environment_setup.rotation_model.constant_rotation_model(global_frame_orientation,
                                                                                                 "VehicleFixed",
@@ -121,11 +130,11 @@ translational_propagator_settings = propagation_setup.propagator.translational(
 )
 
 # Rotational dynamics settings
-torque_settings_on_sail = dict()  #dict(Earth = [propagation_setup.torque.second_degree_gravitational()])
+torque_settings_on_sail = dict(Sun=[propagation_setup.torque.radiation_pressure()])  # dict(Earth = [propagation_setup.torque.second_degree_gravitational()])
 torque_settings = {'ACS3': torque_settings_on_sail}
 torque_model = propagation_setup.create_torque_models(bodies, torque_settings, bodies_to_propagate)
 
-initial_rotational_state = np.concatenate((rotation_matrix_to_quaternion_entries(np.eye(3)), np.array([0.0, 0.0, 0.00001])))
+initial_rotational_state = np.concatenate((rotation_matrix_to_quaternion_entries(np.eye(3)), np.array([0., 0., 0.])))
 
 rotational_propagator_settings = propagation_setup.propagator.rotational( torque_model,
                                                                           bodies_to_propagate,
@@ -141,6 +150,7 @@ dependent_variables = [ propagation_setup.dependent_variable.keplerian_state('AC
                         propagation_setup.dependent_variable.single_acceleration(propagation_setup.acceleration.radiation_pressure_type, "ACS3", "Sun"),
                         propagation_setup.dependent_variable.relative_position("ACS3", "Sun"),
                         propagation_setup.dependent_variable.central_body_fixed_spherical_position('Earth', 'ACS3'),
+                        propagation_setup.dependent_variable.single_torque_norm(propagation_setup.torque.radiation_pressure_type, "ACS3", "Sun"),
                         propagation_setup.dependent_variable.inertial_to_body_fixed_313_euler_angles('ACS3'),
                       ]
 
@@ -251,14 +261,23 @@ ax.set_xlabel('x [m]')
 ax.set_ylabel('y [m]')
 ax.set_zlabel('z [m]')
 set_axes_equal(ax)
+print(dependent_variable_array[:, -4])
 
-plt.show()
+
+
 # 313 rotation
-'''
+
 psi_list = dependent_variable_array[:, -1]
 theta_list = dependent_variable_array[:, -2]
 phi_list = dependent_variable_array[:, -3]
 
+plt.figure()
+plt.plot(time_hours, psi_list, label="psi")
+plt.plot(time_hours, theta_list, label="theta")
+plt.plot(time_hours, phi_list, label="phi")
+plt.legend()
+plt.show()
+'''
 M_list = []
 for i in range(psi_list):
     M = axisRotation(-phi_list[i], 3) * axisRotation(-theta_list[i], 1) * axisRotation(-psi_list[i], 3)

@@ -1,6 +1,30 @@
 import numpy as np
 from itertools import groupby
 
+
+def compute_panel_geometrical_properties(panel_coordinates):
+    current_panel_coordinates = panel_coordinates
+    number_of_attachment_points = len(current_panel_coordinates[:, 0])
+
+    # Compute centroid
+    current_panel_centroid = np.array([np.sum(current_panel_coordinates[:, 0]) / number_of_attachment_points,
+                                       np.sum(current_panel_coordinates[:, 1]) / number_of_attachment_points,
+                                       np.sum(current_panel_coordinates[:, 2]) / number_of_attachment_points])
+
+    # Compute area
+    ref_point_area_calculation = current_panel_coordinates[0, :]
+    current_panel_coordinates_wrt_ref_point = current_panel_coordinates - ref_point_area_calculation
+    current_panel_coordinates_wrt_ref_point = current_panel_coordinates_wrt_ref_point[1:, :]
+    cross_product_sum = np.array([0, 0, 0], dtype='float64')
+    for i in range(number_of_attachment_points - 2):
+        cross_product_sum += np.cross(current_panel_coordinates_wrt_ref_point[i],
+                                      current_panel_coordinates_wrt_ref_point[i + 1])
+    current_panel_area = (1 / 2) * np.linalg.norm(cross_product_sum)
+
+    # Compute surface normal
+    current_panel_surface_normal = cross_product_sum / np.linalg.norm(cross_product_sum)  # Stokes theorem
+    return current_panel_centroid, current_panel_area, current_panel_surface_normal
+
 def closest_point_on_a_segment_to_a_third_point(p1, p2, p3):
     if (all(p3[i] == p1[i] for i in range(len(p3)))):
         return p1

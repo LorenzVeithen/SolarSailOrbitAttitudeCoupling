@@ -1,8 +1,4 @@
 import numpy as np
-import matplotlib
-matplotlib.use('TkAgg')
-from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
 # ideas:
 ## Make the full code object-oriented for the different characteristics of the mission / spacecraft
