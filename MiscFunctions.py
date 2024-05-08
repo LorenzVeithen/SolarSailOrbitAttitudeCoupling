@@ -1,7 +1,8 @@
 import numpy as np
 from itertools import groupby
+from numba import jit
 
-
+@jit(nopython=True, cache=True)
 def compute_panel_geometrical_properties(panel_coordinates):
     current_panel_coordinates = panel_coordinates
     number_of_attachment_points = len(current_panel_coordinates[:, 0])
