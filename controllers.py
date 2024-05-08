@@ -1,4 +1,4 @@
-from constants import sail_mass, sail_I
+from constants import sail_mass, sail_I, sail_nominal_CoM
 from scipy.spatial.transform import Rotation as R
 import numpy as np
 from MiscFunctions import all_equal, closest_point_on_a_segment_to_a_third_point, compute_panel_geometrical_properties
@@ -63,7 +63,7 @@ class sail_attitude_control_systems:
             case "vanes":
                 vanes_coordinates = self.__vane_dynamics([-20, -20, -20, -20], [-45, -45, -45, -45])
             case "shifted_wings":
-                wing_shifts_list = [[0, 0, 0, 0],
+                wing_shifts_list = [[-0.4, -0.4, -0.4, -0.4],
                                     [0, 0, 0, 0],
                                     [0, 0, 0, 0],
                                     [0, 0, 0, 0]]
@@ -74,6 +74,9 @@ class sail_attitude_control_systems:
                 moving_masses_CoM_components = sliding_masses_CoM * sum(self.sliding_masses_list)
 
                 moving_masses_positions["sliding_masses"] = sliding_masses_positions_body_fixed_frame_list
+            case "None":
+                # No attitude control system
+                pass    # TODO: is this really good practice to keep a pass statement
             case "test":
                 pass
             case _:
@@ -411,11 +414,11 @@ class sail_attitude_control_systems:
 
 class sail_craft:
     def __init__(self,
-                 num_panels,
+                 num_wings,
                  num_vanes,
-                 initial_panels_coordinates_body_frame,
+                 initial_wings_coordinates_body_frame,
                  initial_vanes_coordinates_body_frame,
-                 initial_panels_optical_properties,
+                 initial_wings_optical_properties,
                  initial_vanes_optical_properties,
                  initial_inertia_tensor_body_frame,
                  sail_mass_without_ACS,
@@ -430,7 +433,7 @@ class sail_craft:
         self.attitude_control_system = attitude_control_object                          # The ACS class object to obtain all control mechanisms
 
         # Non-varying sail characteristics
-        self.sail_num_wings = num_panels
+        self.sail_num_wings = num_wings
         self.sail_num_vanes = num_vanes
         self.sail_mass_without_attitude_control_system = sail_mass_without_ACS
         self.spacecraft_mass_without_sail = spacecraft_mass_without_sail
@@ -443,11 +446,11 @@ class sail_craft:
 
         # Time-varying variables
         ## Panels
-        self.sail_wings_coordinates = initial_panels_coordinates_body_frame            # List of num_points x 3 arrays - assuming points {p_i}, 0<=i<n, forms a counterclockwise polygon,
-        self.sail_wings_optical_properties = initial_panels_optical_properties         # num_panels x 10 array of panel surface properties
-        self.sail_wings_areas = np.zeros(num_panels)                                    # List of panel areas
-        self.sail_panels_centroids = [None] * num_panels                                # List of panel centroids
-        self.sail_panels_surface_normals = [None] * num_panels                          # List of panel surface normal
+        self.sail_wings_coordinates = initial_wings_coordinates_body_frame            # List of num_points x 3 arrays - assuming points {p_i}, 0<=i<n, forms a counterclockwise polygon,
+        self.sail_wings_optical_properties = initial_wings_optical_properties         # num_panels x 10 array of panel surface properties
+        self.sail_wings_areas = np.zeros(num_wings)                                    # List of panel areas
+        self.sail_wings_centroids = [None] * num_wings                                # List of panel centroids
+        self.sail_wings_surface_normals = [None] * num_wings                          # List of panel surface normal
 
         ## Vanes
         self.sail_vanes_coordinates = initial_vanes_coordinates_body_frame              # List of num_points x 3 arrays - assuming points {p_i}, 0<=i<n, forms a counterclockwise polygon,
@@ -481,9 +484,9 @@ class sail_craft:
         for j, id_list in enumerate([panel_id_list, vanes_id_list]):
             if (j==0):
                 coordinates_list_pointer = self.sail_wings_coordinates
-                centroids_list_pointer = self.sail_panels_centroids
+                centroids_list_pointer = self.sail_wings_centroids
                 areas_list_pointer = self.sail_wings_areas
-                surface_normals_list_pointer = self.sail_panels_surface_normals
+                surface_normals_list_pointer = self.sail_wings_surface_normals
             else:
                 coordinates_list_pointer = self.sail_vanes_coordinates
                 centroids_list_pointer = self.sail_vanes_centroids
@@ -508,7 +511,7 @@ class sail_craft:
 
         # Compute contribution of panels
         for i in range(self.sail_num_wings):
-            summation += self.sail_panels_centroids[i] * (self.sail_wings_areas[i] * self.sail_material_areal_density)
+            summation += self.sail_wings_centroids[i] * (self.sail_wings_areas[i] * self.sail_material_areal_density)
 
         ## Contribution of vanes - already taking into account in the ACS component
         #for i in range(self.sail_num_vanes):
@@ -568,37 +571,43 @@ class sail_craft:
         self.sail_attitude_control_system(t)
         return self.moving_masses_positions_dict
 
+    def get_number_of_wings(self):
+        return self.sail_num_wings
+
+    def get_number_of_vanes(self):
+        return self.sail_num_vanes
+
     # Get specific panel properties
-    def get_ith_panel_surface_normal(self, t, panel_id, panel_type=""):
-        self.sail_attitude_control_system(t)
+    def get_ith_panel_surface_normal(self, panel_id, panel_type=""):
+        #self.sail_attitude_control_system(0)    # TODO: update to remove time dependence?
         if (panel_type == "Vane"):
             return self.sail_vanes_surface_normals[panel_id]
         else:
-            return self.sail_panels_surface_normals[panel_id]
+            return self.sail_wings_surface_normals[panel_id]
 
-    def get_ith_panel_area(self, t, panel_id, panel_type=""):
-        self.sail_attitude_control_system(t)
+    def get_ith_panel_area(self, panel_id, panel_type=""):
+        #self.sail_attitude_control_system(0)    # TODO: update to remove time dependence?
         if (panel_type == "Vane"):
             return self.sail_vanes_areas[panel_id]
         else:
             return self.sail_wings_areas[panel_id]
 
-    def get_ith_panel_centroid(self, t, panel_id, panel_type=""):
-        self.sail_attitude_control_system(t)
+    def get_ith_panel_centroid(self, panel_id, panel_type=""):
+        #self.sail_attitude_control_system(0)    # TODO: update to remove time dependence?
         if (panel_type == "Vane"):
             return self.sail_vanes_centroids[panel_id]
         else:
-            return self.sail_panels_centroids[panel_id]
+            return self.sail_wings_centroids[panel_id]
 
-    def get_ith_panel_optical_properties(self, t, panel_id, panel_type=""):
-        self.sail_attitude_control_system(t)
+    def get_ith_panel_optical_properties(self, panel_id, panel_type=""):
+        #self.sail_attitude_control_system(0)    # TODO: update to remove time dependence?
         if (panel_type == "Vane"):
             return self.sail_vanes_optical_properties[panel_id]
         else:
             return self.sail_wings_optical_properties[panel_id]
 
-    def get_ith_panel_coordinates(self, t, panel_id, panel_type=""):
-        self.sail_attitude_control_system(t)
+    def get_ith_panel_coordinates(self, panel_id, panel_type=""):
+        #self.sail_attitude_control_system(0)    # TODO: update to remove time dependence?
         if (panel_type == "Vane"):
             return self.sail_vanes_coordinates[panel_id]
         else:
@@ -608,7 +617,16 @@ def spacecraft_mass(t):
     return sail_mass
 
 def spacecraft_center_of_mass(t):
-    return np.array([0, 0, 0])
+    return sail_nominal_CoM
 
 def spacecraft_mass_moment_of_inertia(t):
     return sail_I
+
+def panel_surface_normal():
+    return np.array([[0], [0], [1]], dtype="float64")
+
+def panel_position_vector():
+    return np.array([[0], [0], [0]], dtype="float64")
+
+def panel_area():
+    return 20.0

@@ -53,11 +53,12 @@ occulting_bodies_dict = dict()
 occulting_bodies_dict[ "Sun" ] = [ "Earth" ]
 
 # Written such that it can be extended in the future
-panel_geom_1 = environment_setup.vehicle_systems.frame_fixed_panel_geometry(surface_normal=np.array([[0.0], [0.0], [1.0]], dtype=np.float64),
-                                                                            position_vector=np.array([[10.0], [10.0], [10.0]], dtype=np.float64),
-                                                                            area=(n_panels * single_panel_area),
-                                                                            frame_orientation="VehicleFixed")
+panel_geom_1 = environment_setup.vehicle_systems.time_varying_panel_geometry(   surface_normal_function=panel_surface_normal,
+                                                                                position_vector_function=panel_position_vector,
+                                                                                area_function=panel_area,
+                                                                                frame_orientation="")
 reflection_law = environment_setup.radiation_pressure.solar_sail_optical_body_panel_reflection(1, 1, 0, 0, 0, 0, 0, 0, 0, 0)
+#reflection_law = environment_setup.radiation_pressure.specular_diffuse_body_panel_reflection(1, 0, False)
 panel1 = environment_setup.vehicle_systems.body_panel_settings(panel_type_id="Sail", panel_reflection_law=reflection_law, panel_geometry=panel_geom_1)
 panelled_body = environment_setup.vehicle_systems.full_panelled_body_settings(panel_settings=[panel1])  # No rotational models for the panels
 body_settings.get('ACS3').vehicle_shape_settings = panelled_body

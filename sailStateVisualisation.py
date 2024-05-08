@@ -10,10 +10,10 @@ from MiscFunctions import compute_panel_geometrical_properties
 boom_attachment_point = 0.64
 
 VANES_BOOL = False
-SHIFTED_PANELS_BOOL = False
-keep_area = True
+SHIFTED_PANELS_BOOL = True
+keep_area = False
 
-SLIDING_MASS_BOOL = True
+SLIDING_MASS_BOOL = False
 
 # Boom points
 boom1 = np.array([[0, 0, 0], [0, boom_length, 0]])

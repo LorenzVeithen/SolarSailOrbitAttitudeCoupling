@@ -11,7 +11,6 @@ from controllers import *
 import sys
 sys.path.insert(0, r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy")
 
-from tudatpy.astro.element_conversion import rotation_matrix_to_quaternion_entries
 from MiscFunctions import set_axes_equal, axisRotation
 
 
@@ -19,28 +18,20 @@ from MiscFunctions import set_axes_equal, axisRotation
 from tudatpy.interface import spice
 from tudatpy import numerical_simulation
 from tudatpy.numerical_simulation import environment_setup, propagation_setup
-from tudatpy.astro import element_conversion
 from tudatpy import constants
 from tudatpy.util import result2array
-from tudatpy.astro.time_conversion import DateTime
 
-class sailCoupledDynamicsProblem(sail_craft):
 
+class sailCoupledDynamicsProblem:
     def __init__(self,
-                 num_panels,
-                 nominal_sail_mass,
-                 initial_CoM_position_body_frame,
-                 initial_inertia_tensor_body_frame,
-                 initial_panels_coordinates_body_frame,
-                 initial_panels_optical_properties,
-                 ACS_system,
-                 initial_state,  # 1 x 12 vector [translational, rotational]
+                 sail_craft,
+                 initial_translational_state,
+                 initial_rotational_state,
                  simulation_start_epoch,
                  simulation_end_epoch):
-        super(sail_craft).__init__(num_panels, nominal_sail_mass, initial_CoM_position_body_frame, initial_inertia_tensor_body_frame, initial_panels_coordinates_body_frame, initial_panels_optical_properties, ACS_system)
+        self.sail_craft = sail_craft
         self.simulation_start_epoch = simulation_start_epoch
         self.simulation_end_epoch = simulation_end_epoch
-        self.sail_num_panels = num_panels
 
         # Load spice kernels
         spice.load_standard_kernels()
@@ -61,7 +52,8 @@ class sailCoupledDynamicsProblem(sail_craft):
         self.initial_step_size = 1.0
         self.control_settings = propagation_setup.integrator.step_size_control_elementwise_scalar_tolerance(1.0E-12, 1.0E-12)
         self.validation_settings = propagation_setup.integrator.step_size_validation(1E-5, 1E3)
-        self.initial_state = initial_state
+        self.initial_translational_state = initial_translational_state
+        self.initial_rotational_state = initial_rotational_state
 
     def define_simulation_bodies(self):
         body_settings = environment_setup.get_default_body_settings(
@@ -71,32 +63,49 @@ class sailCoupledDynamicsProblem(sail_craft):
 
         # Setup that the sail_craft body functions are passed
         body_settings.get("ACS3").rigid_body_settings = environment_setup.rigid_body.custom_time_dependent_rigid_body_properties(
-            mass_function=sail_craft.get_sail_mass,
-            center_of_mass_function=sail_craft.get_sail_center_of_mass,
-            inertia_tensor_function=sail_craft.get_sail_inertia_tensor)
+            mass_function=self.sail_craft.get_sail_mass,
+            center_of_mass_function=self.sail_craft.get_sail_center_of_mass,
+            inertia_tensor_function=self.sail_craft.get_sail_inertia_tensor)
 
         # Written such that it can be extended in the future
         # Compile the panel properties
         panels_settings = []
-        for j in range(2):
+        if( self.sail_craft.get_number_of_vanes() == 0):
+            j_max = 1
+        else:
+            j_max = 2
+        for j in range(j_max):
             if (j == 0):
                 panel_type_str = "Sail"
-                number_of_panels = self.sail_num_panels
+                number_of_panels = self.sail_craft.get_number_of_wings()
             else:
                 panel_type_str = "Vane"
-                number_of_panels = self.sail_num_vanes
+                number_of_panels = self.sail_craft.get_number_of_vanes()
 
             for i in range(number_of_panels):
-                ith_panel_normal = lambda t: sail_craft.get_ith_panel_surface_normal(self, t, panel_id=i, panel_type=panel_type_str)
-                ith_panel_area = lambda t: sail_craft.get_ith_panel_area(self, t, panel_id=i, panel_type=panel_type_str)
-                ith_panel_centroid = lambda t: sail_craft.get_ith_panel_centroid(self, t, panel_id=i, panel_type=panel_type_str)
-                ith_panel_properties_list = [lambda t: sail_craft.get_ith_panel_optical_properties(self, t, panel_id=i, panel_type=panel_type_str)[j] for j in range(10)]
-                panel_geom = environment_setup.vehicle_systems.time_varying_panel_geometry(surface_normal=ith_panel_normal,
-                                                                                            area=single_panel_area,
+                ith_panel_normal = lambda: self.sail_craft.get_ith_panel_surface_normal(panel_id=i, panel_type=panel_type_str)
+                ith_panel_area = lambda: self.sail_craft.get_ith_panel_area(panel_id=i, panel_type=panel_type_str)
+                ith_panel_centroid = lambda: self.sail_craft.get_ith_panel_centroid(panel_id=i, panel_type=panel_type_str)
+                ith_panel_properties_list = [(lambda idx=k: self.sail_craft.get_ith_panel_optical_properties(panel_id=i, panel_type=panel_type_str)[idx]) for k in range(10)]
+
+                panel_geom = environment_setup.vehicle_systems.time_varying_panel_geometry( surface_normal_function=ith_panel_normal,
+                                                                                            position_vector_function=ith_panel_centroid,
+                                                                                            area_function=ith_panel_area,
                                                                                             frame_orientation="VehicleFixed")
 
-                reflection_law = environment_setup.radiation_pressure.solar_sail_optical_body_panel_reflection(1, 1, 0, 0, 0, 0,
-                                                                                                               0, 0, 0, 0)
+                reflection_law = environment_setup.radiation_pressure.solar_sail_optical_body_panel_time_varying_reflection(ith_panel_properties_list[0],
+                                                                                                                           ith_panel_properties_list[1],
+                                                                                                                           ith_panel_properties_list[2],
+                                                                                                                           ith_panel_properties_list[3],
+                                                                                                                           ith_panel_properties_list[4],
+                                                                                                                           ith_panel_properties_list[5],
+                                                                                                                           ith_panel_properties_list[6],
+                                                                                                                           ith_panel_properties_list[7],
+                                                                                                                           ith_panel_properties_list[8],
+                                                                                                                           ith_panel_properties_list[9])
+
+                #reflection_law = environment_setup.radiation_pressure.solar_sail_optical_body_panel_reflection(1, 1, 0, 0, 0, 0, 0, 0, 0, 0)
+
                 panel = environment_setup.vehicle_systems.body_panel_settings(panel_type_id=panel_type_str,
                                                                                panel_reflection_law=reflection_law,
                                                                                panel_geometry=panel_geom)
@@ -108,7 +117,7 @@ class sailCoupledDynamicsProblem(sail_craft):
 
         vehicle_target_settings = environment_setup.radiation_pressure.panelled_radiation_target(self.occulting_bodies_dict)
 
-        constant_orientation = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+        constant_orientation = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])  # TODO: check if this has any influence
         # create rotation model settings and assign to body settings of "ACS3"
         body_settings.get("ACS3").rotation_model_settings = environment_setup.rotation_model.constant_rotation_model(
             self.global_frame_orientation,
@@ -117,7 +126,7 @@ class sailCoupledDynamicsProblem(sail_craft):
 
         # Create system of bodies (in this case only Earth)
         bodies = environment_setup.create_system_of_bodies(body_settings)
-        sail_craft.setBodies(self, bodies)
+        self.sail_craft.setBodies(bodies)
         return bodies, vehicle_target_settings
 
     def define_dependent_variables(self):
@@ -128,6 +137,8 @@ class sailCoupledDynamicsProblem(sail_craft):
                     propagation_setup.acceleration.radiation_pressure_type, "ACS3", "Sun"),
                 propagation_setup.dependent_variable.relative_position("ACS3", "Sun"),
                 propagation_setup.dependent_variable.central_body_fixed_spherical_position('Earth', 'ACS3'),
+                propagation_setup.dependent_variable.single_torque_norm(
+                    propagation_setup.torque.radiation_pressure_type, "ACS3", "Sun"),
                 propagation_setup.dependent_variable.inertial_to_body_fixed_313_euler_angles('ACS3')]
 
     def define_numerical_environment(self):
@@ -158,18 +169,18 @@ class sailCoupledDynamicsProblem(sail_craft):
             bodies, acceleration_settings, self.bodies_to_propagate, self.central_bodies)
 
         # Rotational dynamics settings
-        torque_settings_on_sail = dict()  # dict(Earth = [propagation_setup.torque.second_degree_gravitational()])
+        torque_settings_on_sail = dict(Sun=[propagation_setup.torque.radiation_pressure()])  # dict(Earth = [propagation_setup.torque.second_degree_gravitational()])
         torque_settings = {'ACS3': torque_settings_on_sail}
         torque_models = propagation_setup.create_torque_models(bodies, torque_settings, self.bodies_to_propagate)
         return acceleration_models, torque_models
 
-    def define_propagators(self, integrator_settings, acceleration_models, torque_models, dependent_variables, termination_settings):
+    def define_propagators(self, integrator_settings, termination_settings, acceleration_models, torque_models, dependent_variables):
         # Create propagation settings
         translational_propagator_settings = propagation_setup.propagator.translational(
             self.central_bodies,
             acceleration_models,
             self.bodies_to_propagate,
-            self.initial_state[:6],
+            self.initial_translational_state,
             self.simulation_start_epoch,
             integrator_settings,
             termination_settings,
@@ -177,7 +188,7 @@ class sailCoupledDynamicsProblem(sail_craft):
 
         rotational_propagator_settings = propagation_setup.propagator.rotational(torque_models,
                                                                                  self.bodies_to_propagate,
-                                                                                 self.initial_state[6:],
+                                                                                 self.initial_rotational_state,
                                                                                  self.simulation_start_epoch,
                                                                                  integrator_settings,
                                                                                  termination_settings)
