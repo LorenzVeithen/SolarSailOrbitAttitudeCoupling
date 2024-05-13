@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-from controllers import sail_craft, sail_attitude_control_systems
+from attitudeControllersClass import sail_craft, sail_attitude_control_systems
 from constants import sail_mass, sail_I, boom_length
 from scipy.spatial.transform import Rotation as R
 from MiscFunctions import compute_panel_geometrical_properties

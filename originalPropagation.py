@@ -1,15 +1,14 @@
+import sys
+sys.path.insert(0, r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy")
 # Load standard modules
 import numpy as np
 import matplotlib.pyplot as plt
-
-import sys
-sys.path.insert(0, r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy")
 
 from constants import *
 
 from tudatpy.astro.element_conversion import rotation_matrix_to_quaternion_entries
 from MiscFunctions import set_axes_equal, axisRotation
-from controllers import *
+from attitudeControllersClass import *
 
 # Load tudatpy modules
 from tudatpy.interface import spice

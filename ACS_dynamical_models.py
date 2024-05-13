@@ -1,6 +1,6 @@
 """
 Functions describing the attitude control systems dynamics.
-This code was outsourced from controllers.py to allow Numba optimisation
+This code was outsourced from attitudeControllersClass.py to allow Numba optimisation
 """
 
 

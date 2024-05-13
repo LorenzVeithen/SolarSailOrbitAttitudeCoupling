@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 from constants import *
-from controllers import *
+from attitudeControllersClass import *
 
 import sys
 sys.path.insert(0, r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy")

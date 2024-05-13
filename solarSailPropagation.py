@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy")
+
 # Load standard modules
 import numpy as np
 import matplotlib.pyplot as plt
@@ -5,11 +8,10 @@ import time
 from constants import *
 
 from MiscFunctions import set_axes_equal, axisRotation
-from controllers import *
+from attitudeControllersClass import sail_attitude_control_systems
+from sailCraftClass import sail_craft
 from dynamicsSim import sailCoupledDynamicsProblem
 
-import sys
-sys.path.insert(0, r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy")
 from tudatpy.astro.element_conversion import rotation_matrix_to_quaternion_entries
 from tudatpy.astro import element_conversion
 from tudatpy.astro.time_conversion import DateTime
@@ -49,7 +51,8 @@ wings_optical_properties = [np.array([1, 1, 0, 0, 0, 0, 0, 0, 0, 0])] * 4
 vanes_optical_properties = []
 
 acs_object = sail_attitude_control_systems("None", boom_list)
-sail = sail_craft(len(wings_coordinates_list),
+sail = sail_craft("ACS3",
+                  len(wings_coordinates_list),
                   len(vanes_coordinates_list),
                   wings_coordinates_list,
                   vanes_coordinates_list,
