@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-from attitudeControllersClass import sail_craft, sail_attitude_control_systems
+from attitudeControllersClass import sail_attitude_control_systems
+from sailCraftClass import sail_craft
 from constants import sail_mass, sail_I, boom_length
 from scipy.spatial.transform import Rotation as R
 from MiscFunctions import compute_panel_geometrical_properties
@@ -11,9 +12,9 @@ boom_attachment_point = 0.64
 
 VANES_BOOL = False
 SHIFTED_PANELS_BOOL = True
-keep_area = False
+keep_area = True
 
-SLIDING_MASS_BOOL = False
+SLIDING_MASS_BOOL = True
 
 # Boom points
 boom1 = np.array([[0, 0, 0], [0, boom_length, 0]])
@@ -110,21 +111,21 @@ elif(SLIDING_MASS_BOOL):
 
 
 if (VANES_BOOL):
-    sail = sail_craft(4, 4, panel_coordinates_list, vane_coordinates_list, panels_optical_properties, vanes_optical_properties,
+    sail = sail_craft("ACS3", 4, 4, panel_coordinates_list, vane_coordinates_list, panels_optical_properties, vanes_optical_properties,
                       sail_I, 16, 15.66, np.array([0, 0, 0.05]), 0.00425, 0.00425, acs_object)
 elif(SHIFTED_PANELS_BOOL):
-    sail = sail_craft(4, 0, panel_coordinates_list, [], [], vanes_optical_properties,
+    sail = sail_craft("ACS3", 4, 0, panel_coordinates_list, [], [], vanes_optical_properties,
                   sail_I, 16, 15.66, np.array([0, 0, 0.05]), 0.00425, 0.00425, acs_object)
 elif(SLIDING_MASS_BOOL):
-    sail = sail_craft(4, 0, panel_coordinates_list, [], [], [],
+    sail = sail_craft("ACS3", 4, 0, panel_coordinates_list, [], [], [],
                       sail_I, 16, 15.66, np.array([0, 0, 0.05]), 0.00425, 0.00425, acs_object)
 
-wing_area_list = [sail.get_ith_panel_area(-1, i, "Sail") for i in range(4)]
+wing_area_list = [sail.get_ith_panel_area(i, "Sail") for i in range(4)]
 CoM = sail.get_sail_center_of_mass(0)
 moving_masses_positions = sail.get_sail_moving_masses_positions(0)
 
-panel_coordinates_list = [sail.get_ith_panel_coordinates(0, i, "Sail") for i in range(4)]
-if VANES_BOOL: vane_coordinates_list = [sail.get_ith_panel_coordinates(0, i, "Vane") for i in range(4)]
+panel_coordinates_list = [sail.get_ith_panel_coordinates(i, "Sail") for i in range(4)]
+if VANES_BOOL: vane_coordinates_list = [sail.get_ith_panel_coordinates( i, "Vane") for i in range(4)]
 
 # Plot booms
 fig = plt.figure()
@@ -145,8 +146,8 @@ for j in range(j_max):
     else:
         tp = "Sail"
     for i in range(4):
-        panel_surface_normal_vector = sail.get_ith_panel_surface_normal(0, i, tp)
-        panel_centroid = sail.get_ith_panel_centroid(0, i, tp)
+        panel_surface_normal_vector = sail.get_ith_panel_surface_normal(i, tp)
+        panel_centroid = sail.get_ith_panel_centroid(i, tp)
         hstack_centroid_surface_normal = np.hstack((panel_centroid, panel_surface_normal_vector))
         vstack_centroid_surface_normal = np.vstack((vstack_centroid_surface_normal, hstack_centroid_surface_normal))
 

@@ -9,7 +9,7 @@ import numpy as np
 from MiscFunctions import all_equal, closest_point_on_a_segment_to_a_third_point, compute_panel_geometrical_properties
 from numba import jit
 
-@jit(nopython=True, cache=True)
+#@jit(nopython=True, cache=True)
 def vane_dynamical_model(rotation_x_deg,
                          rotation_y_deg,
                          number_of_vanes,
@@ -42,7 +42,7 @@ def vane_dynamical_model(rotation_x_deg,
         new_vane_coordinates.append(rotated_vane_coordinates)
     return new_vane_coordinates
 
-@jit(nopython=True, cache=True)
+#@jit(nopython=True, cache=True)
 def shifted_panel_dynamical_model(wings_shifts_list,
                                   number_of_wings,
                                   wings_coordinates_list,
@@ -98,7 +98,7 @@ def shifted_panel_dynamical_model(wings_shifts_list,
         wing_coordinates_list.append(new_current_panel_coordinates)
     return wing_coordinates_list
 
-@jit(nopython=True, cache=True)
+#@jit(nopython=True, cache=True)
 def sliding_mass_dynamical_model(displacement_from_boom_origin_list,
                                  sliding_masses_list,
                                  sliding_mass_extreme_positions_list,

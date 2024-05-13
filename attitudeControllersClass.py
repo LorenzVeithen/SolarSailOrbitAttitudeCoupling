@@ -32,7 +32,7 @@ class sail_attitude_control_systems:
         self.wings_reference_frame_rotation_matrix_list = None  # num_of_wings long list of (3x3) rotation matrices from from the body fixed frame to the wing fixed frame.
         self.retain_wings_area_bool = None                      # Bool indicating if the area of the panels should be conserved (pure translation of the panel).
         self.max_wings_inwards_translations_list = None         # num_of_wings long list of the maximum inward wing translation (vertical in the wing reference frame).
-
+        self.point_to_boom_belonging_list = None
         # Sliding mass
         self.sliding_masses_list = None                         # [kg] number_of_booms long list of the
         self.sliding_mass_extreme_positions_list = None         # [m] Extreme positions of the booms. Sliding masses are assumed to move in straight lines (along booms) TODO: incomplete
@@ -45,7 +45,7 @@ class sail_attitude_control_systems:
         # Summation variables
         self.ACS_CoM_stationary_components = np.array([0, 0, 0])
 
-    def computeBodyFrameTorqueForDetumblingToRest(self, bodies, sailCraft, tau_max, desired_rotational_velocity=np.array([0, 0, 0]), rotational_velocity_tolerance= 1e-6, timeToPassivateACS=0):
+    def computeBodyFrameTorqueForDetumblingToRest(self, bodies, sailCraft, tau_max, desired_rotational_velocity_vector=np.array([0, 0, 0]), rotational_velocity_tolerance= 1e-6, timeToPassivateACS=0):
         """
         Function computing the required torque for detumbling the spacecraft to rest. For a time-independent attitude
         control system, this function can be evaluated a single time.
@@ -54,10 +54,10 @@ class sail_attitude_control_systems:
                         on the bodies present in the TUDAT simulation.
         :param sailCraft: sail_craft class object.
         :param tau_max: Maximum input torque of the ACS at a given time.
-        :param desired_rotational_velocity:
+        :param desired_rotational_velocity_vector=np.array([0, 0, 0]): desired final rotational velocity vector.
         :param rotational_velocity_tolerance=1e-6: tolerance on the magnitude of the rotational velocity vector,
                                                     under which no detumbling torque is induced.
-        :param timeToPassivateACS=0: Estimated time to passivate the attitude control system, to avoid a discountinuous
+        :param timeToPassivateACS=0: Estimated time to passivate the attitude control system, to avoid a discontinuous
                                     actuator control.
         :return tau_star: the optimal control torque.
 
@@ -65,8 +65,8 @@ class sail_attitude_control_systems:
         Aghili, F. (2009). Time-optimal detumbling control of spacecraft. Journal of guidance, control, and dynamics, 32(5), 1671-1675.
         """
         body_fixed_angular_velocity_vector = bodies.get_body(sailCraft.sail_name).body_fixed_angular_velocity
-        if (desired_rotational_velocity != np.array([0, 0, 0])):
-            if (len(desired_rotational_velocity[desired_rotational_velocity > 0]) > 1):
+        if (desired_rotational_velocity_vector != np.array([0, 0, 0])):
+            if (len(desired_rotational_velocity_vector[desired_rotational_velocity_vector > 0]) > 1):
                 raise Exception("The desired final rotational velocity vector in " +
                                 "computeBodyFrameTorqueForDetumblingToNonZeroFinalVelocity " +
                                 "has more than one non-zero element. Spin-stabilised spacecraft should be about an " +
@@ -75,7 +75,7 @@ class sail_attitude_control_systems:
                     sailCraft.sail_inertia_tensor - np.diag(np.diagonal(sailCraft.sail_inertia_tensor))) != 0):
                 raise Exception("computeBodyFrameTorqueForDetumblingToNonZeroFinalVelocity is only valid for " +
                                 " axisymmetric spacecrafts.")
-        omega_tilted = body_fixed_angular_velocity_vector - desired_rotational_velocity
+        omega_tilted = body_fixed_angular_velocity_vector - desired_rotational_velocity_vector
 
         if (np.linalg.norm(omega_tilted) < rotational_velocity_tolerance):
             return np.array([0, 0, 0])

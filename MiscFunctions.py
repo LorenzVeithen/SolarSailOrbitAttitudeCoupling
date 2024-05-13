@@ -26,6 +26,11 @@ def compute_panel_geometrical_properties(panel_coordinates):
     current_panel_surface_normal = cross_product_sum / np.linalg.norm(cross_product_sum)  # Stokes theorem
     return current_panel_centroid, current_panel_area, current_panel_surface_normal
 
+def quiver_data_to_segments(X, Y, Z, u, v, w, length=1):
+    segments = (X, Y, Z, X+v*length, Y+u*length, Z+w*length)
+    segments = np.array(segments).reshape(6,-1)
+    return [[[x, y, z], [u, v, w]] for x, y, z, u, v, w in zip(*list(segments))]
+
 def closest_point_on_a_segment_to_a_third_point(p1, p2, p3):
     if (all(p3[i] == p1[i] for i in range(len(p3)))):
         return p1
