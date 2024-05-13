@@ -45,7 +45,7 @@ class sail_attitude_control_systems:
         # Summation variables
         self.ACS_CoM_stationary_components = np.array([0, 0, 0])
 
-    def computeBodyFrameTorqueForDetumblingToRest(self, bodies, sailCraft, tau_max, rotational_velocity_tolerance= 1e-6, timeToPassivateACS=0):
+    def computeBodyFrameTorqueForDetumblingToRest(self, bodies, sailCraft, tau_max, desired_rotational_velocity=np.array([0, 0, 0]), rotational_velocity_tolerance= 1e-6, timeToPassivateACS=0):
         """
         Function computing the required torque for detumbling the spacecraft to rest. For a time-independent attitude
         control system, this function can be evaluated a single time.
@@ -54,6 +54,7 @@ class sail_attitude_control_systems:
                         on the bodies present in the TUDAT simulation.
         :param sailCraft: sail_craft class object.
         :param tau_max: Maximum input torque of the ACS at a given time.
+        :param desired_rotational_velocity:
         :param rotational_velocity_tolerance=1e-6: tolerance on the magnitude of the rotational velocity vector,
                                                     under which no detumbling torque is induced.
         :param timeToPassivateACS=0: Estimated time to passivate the attitude control system, to avoid a discountinuous
@@ -63,13 +64,25 @@ class sail_attitude_control_systems:
         References:
         Aghili, F. (2009). Time-optimal detumbling control of spacecraft. Journal of guidance, control, and dynamics, 32(5), 1671-1675.
         """
-        body_fixed_angular_velocity = bodies.get_body(sailCraft.sail_name).body_fixed_angular_velocity
-        if (np.linalg.norm(body_fixed_angular_velocity) < rotational_velocity_tolerance):
+        body_fixed_angular_velocity_vector = bodies.get_body(sailCraft.sail_name).body_fixed_angular_velocity
+        if (desired_rotational_velocity != np.array([0, 0, 0])):
+            if (len(desired_rotational_velocity[desired_rotational_velocity > 0]) > 1):
+                raise Exception("The desired final rotational velocity vector in " +
+                                "computeBodyFrameTorqueForDetumblingToNonZeroFinalVelocity " +
+                                "has more than one non-zero element. Spin-stabilised spacecraft should be about an " +
+                                "Eigen-axis.")
+            elif (np.count_nonzero(
+                    sailCraft.sail_inertia_tensor - np.diag(np.diagonal(sailCraft.sail_inertia_tensor))) != 0):
+                raise Exception("computeBodyFrameTorqueForDetumblingToNonZeroFinalVelocity is only valid for " +
+                                " axisymmetric spacecrafts.")
+        omega_tilted = body_fixed_angular_velocity_vector - desired_rotational_velocity
+
+        if (np.linalg.norm(omega_tilted) < rotational_velocity_tolerance):
             return np.array([0, 0, 0])
 
         sail_craft_inertia_tensor = sailCraft.sail_inertia_tensor
 
-        inertiaTensorTimesAngularVelocity = np.matmul(body_fixed_angular_velocity, sail_craft_inertia_tensor)
+        inertiaTensorTimesAngularVelocity = np.matmul(omega_tilted, sail_craft_inertia_tensor)
         predictedTimeToRest = np.linalg.norm(inertiaTensorTimesAngularVelocity)/tau_max
 
         if ((predictedTimeToRest < timeToPassivateACS) and (timeToPassivateACS != 0)):
@@ -78,11 +91,6 @@ class sail_attitude_control_systems:
             tau_target = tau_max
         tau_star = - (inertiaTensorTimesAngularVelocity/np.linalg.norm(inertiaTensorTimesAngularVelocity)) * tau_target
         return tau_star
-
-    def computeBodyFrameTorqueForDetumblingToNonZeroFinalVelocity(self, bodies, sailCraft, tau_max):
-        # Note, only available for spin-stabilised. Not arbitrary final angular velocity (which is normal and expected)
-
-        pass
 
     def attitude_control(self, bodies, desired_sail_state):
         # Returns an empty array if nothing has changed
