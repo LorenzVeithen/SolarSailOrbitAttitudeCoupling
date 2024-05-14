@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy")
+
 # Load standard modules
 import matplotlib
 import numpy as np
@@ -7,11 +10,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from constants import *
 from attitudeControllersClass import *
-
-import sys
-sys.path.insert(0, r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy")
-
-from MiscFunctions import set_axes_equal, axisRotation
+from MiscFunctions import set_axes_equal
 
 
 # Load tudatpy modules
@@ -20,6 +19,7 @@ from tudatpy import numerical_simulation
 from tudatpy.numerical_simulation import environment_setup, propagation_setup
 from tudatpy import constants
 from tudatpy.util import result2array
+from tudatpy.data import save2txt
 
 
 class sailCoupledDynamicsProblem:
@@ -51,7 +51,7 @@ class sailCoupledDynamicsProblem:
         # integrator settings
         self.initial_step_size = 1.0
         self.control_settings = propagation_setup.integrator.step_size_control_elementwise_scalar_tolerance(1.0E-12, 1.0E-12)
-        self.validation_settings = propagation_setup.integrator.step_size_validation(1E-5, 1E3)
+        self.validation_settings = propagation_setup.integrator.step_size_validation(1E-5, 1E2)
         self.initial_translational_state = initial_translational_state
         self.initial_rotational_state = initial_rotational_state
 
@@ -70,6 +70,7 @@ class sailCoupledDynamicsProblem:
         # Written such that it can be extended in the future
         # Compile the panel properties
         panels_settings = []
+        panel_functions_dict = {}
         if( self.sail_craft.get_number_of_vanes() == 0):
             j_max = 1
         else:
@@ -82,27 +83,31 @@ class sailCoupledDynamicsProblem:
                 panel_type_str = "Vane"
                 number_of_panels = self.sail_craft.get_number_of_vanes()
 
+            panel_normal_functions_list = []
+            panel_area_functions_list = []
+            panel_centroid_functions_list = []
+            panel_properties_functions_list = []
             for i in range(number_of_panels):
-                ith_panel_normal = lambda: self.sail_craft.get_ith_panel_surface_normal(panel_id=i, panel_type=panel_type_str)
-                ith_panel_area = lambda: self.sail_craft.get_ith_panel_area(panel_id=i, panel_type=panel_type_str)
-                ith_panel_centroid = lambda: self.sail_craft.get_ith_panel_centroid(panel_id=i, panel_type=panel_type_str)
-                ith_panel_properties_list = [(lambda idx=k: self.sail_craft.get_ith_panel_optical_properties(panel_id=i, panel_type=panel_type_str)[idx]) for k in range(10)]
+                panel_functions_dict[f"{panel_type_str}_panel_{i}_surface_normal"] = lambda current_panel_i=i, current_panel_type=panel_type_str: self.sail_craft.get_ith_panel_surface_normal(panel_id=current_panel_i, panel_type=current_panel_type)
+                panel_functions_dict[f"{panel_type_str}_panel_{i}_centroid"] = lambda current_panel_i=i, current_panel_type=panel_type_str: self.sail_craft.get_ith_panel_centroid(panel_id=current_panel_i, panel_type=current_panel_type)
+                panel_functions_dict[f"{panel_type_str}_panel_{i}_area"] = lambda current_panel_i=i, current_panel_type=panel_type_str: self.sail_craft.get_ith_panel_area(panel_id=current_panel_i, panel_type=current_panel_type)
+                panel_functions_dict[f"{panel_type_str}_panel_{i}_optical_properties_list"] = [(lambda current_panel_i=i, current_panel_type=panel_type_str, idx=k: self.sail_craft.get_ith_panel_optical_properties(panel_id=current_panel_i, panel_type=current_panel_type)[idx]) for k in range(10)]
 
-                panel_geom = environment_setup.vehicle_systems.time_varying_panel_geometry( surface_normal_function=ith_panel_normal,
-                                                                                            position_vector_function=ith_panel_centroid,
-                                                                                            area_function=ith_panel_area,
+                panel_geom = environment_setup.vehicle_systems.time_varying_panel_geometry( surface_normal_function=panel_functions_dict[f"{panel_type_str}_panel_{i}_surface_normal"],
+                                                                                            position_vector_function=panel_functions_dict[f"{panel_type_str}_panel_{i}_centroid"],
+                                                                                            area_function=panel_functions_dict[f"{panel_type_str}_panel_{i}_area"],
                                                                                             frame_orientation="VehicleFixed")
 
-                reflection_law = environment_setup.radiation_pressure.solar_sail_optical_body_panel_time_varying_reflection(ith_panel_properties_list[0],
-                                                                                                                           ith_panel_properties_list[1],
-                                                                                                                           ith_panel_properties_list[2],
-                                                                                                                           ith_panel_properties_list[3],
-                                                                                                                           ith_panel_properties_list[4],
-                                                                                                                           ith_panel_properties_list[5],
-                                                                                                                           ith_panel_properties_list[6],
-                                                                                                                           ith_panel_properties_list[7],
-                                                                                                                           ith_panel_properties_list[8],
-                                                                                                                           ith_panel_properties_list[9])
+                reflection_law = environment_setup.radiation_pressure.solar_sail_optical_body_panel_time_varying_reflection(panel_functions_dict[f"{panel_type_str}_panel_{i}_optical_properties_list"][0],
+                                                                                                                           panel_functions_dict[f"{panel_type_str}_panel_{i}_optical_properties_list"][1],
+                                                                                                                           panel_functions_dict[f"{panel_type_str}_panel_{i}_optical_properties_list"][2],
+                                                                                                                           panel_functions_dict[f"{panel_type_str}_panel_{i}_optical_properties_list"][3],
+                                                                                                                           panel_functions_dict[f"{panel_type_str}_panel_{i}_optical_properties_list"][4],
+                                                                                                                           panel_functions_dict[f"{panel_type_str}_panel_{i}_optical_properties_list"][5],
+                                                                                                                           panel_functions_dict[f"{panel_type_str}_panel_{i}_optical_properties_list"][6],
+                                                                                                                           panel_functions_dict[f"{panel_type_str}_panel_{i}_optical_properties_list"][7],
+                                                                                                                           panel_functions_dict[f"{panel_type_str}_panel_{i}_optical_properties_list"][8],
+                                                                                                                           panel_functions_dict[f"{panel_type_str}_panel_{i}_optical_properties_list"][9])
 
                 #reflection_law = environment_setup.radiation_pressure.solar_sail_optical_body_panel_reflection(1, 1, 0, 0, 0, 0, 0, 0, 0, 0)
 
@@ -135,11 +140,10 @@ class sailCoupledDynamicsProblem:
                 propagation_setup.dependent_variable.received_irradiance_shadow_function("ACS3", "Sun"),
                 propagation_setup.dependent_variable.single_acceleration(
                     propagation_setup.acceleration.radiation_pressure_type, "ACS3", "Sun"),
-                propagation_setup.dependent_variable.relative_position("ACS3", "Sun"),
-                propagation_setup.dependent_variable.central_body_fixed_spherical_position('Earth', 'ACS3'),
-                propagation_setup.dependent_variable.single_torque_norm(
+                propagation_setup.dependent_variable.single_torque(
                     propagation_setup.torque.radiation_pressure_type, "ACS3", "Sun"),
-                propagation_setup.dependent_variable.inertial_to_body_fixed_313_euler_angles('ACS3')]
+                propagation_setup.dependent_variable.relative_position("ACS3", "Sun"),
+                propagation_setup.dependent_variable.relative_position("Sun", "Earth")]
 
     def define_numerical_environment(self):
         # Create termination settings
@@ -149,7 +153,7 @@ class sailCoupledDynamicsProblem:
         # Create numerical integrator settings
         integrator_settings = propagation_setup.integrator.runge_kutta_variable_step(
             initial_time_step=self.initial_step_size,
-            coefficient_set=propagation_setup.integrator.rkf_45,
+            coefficient_set=propagation_setup.integrator.rkf_78,
             step_size_control_settings=self.control_settings,
             step_size_validation_settings=self.validation_settings)
         return termination_settings, integrator_settings
@@ -210,7 +214,11 @@ class sailCoupledDynamicsProblem:
         # Extract the resulting state history and convert it to a ndarray
         states_array = result2array(state_history)
         dependent_variable_array = result2array(dependent_variable_history)
-        return states_array, dependent_variable_array
+        return state_history, states_array, dependent_variable_history, dependent_variable_array
 
-    def write_results_to_fiel(self, states_array, dependent_variable_array):
-        pass
+    def write_results_to_file(self, state_history, state_history_file_path, dependent_variable_history,
+                              dependent_variable_history_file_path):
+        save2txt(state_history, state_history_file_path)
+        save2txt(dependent_variable_history, dependent_variable_history_file_path)
+        return True
+

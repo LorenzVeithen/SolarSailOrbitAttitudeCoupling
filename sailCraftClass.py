@@ -71,7 +71,7 @@ class sail_craft:
         self.sail_vanes_total_mass = vane_mass
 
         # Bookkeeping variables
-        self.current_time = -1
+        self.current_body_position = np.array([None, None, None])
 
     def compute_reflective_panels_properties(self, panel_id_list, vanes_id_list):  # should enable the possibility of only recomputing a specific panel
         # For each panel and vane, obtain coordinates of panels and compute the panel area
@@ -118,10 +118,17 @@ class sail_craft:
         return self.sail_inertia_tensor
 
     # Control the sail craft
-    def sail_attitude_control_system(self, t):
+    def sail_attitude_control_system(self):
         # Calls the ACS, updating the spacecraft properties before sending it to the propagation
-        if (t != self.current_time):
-            # Call all ACS controllers here to change the spacecraft state and control the orbit
+        # Call all ACS controllers here to change the spacecraft state and control the orbit
+        if (self.bodies != None):
+            body_position = self.bodies.get(self.sailCraftName).position
+            if (self.current_body_position[0] != None):
+                difference_current_position_last_update = body_position - self.current_body_position
+        else:
+            body_position = np.array([None, None, None])
+
+        if ((self.current_body_position != body_position).all() or (self.current_body_position == None).all()):  # Second condition for initialisation
             panels_coordinates, panels_optical_properties, ACS_CoM, moving_masses_positions = self.attitude_control_system.attitude_control(self.bodies, self.desired_sail_state)    # Find way to include the current state and the desired one
             self.sail_wings_coordinates = panels_coordinates["wings"] if (len(panels_coordinates["wings"]) != 0) else self.sail_wings_coordinates
             self.sail_vanes_coordinates = panels_coordinates["vanes"] if (len(panels_coordinates["vanes"]) != 0) else self.sail_vanes_coordinates
@@ -132,7 +139,7 @@ class sail_craft:
             self.compute_reflective_panels_properties(list(range(self.sail_num_wings)), list(range(self.sail_num_vanes)))
             self.sail_center_of_mass_position = self.compute_sail_center_of_mass(ACS_CoM)
             self.moving_masses_positions_dict = moving_masses_positions
-            self.current_time = t
+            if (self.bodies != None): self.current_body_position = body_position
         return 0
 
     # Pass body object to the class
@@ -149,20 +156,20 @@ class sail_craft:
 
     # Get rigid body properties
     def get_sail_mass(self, t):
-        self.sail_attitude_control_system(t)
+        self.sail_attitude_control_system()
         return self.sail_mass
 
     def get_sail_center_of_mass(self, t):
-        self.sail_attitude_control_system(t)
+        #self.sail_attitude_control_system()
         return self.sail_center_of_mass_position
 
     def get_sail_inertia_tensor(self, t):
-        self.sail_attitude_control_system(t)
+        #self.sail_attitude_control_system()
         return self.sail_inertia_tensor
 
     # Get moving masses positions
     def get_sail_moving_masses_positions(self, t):
-        self.sail_attitude_control_system(t)
+        #self.sail_attitude_control_system()
         return self.moving_masses_positions_dict
 
     def get_number_of_wings(self):
@@ -173,54 +180,36 @@ class sail_craft:
 
     # Get specific panel properties
     def get_ith_panel_surface_normal(self, panel_id, panel_type=""):
-        #self.sail_attitude_control_system(0)    # TODO: update to remove time dependence?
+        self.sail_attitude_control_system()    # TODO: update to remove time dependence?
         if (panel_type == "Vane"):
             return self.sail_vanes_surface_normals[panel_id]
         else:
             return self.sail_wings_surface_normals[panel_id]
 
     def get_ith_panel_area(self, panel_id, panel_type=""):
-        #self.sail_attitude_control_system(0)    # TODO: update to remove time dependence?
+        self.sail_attitude_control_system()    # TODO: update to remove time dependence?
         if (panel_type == "Vane"):
             return self.sail_vanes_areas[panel_id]
         else:
             return self.sail_wings_areas[panel_id]
 
     def get_ith_panel_centroid(self, panel_id, panel_type=""):
-        #self.sail_attitude_control_system(0)    # TODO: update to remove time dependence?
+        self.sail_attitude_control_system()    # TODO: update to remove time dependence?
         if (panel_type == "Vane"):
             return self.sail_vanes_centroids[panel_id]
         else:
             return self.sail_wings_centroids[panel_id]
 
     def get_ith_panel_optical_properties(self, panel_id, panel_type=""):
-        #self.sail_attitude_control_system(0)    # TODO: update to remove time dependence?
+        self.sail_attitude_control_system()    # TODO: update to remove time dependence?
         if (panel_type == "Vane"):
             return self.sail_vanes_optical_properties[panel_id]
         else:
             return self.sail_wings_optical_properties[panel_id]
 
     def get_ith_panel_coordinates(self, panel_id, panel_type=""):
-        #self.sail_attitude_control_system(0)    # TODO: update to remove time dependence?
+        self.sail_attitude_control_system()    # TODO: update to remove time dependence?
         if (panel_type == "Vane"):
             return self.sail_vanes_coordinates[panel_id]
         else:
             return self.sail_wings_coordinates[panel_id]
-
-def spacecraft_mass(t):
-    return sail_mass
-
-def spacecraft_center_of_mass(t):
-    return sail_nominal_CoM
-
-def spacecraft_mass_moment_of_inertia(t):
-    return sail_I
-
-def panel_surface_normal():
-    return np.array([[0], [0], [1]], dtype="float64")
-
-def panel_position_vector():
-    return np.array([[0], [0], [0]], dtype="float64")
-
-def panel_area():
-    return 20.0

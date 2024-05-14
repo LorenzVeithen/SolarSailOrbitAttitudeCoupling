@@ -98,8 +98,6 @@ class sail_attitude_control_systems:
         wings_optical_properties = []
         vanes_coordinates = []
         vanes_optical_properties = []
-        ACS_CoM = np.array([0, 0, 0])
-        thrust_levels = []
 
         moving_masses_CoM_components = np.array([0, 0, 0])
         moving_masses_positions = {}
@@ -109,7 +107,7 @@ class sail_attitude_control_systems:
                 moving_masses_CoM_components = np.zeros([0, 0, 0])
                 moving_masses_positions["gimball_mass"] = np.array([0, 0, 0], dtype="float64")
             case "vanes":
-                vanes_coordinates = self.__vane_dynamics([-20, -20, -20, -20], [-45, -45, -45, -45])
+                vanes_coordinates = self.__vane_dynamics([45., 45., 45., 45.], [0., 0., 0., 0.])
             case "shifted_wings":
                 wing_shifts_list = [[-0.4, -0.4, -0.4, -0.4],
                                     [0, 0, 0, 0],

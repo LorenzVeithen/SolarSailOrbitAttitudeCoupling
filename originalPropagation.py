@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from constants import *
 
 from tudatpy.astro.element_conversion import rotation_matrix_to_quaternion_entries
-from MiscFunctions import set_axes_equal, axisRotation
+from MiscFunctions import set_axes_equal
 from attitudeControllersClass import *
 
 # Load tudatpy modules

@@ -7,6 +7,7 @@ This code was outsourced from attitudeControllersClass.py to allow Numba optimis
 from scipy.spatial.transform import Rotation as R
 import numpy as np
 from MiscFunctions import all_equal, closest_point_on_a_segment_to_a_third_point, compute_panel_geometrical_properties
+from MiscFunctions import Rx_matrix, Ry_matrix, Rz_matrix
 from numba import jit
 
 #@jit(nopython=True, cache=True)
@@ -25,18 +26,21 @@ def vane_dynamical_model(rotation_x_deg,
         rotated_vane_coordinates = np.zeros(np.shape(current_vane_coordinates))
         for j in range(len(current_vane_coordinates[:, 0])):  # For each coordinate of the panel
             # Get the panel coordinate points in the vane-centered coordinate system
-            current_vane_coordinate_vane_reference_frame = np.matmul(np.linalg.inv(current_vane_frame_rotation_matrix),
-                                                                     current_vane_coordinates[j,
-                                                                     :] - current_vane_origin)
+            current_vane_coordinate_vane_reference_frame = np.dot(np.linalg.inv(current_vane_frame_rotation_matrix),
+                                                                     current_vane_coordinates[j,:]
+                                                                     - current_vane_origin)
             # Now rotate along the vane-fixed x-axis and then y-axis
-            Rx = R.from_euler('x', rotation_x_deg[i], degrees=True).as_matrix()
-            Ry = R.from_euler('y', rotation_y_deg[i], degrees=True).as_matrix()
-            vane_rotation_matrix = np.matmul(Ry, Rx)
-            current_vane_coordinate_rotated_vane_reference_frame = np.matmul(vane_rotation_matrix,
+            #current_rotation_x_rad = np.deg2rad(rotation_x_deg[i])
+            #current_rotation_y_rad = np.deg2rad(rotation_y_deg[i])
+
+            Rx = R.from_euler('x', rotation_x_deg[i], degrees=True).as_matrix()    # np.array([[1, 0, 0], [0, np.cos(current_rotation_x_rad), -np.sin(current_rotation_x_rad)], [0, np.sin(current_rotation_x_rad), np.cos(current_rotation_x_rad)]])
+            Ry = R.from_euler('y', rotation_y_deg[i], degrees=True).as_matrix()    # np.array([[np.cos(current_rotation_y_rad), 0, np.sin(current_rotation_y_rad)], [0, 1, 0], [-np.sin(current_rotation_y_rad), 0, np.cos(current_rotation_y_rad)]])
+            vane_rotation_matrix = np.dot(Ry, Rx)
+            current_vane_coordinate_rotated_vane_reference_frame = np.dot(vane_rotation_matrix,
                                                                              current_vane_coordinate_vane_reference_frame)
 
             # Convert back to the body fixed reference frame
-            current_vane_coordinate_rotated_body_fixed_reference_frame = np.matmul(current_vane_frame_rotation_matrix,
+            current_vane_coordinate_rotated_body_fixed_reference_frame = np.dot(current_vane_frame_rotation_matrix,
                                                                                    current_vane_coordinate_rotated_vane_reference_frame) + current_vane_origin
             rotated_vane_coordinates[j, :] = current_vane_coordinate_rotated_body_fixed_reference_frame
         new_vane_coordinates.append(rotated_vane_coordinates)

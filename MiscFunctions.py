@@ -81,43 +81,29 @@ def set_axes_equal(ax):  # from https://stackoverflow.com/questions/13685386/mat
     ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
     return
 
-def Rx(theta):
+def Rx_matrix(theta):
     '''
     Rotation matrix around the x axis by an angle theta
     :param theta: rotation angle in radians
     :return: 3x3 rotation matrix around the x axis
     '''
-    return np.matrix([[1, 0, 0], [0, np.cos(theta), -np.sin(theta)], [0, np.sin(theta), np.cos(theta)]])
+    return np.array([[1, 0, 0], [0, np.cos(theta), -np.sin(theta)], [0, np.sin(theta), np.cos(theta)]])
 
-
-def Ry(theta):
+def Ry_matrix(theta):
     '''
     Rotation matrix around the y axis by an angle theta
     :param theta: rotation angle in radians
     :return: 3x3 rotation matrix around the y axis
     '''
-    return np.matrix([[np.cos(theta), 0, np.sin(theta)], [0, 1, 0], [-np.sin(theta), 0, np.cos(theta)]])
+    return np.array([[np.cos(theta), 0, np.sin(theta)], [0, 1, 0], [-np.sin(theta), 0, np.cos(theta)]])
 
-def Rz(theta):
+
+def Rz_matrix(theta):
     '''
     Rotation matrix around the z axis by an angle theta
     :param theta: rotation angle in radians
     :return: 3x3 rotation matrix around the z axis
     '''
-    return np.matrix([[np.cos(theta), -np.sin(theta), 0], [np.sin(theta), np.cos(theta), 0], [0, 0, 1]])
-
-def axisRotation(theta, axis=0):
-    if (axis==0):
-        return Rx(theta)
-    elif (axis==1):
-        return Ry(theta)
-    elif (axis==2):
-        return Rz(theta)
-
-def centeroidnp_2D(arr):
-    length = arr.shape[0]
-    sum_x = np.sum(arr[:, 0])
-    sum_y = np.sum(arr[:, 1])
-    return sum_x/length, sum_y/length
+    return np.array([[np.cos(theta), -np.sin(theta), 0], [np.sin(theta), np.cos(theta), 0], [0, 0, 1]])
 
 
