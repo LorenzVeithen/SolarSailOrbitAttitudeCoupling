@@ -180,35 +180,35 @@ class sail_craft:
 
     # Get specific panel properties
     def get_ith_panel_surface_normal(self, panel_id, panel_type=""):
-        self.sail_attitude_control_system()    # TODO: update to remove time dependence?
+        self.sail_attitude_control_system()
         if (panel_type == "Vane"):
             return self.sail_vanes_surface_normals[panel_id]
         else:
             return self.sail_wings_surface_normals[panel_id]
 
     def get_ith_panel_area(self, panel_id, panel_type=""):
-        self.sail_attitude_control_system()    # TODO: update to remove time dependence?
+        self.sail_attitude_control_system()
         if (panel_type == "Vane"):
             return self.sail_vanes_areas[panel_id]
         else:
             return self.sail_wings_areas[panel_id]
 
     def get_ith_panel_centroid(self, panel_id, panel_type=""):
-        self.sail_attitude_control_system()    # TODO: update to remove time dependence?
+        self.sail_attitude_control_system()
         if (panel_type == "Vane"):
             return self.sail_vanes_centroids[panel_id]
         else:
             return self.sail_wings_centroids[panel_id]
 
     def get_ith_panel_optical_properties(self, panel_id, panel_type=""):
-        self.sail_attitude_control_system()    # TODO: update to remove time dependence?
+        self.sail_attitude_control_system()
         if (panel_type == "Vane"):
             return self.sail_vanes_optical_properties[panel_id]
         else:
             return self.sail_wings_optical_properties[panel_id]
 
     def get_ith_panel_coordinates(self, panel_id, panel_type=""):
-        self.sail_attitude_control_system()    # TODO: update to remove time dependence?
+        self.sail_attitude_control_system()
         if (panel_type == "Vane"):
             return self.sail_vanes_coordinates[panel_id]
         else:

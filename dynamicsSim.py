@@ -145,7 +145,7 @@ class sailCoupledDynamicsProblem:
                     propagation_setup.acceleration.radiation_pressure_type, "ACS3", "Sun"),
                 propagation_setup.dependent_variable.single_torque(
                     propagation_setup.torque.radiation_pressure_type, "ACS3", "Sun"),
-                propagation_setup.dependent_variable.relative_position("ACS3", "Sun"),
+                propagation_setup.dependent_variable.relative_position("Sun", "ACS3"),
                 propagation_setup.dependent_variable.relative_position("Sun", "Earth"),
                 propagation_setup.dependent_variable.custom_dependent_variable(
                     attitude_control_system_object.get_attitude_control_system_actuators_states,

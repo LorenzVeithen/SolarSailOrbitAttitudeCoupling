@@ -136,7 +136,7 @@ class sail_attitude_control_systems:
             case "vanes":
                 # Here comes the controller of the vanes, which will give the rotations around the x and y axis in the
                 # vane coordinate frame
-                vane_x_rotation_degrees, vane_y_rotation_degrees = np.array([0., 0., 0., 0.]),  np.array([0., 0., 0., 0.])
+                vane_x_rotation_degrees, vane_y_rotation_degrees = np.array([-90., -90., -90., -90.]),  np.array([0., 0., 0., 0.])
                 self.actuator_states["vane_rotation_x"] = np.deg2rad(vane_x_rotation_degrees.reshape(-1, 1))
                 self.actuator_states["vane_rotation_y"] = np.deg2rad(vane_y_rotation_degrees.reshape(-1, 1))
                 vanes_coordinates = self.__vane_dynamics(vane_x_rotation_degrees, vane_y_rotation_degrees)
