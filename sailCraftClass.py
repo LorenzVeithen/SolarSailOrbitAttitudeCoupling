@@ -26,7 +26,7 @@ class sail_craft:
         self.attitude_control_system = attitude_control_object                          # The ACS class object to obtain all control mechanisms
 
         # Non-varying sail characteristics
-        self.sailCraftName = sail_name
+        self.sail_name = sail_name
         self.sail_num_wings = num_wings
         self.sail_num_vanes = num_vanes
         self.sail_mass_without_attitude_control_system = sail_mass_without_ACS
@@ -122,7 +122,7 @@ class sail_craft:
         # Calls the ACS, updating the spacecraft properties before sending it to the propagation
         # Call all ACS controllers here to change the spacecraft state and control the orbit
         if (self.bodies != None):
-            body_position = self.bodies.get(self.sailCraftName).position
+            body_position = self.bodies.get(self.sail_name).position
             if (self.current_body_position[0] != None):
                 difference_current_position_last_update = body_position - self.current_body_position
         else:

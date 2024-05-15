@@ -17,7 +17,7 @@ sail_I = np.zeros((3, 3))
 sail_I[0, 0] = 10.5
 sail_I[1, 1] = 10.5
 sail_I[2, 2] = 21
-sail_nominal_CoM = np.array([0., 0., -0.05])
+sail_nominal_CoM = np.array([0., 0., 0.])
 sail_material_areal_density = 0.00425   # kg/m^2
 
 # Sail shape
@@ -75,7 +75,7 @@ vane4 = np.array([[-boom_length, 0, 0],
                   [-boom_length - vane_side_length*np.sin(vane_angle), -vane_side_length*np.cos(vane_angle), 0]])
 
 vanes_coordinates_list = [vane1, vane2, vane3, vane4]
-vanes_optical_properties = [np.array([0, 0, 1, 0, 0, 0, 2/3, 2/3, 1, 1])] * 4
+vanes_optical_properties = [np.array([0, 0, 0, 0, 0, 0, 2/3, 2/3, 1, 1])] * 4
 vanes_origin_list = [vane[0, :] for vane in vanes_coordinates_list]
 vanes_rotation_matrices_list = [R.from_euler('z', 90, degrees=True).as_matrix(),
                                 R.from_euler('z', 0, degrees=True).as_matrix(),

@@ -39,7 +39,7 @@ sail = sail_craft("ACS3",
 
 # Set simulation start and end epochs
 simulation_start_epoch = DateTime(2024, 6, 1, 0).epoch()
-simulation_end_epoch = DateTime(2024, 6, 2, 0).epoch()
+simulation_end_epoch = DateTime(2024, 6, 1, 5).epoch()
 
 # Initial states
 initial_translational_state = element_conversion.keplerian_to_cartesian_elementwise(
@@ -51,8 +51,9 @@ initial_translational_state = element_conversion.keplerian_to_cartesian_elementw
     longitude_of_ascending_node=raan_0,
     true_anomaly=theta_0)
 
-#inertial_to_body_initial = R.from_euler('y', 90, degrees=True).as_matrix()
-initial_rotational_state = np.concatenate((rotation_matrix_to_quaternion_entries(np.eye(3)), np.array([0., 0., 0.])))
+# Random initial orientation just to try
+inertial_to_body_initial = np.eye(3)    # np.dot(np.dot(R.from_euler('y', 23, degrees=True).as_matrix(), R.from_euler('x', 45, degrees=True).as_matrix()), R.from_euler('z', 85, degrees=True).as_matrix())
+initial_rotational_state = np.concatenate((rotation_matrix_to_quaternion_entries(inertial_to_body_initial), np.array([25 * 2 * np.pi / 3600., 25 * 2 * np.pi / 3600, 25 * 2 * np.pi / 3600])))
 
 sailProp = sailCoupledDynamicsProblem(sail,
                initial_translational_state,
@@ -64,7 +65,7 @@ dependent_variables = sailProp.define_dependent_variables(acs_object)
 bodies, vehicle_target_settings = sailProp.define_simulation_bodies()
 sail.setBodies(bodies)
 termination_settings, integrator_settings = sailProp.define_numerical_environment()
-acceleration_models, torque_models = sailProp.define_dynamical_environment(bodies, vehicle_target_settings)
+acceleration_models, torque_models = sailProp.define_dynamical_environment(bodies, acs_object, vehicle_target_settings)
 combined_propagator_settings = sailProp.define_propagators(integrator_settings, termination_settings, acceleration_models, torque_models, dependent_variables)
 t0 = time.time()
 state_history, states_array, dependent_variable_history, dependent_variable_array = sailProp.run_sim(bodies, combined_propagator_settings)

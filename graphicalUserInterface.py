@@ -48,10 +48,11 @@ keplerian_state = dependent_variable_history_array[:, 1:7]
 received_irradiance_shadow_function = dependent_variable_history_array[:, 7]
 spacecraft_srp_acceleration_vector = dependent_variable_history_array[:, 8:11]
 spacecraft_srp_torque_vector = dependent_variable_history_array[:, 11:14]
-spacecraft_sun_relative_position = dependent_variable_history_array[:, 14:17]
-earth_sun_relative_position = dependent_variable_history_array[:, 17:20]
-vanes_x_rotations = np.rad2deg(dependent_variable_history_array[:, 20:24])  # Note: this might need to be changed; is there a way to make this automatic?
-vanes_y_rotations = np.rad2deg(dependent_variable_history_array[:, 24:28])  # Note: this might need to be changed; is there a way to make this automatic?
+spacecraft_sun_relative_position = dependent_variable_history_array[:, 14-3:17-3]
+earth_sun_relative_position = dependent_variable_history_array[:, 17-3:20-3]
+spacecraft_total_torque_norm = dependent_variable_history_array[:, 20-3]
+vanes_x_rotations = np.rad2deg(dependent_variable_history_array[:, 21-3:25-3])  # Note: this might need to be changed; is there a way to make this automatic?
+vanes_y_rotations = np.rad2deg(dependent_variable_history_array[:, 25-3:29-3])  # Note: this might need to be changed; is there a way to make this automatic?
 
 spacecraft_sun_relative_position_in_body_fixed_frame = np.zeros(np.shape(spacecraft_sun_relative_position))
 for i in range(np.shape(t_dependent_variables_hours)[0]):
@@ -66,7 +67,7 @@ fig1 = plt.figure()
 fig1.tight_layout()
 ax_orbit = fig1.add_subplot(gs[:2, :2], projection='3d')
 ax_attitude = fig1.add_subplot(gs[:2, 2:], projection='3d')
-ax_srp_torque = fig1.add_subplot(gs[2, :])
+ax_torque = fig1.add_subplot(gs[2, :])
 ax_rotational_velocity = fig1.add_subplot(gs[3, :])
 
 ## Orbital side plot
@@ -190,11 +191,12 @@ ax_attitude.set_zlabel("Z [m]")
 set_axes_equal(ax_attitude)
 
 ## SRP torque plot
-srp_torque_plot = ax_srp_torque.plot([t_hours[0]], [np.linalg.norm(spacecraft_srp_torque_vector[0, :])])[0]
-ax_srp_torque.set_ylim(0, max(spacecraft_srp_torque_norm)*1.1)
-ax_srp_torque.set_xlabel('Time [hours]')
-ax_srp_torque.set_ylabel('SRP Torque [Nm]')
-ax_srp_torque.grid()
+srp_torque_plot = ax_torque.plot([t_hours[0]], [np.linalg.norm(spacecraft_srp_torque_vector[0, :])], label="SRP")[0]
+total_torque_plot = ax_torque.plot([t_hours[0]], [np.linalg.norm(spacecraft_total_torque_norm[:])], label="Total")[0]
+ax_torque.set_ylim(0, max(spacecraft_total_torque_norm) * 1.1)
+ax_torque.set_xlabel('Time [hours]')
+ax_torque.set_ylabel('Torque Magnitude [Nm]')
+ax_torque.grid()
 
 omega_x_plot = ax_rotational_velocity.plot([t_hours[0]], [omega_x[0]], label="omega_x")[0]
 omega_y_plot = ax_rotational_velocity.plot([t_hours[0]], [omega_y[0]], label="omega_y")[0]
@@ -267,6 +269,9 @@ def updateOrbit(frame):
     # Torque plot
     srp_torque_plot.set_xdata(t_hours[:frame])
     srp_torque_plot.set_ydata(spacecraft_srp_torque_norm[:frame])
+
+    total_torque_plot.set_xdata(t_hours[:frame])
+    total_torque_plot.set_ydata(spacecraft_total_torque_norm[:frame])
 
     # Rotational velocity plot
     omega_x_plot.set_xdata(t_hours[:frame])
@@ -347,7 +352,7 @@ def updateOrbit(frame):
 
     # Change axis scales of the SRP and rotational velocity plots
     if frame > 1:
-        ax_srp_torque.set_xlim(0, t_hours[frame]+0.2)
+        ax_torque.set_xlim(0, t_hours[frame] + 0.2)
         ax_rotational_velocity.set_xlim(0, t_hours[frame] + 0.2)
     return (previous_spacecraft_position, current_sail_srp_acceleration, sun_rays, srp_torque_plot)
 

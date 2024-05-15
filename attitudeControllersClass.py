@@ -66,7 +66,7 @@ class sail_attitude_control_systems:
         self.actuator_states["wings_reflectivity_devices_values"] = self.actuator_states["wings_reflectivity_devices_values_default"]
         self.actuator_states["wings_positions"] = self.actuator_states["wings_positions_default"]
 
-    def computeBodyFrameTorqueForDetumblingToRest(self, bodies, sailCraft, tau_max, desired_rotational_velocity_vector=np.array([0, 0, 0]), rotational_velocity_tolerance= 1e-6, timeToPassivateACS=0):
+    def computeBodyFrameTorqueForDetumbling(self, bodies, sailCraft, tau_max, desired_rotational_velocity_vector=np.array([0, 0, 0]), rotational_velocity_tolerance= 1e-6, timeToPassivateACS=0):
         """
         Function computing the required torque for detumbling the spacecraft to rest. For a time-independent attitude
         control system, this function can be evaluated a single time.
@@ -86,7 +86,7 @@ class sail_attitude_control_systems:
         Aghili, F. (2009). Time-optimal detumbling control of spacecraft. Journal of guidance, control, and dynamics, 32(5), 1671-1675.
         """
         body_fixed_angular_velocity_vector = bodies.get_body(sailCraft.sail_name).body_fixed_angular_velocity
-        if (desired_rotational_velocity_vector != np.array([0, 0, 0])):
+        if (np.linalg.norm(desired_rotational_velocity_vector - np.array([0, 0, 0]))>1e-15):
             if (len(desired_rotational_velocity_vector[desired_rotational_velocity_vector > 0]) > 1):
                 raise Exception("The desired final rotational velocity vector in " +
                                 "computeBodyFrameTorqueForDetumblingToNonZeroFinalVelocity " +
@@ -103,7 +103,7 @@ class sail_attitude_control_systems:
 
         sail_craft_inertia_tensor = sailCraft.sail_inertia_tensor
 
-        inertiaTensorTimesAngularVelocity = np.matmul(omega_tilted, sail_craft_inertia_tensor)
+        inertiaTensorTimesAngularVelocity = np.dot(sail_craft_inertia_tensor, omega_tilted)
         predictedTimeToRest = np.linalg.norm(inertiaTensorTimesAngularVelocity)/tau_max
 
         if ((predictedTimeToRest < timeToPassivateACS) and (timeToPassivateACS != 0)):
@@ -111,7 +111,7 @@ class sail_attitude_control_systems:
         else:
             tau_target = tau_max
         tau_star = - (inertiaTensorTimesAngularVelocity/np.linalg.norm(inertiaTensorTimesAngularVelocity)) * tau_target
-        return tau_star
+        return np.array([0, 0, 0])#tau_star.reshape(-1, 1)
 
     def attitude_control(self, bodies, desired_sail_state):
         # Returns an empty array if nothing has changed
@@ -136,7 +136,7 @@ class sail_attitude_control_systems:
             case "vanes":
                 # Here comes the controller of the vanes, which will give the rotations around the x and y axis in the
                 # vane coordinate frame
-                vane_x_rotation_degrees, vane_y_rotation_degrees = np.array([-90., -90., -90., -90.]),  np.array([0., 0., 0., 0.])
+                vane_x_rotation_degrees, vane_y_rotation_degrees = np.array([0., 0., 0., 0.]),  np.array([0., 0., 0., 0.])
                 self.actuator_states["vane_rotation_x"] = np.deg2rad(vane_x_rotation_degrees.reshape(-1, 1))
                 self.actuator_states["vane_rotation_y"] = np.deg2rad(vane_y_rotation_degrees.reshape(-1, 1))
                 vanes_coordinates = self.__vane_dynamics(vane_x_rotation_degrees, vane_y_rotation_degrees)
@@ -453,6 +453,8 @@ class sail_attitude_control_systems:
                                          self.sliding_mass_extreme_positions_list,
                                          self.sliding_mass_system_is_accross_two_booms,
                                          self.sliding_mass_unit_direction)
+
+
 
     def is_mass_based(self):
         return self.bool_mass_based_controller

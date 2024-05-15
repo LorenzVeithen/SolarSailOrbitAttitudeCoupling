@@ -139,6 +139,7 @@ class sailCoupledDynamicsProblem:
         attitude_control_system_object.initialise_actuator_states_dictionary()
         first_attitude_control_dependent_variable_array = (
             attitude_control_system_object.get_attitude_control_system_actuators_states())
+
         return [propagation_setup.dependent_variable.keplerian_state('ACS3', 'Earth'),
                 propagation_setup.dependent_variable.received_irradiance_shadow_function("ACS3", "Sun"),
                 propagation_setup.dependent_variable.single_acceleration(
@@ -147,6 +148,7 @@ class sailCoupledDynamicsProblem:
                     propagation_setup.torque.radiation_pressure_type, "ACS3", "Sun"),
                 propagation_setup.dependent_variable.relative_position("Sun", "ACS3"),
                 propagation_setup.dependent_variable.relative_position("Sun", "Earth"),
+                propagation_setup.dependent_variable.total_torque_norm("ACS3"),
                 propagation_setup.dependent_variable.custom_dependent_variable(
                     attitude_control_system_object.get_attitude_control_system_actuators_states,
                     np.shape(first_attitude_control_dependent_variable_array)[0]),       # Vane deflections
@@ -165,7 +167,7 @@ class sailCoupledDynamicsProblem:
             step_size_validation_settings=self.validation_settings)
         return termination_settings, integrator_settings
 
-    def define_dynamical_environment(self, bodies, vehicle_target_settings):
+    def define_dynamical_environment(self, bodies, attitude_control_system_object, vehicle_target_settings):
         environment_setup.add_radiation_pressure_target_model(
             bodies, "ACS3", vehicle_target_settings)
 
@@ -180,7 +182,11 @@ class sailCoupledDynamicsProblem:
             bodies, acceleration_settings, self.bodies_to_propagate, self.central_bodies)
 
         # Rotational dynamics settings
-        torque_settings_on_sail = dict(Sun=[propagation_setup.torque.radiation_pressure()])  # dict(Earth = [propagation_setup.torque.second_degree_gravitational()])
+        optimalDetumblingTorque = lambda t, bd=bodies, sc=self.sail_craft, tau_m=1e-4: attitude_control_system_object.computeBodyFrameTorqueForDetumbling(bd, sc, tau_m)
+
+        torque_settings_on_sail = dict(#Sun=[propagation_setup.torque.radiation_pressure()],
+                                       #ACS3=[propagation_setup.torque.custom_torque(optimalDetumblingTorque)]
+                                       )  # dict(Earth = [propagation_setup.torque.second_degree_gravitational()])
         torque_settings = {'ACS3': torque_settings_on_sail}
         torque_models = propagation_setup.create_torque_models(bodies, torque_settings, self.bodies_to_propagate)
         return acceleration_models, torque_models
