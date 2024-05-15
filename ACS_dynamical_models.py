@@ -17,6 +17,7 @@ def vane_dynamical_model(rotation_x_deg,
                          vane_reference_frame_origin_list,
                          vane_panels_coordinates_list,
                          vane_reference_frame_rotation_matrix_list):
+
     new_vane_coordinates = []
     for i in range(number_of_vanes):  # For each vane
         current_vane_origin = vane_reference_frame_origin_list[i]

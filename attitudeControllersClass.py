@@ -19,31 +19,52 @@ class sail_attitude_control_systems:
         self.booms_coordinates_list = booms_coordinates_list    # [m] List of 2x3 arrays (first row is boom origin, second row is boom tip). Assuming straight booms.
 
         # Vanes
-        self.number_of_vanes = None                             # [] Number of vanes of the ACS.
+        self.number_of_vanes = 0                             # [] Number of vanes of the ACS.
         self.vane_panels_coordinates_list = None                # [m] num_of_vanes long list of (num_of_vanes x 3) arrays of the coordinates of the polygons defining the vanes of the ACS.
         self.vane_reference_frame_origin_list = None            # [m] num_of_vanes long list of (1x3) arrays of the coordinates of the vane coordinate frame origins, around which the vane rotations are defined.
         self.vane_reference_frame_rotation_matrix_list = None   # num_of_vanes long list of (3x3) rotation matrices from from the body fixed frame to the vane fixed frame.
         self.vane_material_areal_density = None
 
-        # Shifted wings
-        self.number_of_wings = None                             # Number of wings in the sail.
-        self.wings_coordinates_list = None                      # [m] num_of_wings long list of (num_of_vanes x 3) arrays of the coordinates of the polygons defining the wings of the ACS.
+        # Shifted wings (will also include tilted wings later)
+        self.number_of_wings = 0                                # Number of wings in the sail.
+        self.wings_number_of_points = 0
+        self.wings_coordinates_list = None                      # [m] num_of_wings long list of (num_of_wings x 3) arrays of the coordinates of the polygons defining the wings of the ACS.
         self.wings_areas_list = None                            # [m^2] number_of_wings long list of the area of each wing panel.
         self.wings_reference_frame_rotation_matrix_list = None  # num_of_wings long list of (3x3) rotation matrices from from the body fixed frame to the wing fixed frame.
         self.retain_wings_area_bool = None                      # Bool indicating if the area of the panels should be conserved (pure translation of the panel).
         self.max_wings_inwards_translations_list = None         # num_of_wings long list of the maximum inward wing translation (vertical in the wing reference frame).
         self.point_to_boom_belonging_list = None
+
         # Sliding mass
+        self.number_of_sliding_masses = 0
         self.sliding_masses_list = None                         # [kg] number_of_booms long list of the
         self.sliding_mass_extreme_positions_list = None         # [m] Extreme positions of the booms. Sliding masses are assumed to move in straight lines (along booms) TODO: incomplete
         self.sliding_mass_system_is_accross_two_booms = None    # TODO
         self.sliding_mass_unit_direction = None                 # TODO
 
         #
+        self.number_of_gimballed_masses = 0
         self.gimball_mass = None
+
+        # Reflectivity
+        self.number_of_reflectivity_devices = 0
 
         # Summation variables
         self.ACS_CoM_stationary_components = np.array([0, 0, 0])
+        self.actuator_states = {}
+        self.actuator_states["vane_rotation_x_default"] = np.zeros((self.number_of_vanes, 1))
+        self.actuator_states["vane_rotation_y_default"] = np.zeros((self.number_of_vanes, 1))
+        self.actuator_states["sliding_masses_body_frame_positions_default"] = np.zeros((3 * self.number_of_sliding_masses, 1))
+        self.actuator_states["gimballed_masses_body_frame_positions_default"] = np.zeros((3 * self.number_of_gimballed_masses, 1))
+        self.actuator_states["wings_reflectivity_devices_values_default"] = np.zeros((self.number_of_reflectivity_devices, 1))
+        self.actuator_states["wings_positions_default"] = np.zeros((3 * self.wings_number_of_points, 1))
+
+        self.actuator_states["vane_rotation_x"] = self.actuator_states["vane_rotation_x_default"]
+        self.actuator_states["vane_rotation_y"] = self.actuator_states["vane_rotation_y_default"]
+        self.actuator_states["sliding_masses_body_frame_positions"] = self.actuator_states["sliding_masses_body_frame_positions_default"]
+        self.actuator_states["gimballed_masses_body_frame_positions"] = self.actuator_states["gimballed_masses_body_frame_positions_default"]
+        self.actuator_states["wings_reflectivity_devices_values"] = self.actuator_states["wings_reflectivity_devices_values_default"]
+        self.actuator_states["wings_positions"] = self.actuator_states["wings_positions_default"]
 
     def computeBodyFrameTorqueForDetumblingToRest(self, bodies, sailCraft, tau_max, desired_rotational_velocity_vector=np.array([0, 0, 0]), rotational_velocity_tolerance= 1e-6, timeToPassivateACS=0):
         """
@@ -101,13 +122,24 @@ class sail_attitude_control_systems:
 
         moving_masses_CoM_components = np.array([0, 0, 0])
         moving_masses_positions = {}
+        self.actuator_states["vane_rotation_x"] = self.actuator_states["vane_rotation_x_default"]
+        self.actuator_states["vane_rotation_y"] = self.actuator_states["vane_rotation_y_default"]
+        self.actuator_states["sliding_masses_body_frame_positions"] = self.actuator_states["sliding_masses_body_frame_positions_default"]
+        self.actuator_states["gimballed_masses_body_frame_positions"] = self.actuator_states["gimballed_masses_body_frame_positions_default"]
+        self.actuator_states["wings_reflectivity_devices_values"] = self.actuator_states["wings_reflectivity_devices_values_default"]
+        self.actuator_states["wings_positions"] = self.actuator_states["wings_positions_default"]
         match self.sail_attitude_control_system:
             case "gimball_mass":
                 self.__pure_gimball_mass(bodies, desired_sail_state)
                 moving_masses_CoM_components = np.zeros([0, 0, 0])
                 moving_masses_positions["gimball_mass"] = np.array([0, 0, 0], dtype="float64")
             case "vanes":
-                vanes_coordinates = self.__vane_dynamics([45., 45., 45., 45.], [0., 0., 0., 0.])
+                # Here comes the controller of the vanes, which will give the rotations around the x and y axis in the
+                # vane coordinate frame
+                vane_x_rotation_degrees, vane_y_rotation_degrees = np.array([0., 0., 0., 0.]),  np.array([0., 0., 0., 0.])
+                self.actuator_states["vane_rotation_x"] = np.deg2rad(vane_x_rotation_degrees.reshape(-1, 1))
+                self.actuator_states["vane_rotation_y"] = np.deg2rad(vane_y_rotation_degrees.reshape(-1, 1))
+                vanes_coordinates = self.__vane_dynamics(vane_x_rotation_degrees, vane_y_rotation_degrees)
             case "shifted_wings":
                 wing_shifts_list = [[-0.4, -0.4, -0.4, -0.4],
                                     [0, 0, 0, 0],
@@ -155,11 +187,6 @@ class sail_attitude_control_systems:
 
     # Controllers
     def __pure_gimball_mass(self, current_sail_state, desired_sail_state):
-
-        return
-
-    def __pure_vane_controller(self, desired_sail_state):
-
         return
 
     # ACS characteristics inputs and dynamics
@@ -181,6 +208,9 @@ class sail_attitude_control_systems:
         self.vane_panels_coordinates_list = vanes_coordinates_list
         self.vane_reference_frame_origin_list = vane_reference_frame_origin_list
         self.vane_reference_frame_rotation_matrix_list = vanes_reference_frame_rotation_matrix_list
+        self.actuator_states["vane_rotation_x_default"] = np.zeros((self.number_of_vanes, 1))
+        self.actuator_states["vane_rotation_y_default"] = np.zeros((self.number_of_vanes, 1))
+
         vanes_areas = []
         for i in range(len(self.vane_panels_coordinates_list)):
             _, vane_area, _ = compute_panel_geometrical_properties(self.vane_panels_coordinates_list[i])
@@ -197,7 +227,8 @@ class sail_attitude_control_systems:
 
         if (self.vane_reference_frame_origin_list == None
                 or self.vane_panels_coordinates_list == None
-                or self.vane_reference_frame_rotation_matrix_list == None):
+                or self.vane_reference_frame_rotation_matrix_list == None
+                or self.number_of_vanes == 0):
             raise Exception("Vane characteristics have not been set by the user.")
 
         new_vane_coordinates = vane_dynamical_model(rotation_x_deg,
@@ -210,9 +241,10 @@ class sail_attitude_control_systems:
         return new_vane_coordinates
 
     def __vane_actuation_rotation_range(self, sun_light_direction_body_frame):
+        return False
 
-        pass
-
+    def __pure_vane_controller(self, desired_sail_state):
+        return False
     def set_shifted_panel_characteristics(self, wings_coordinates_list, wings_areas_list, wings_reference_frame_rotation_matrix_list, keep_constant_area, stationary_system_components_mass, stationary_system_system_CoM):
         """
         Function setting the characteristics of the shifted panels actuator.
@@ -232,6 +264,14 @@ class sail_attitude_control_systems:
         self.retain_wings_area_bool = keep_constant_area
         self.wings_areas_list = wings_areas_list
         self.wings_reference_frame_rotation_matrix_list = wings_reference_frame_rotation_matrix_list
+
+        #TODO: Could be broken, check
+        horizontal_stack = np.array([])
+        for wing in self.wings_coordinates_list:
+            self.wings_number_of_points += np.shape(wing)[0]
+            for i in range(np.shape(wing)[0]):
+                horizontal_stack = np.hstack((horizontal_stack, wing[i, :]))
+        self.actuator_states["wings_positions_default"] = horizontal_stack.reshape(-1, 1)   # Make vertical again
 
         if (keep_constant_area):
             # Check that the sail geometry makes sense: the vertical space between the wings edge and the boom should be non-zero
@@ -332,6 +372,8 @@ class sail_attitude_control_systems:
         self.ACS_CoM_stationary_components += stationary_system_components_mass * stationary_system_system_CoM
         self.bool_mass_based_controller = True
         self.sliding_masses_list = sliding_masses_list      # [m1, m2, m3, m4] in the same order as the booms or [m1, m2] if the system type is 1. (for standard cross sail)
+        self.number_of_sliding_masses = len(sliding_masses_list)
+        self.actuator_states["sliding_masses_body_frame_positions_default"] = np.zeros((3 * (self.number_of_sliding_masses ), 1))
 
         if (sliding_mass_system_type == 0):
             # 1 mass per boom (2 for a nominal square configuration)
@@ -422,3 +464,23 @@ class sail_attitude_control_systems:
 
     def get_attitude_system_mass(self):
         return self.ACS_mass
+
+    def initialise_actuator_states_dictionary(self):
+        self.actuator_states["vane_rotation_x"] = self.actuator_states["vane_rotation_x_default"]
+        self.actuator_states["vane_rotation_y"] = self.actuator_states["vane_rotation_y_default"]
+        self.actuator_states["sliding_masses_body_frame_positions"] = self.actuator_states["sliding_masses_body_frame_positions_default"]
+        self.actuator_states["gimballed_masses_body_frame_positions"] = self.actuator_states["gimballed_masses_body_frame_positions_default"]
+        self.actuator_states["wings_reflectivity_devices_values"] = self.actuator_states["wings_reflectivity_devices_values_default"]
+        self.actuator_states["wings_positions"] = self.actuator_states["wings_positions_default"]
+        return True
+    def get_attitude_control_system_actuators_states(self):
+        # convert the actuator states variable to something compatible with the dependent_variables history
+        keys_list = ["vane_rotation_x", "vane_rotation_y",
+                     "sliding_masses_body_frame_positions", "gimballed_masses_body_frame_positions",
+                     "wings_reflectivity_devices_values", "wings_positions"]
+        dependent_variable_array = np.array([[0]])
+        for key in keys_list:
+            if key in self.actuator_states.keys():
+                dependent_variable_array = np.vstack((dependent_variable_array, self.actuator_states[key]))
+        dependent_variable_array = dependent_variable_array[1:, 0]
+        return dependent_variable_array

@@ -39,7 +39,7 @@ sail = sail_craft("ACS3",
 
 # Set simulation start and end epochs
 simulation_start_epoch = DateTime(2024, 6, 1, 0).epoch()
-simulation_end_epoch = DateTime(2024, 6, 1, 9).epoch()
+simulation_end_epoch = DateTime(2024, 6, 2, 0).epoch()
 
 # Initial states
 initial_translational_state = element_conversion.keplerian_to_cartesian_elementwise(
@@ -50,7 +50,8 @@ initial_translational_state = element_conversion.keplerian_to_cartesian_elementw
     argument_of_periapsis=w_0,
     longitude_of_ascending_node=raan_0,
     true_anomaly=theta_0)
-inertial_to_body_initial = R.from_euler('y', 90, degrees=True).as_matrix()
+
+#inertial_to_body_initial = R.from_euler('y', 90, degrees=True).as_matrix()
 initial_rotational_state = np.concatenate((rotation_matrix_to_quaternion_entries(np.eye(3)), np.array([0., 0., 0.])))
 
 sailProp = sailCoupledDynamicsProblem(sail,
@@ -58,7 +59,8 @@ sailProp = sailCoupledDynamicsProblem(sail,
                initial_rotational_state,
                simulation_start_epoch,
                simulation_end_epoch)
-dependent_variables = sailProp.define_dependent_variables()
+
+dependent_variables = sailProp.define_dependent_variables(acs_object)
 bodies, vehicle_target_settings = sailProp.define_simulation_bodies()
 sail.setBodies(bodies)
 termination_settings, integrator_settings = sailProp.define_numerical_environment()

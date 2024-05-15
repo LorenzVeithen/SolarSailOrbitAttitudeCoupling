@@ -213,3 +213,4 @@ class sail_craft:
             return self.sail_vanes_coordinates[panel_id]
         else:
             return self.sail_wings_coordinates[panel_id]
+
