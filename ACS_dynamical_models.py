@@ -10,7 +10,7 @@ from MiscFunctions import all_equal, closest_point_on_a_segment_to_a_third_point
 from MiscFunctions import Rx_matrix, Ry_matrix, Rz_matrix
 from numba import jit
 
-#@jit(nopython=True, cache=True)
+@jit(nopython=True, cache=True)
 def vane_dynamical_model(rotation_x_deg,
                          rotation_y_deg,
                          number_of_vanes,
@@ -31,11 +31,13 @@ def vane_dynamical_model(rotation_x_deg,
                                                                      current_vane_coordinates[j,:]
                                                                      - current_vane_origin)
             # Now rotate along the vane-fixed x-axis and then y-axis
-            #current_rotation_x_rad = np.deg2rad(rotation_x_deg[i])
-            #current_rotation_y_rad = np.deg2rad(rotation_y_deg[i])
+            current_rotation_x_rad = np.deg2rad(rotation_x_deg[i])
+            current_rotation_y_rad = np.deg2rad(rotation_y_deg[i])
 
-            Rx = R.from_euler('x', rotation_x_deg[i], degrees=True).as_matrix()    # np.array([[1, 0, 0], [0, np.cos(current_rotation_x_rad), -np.sin(current_rotation_x_rad)], [0, np.sin(current_rotation_x_rad), np.cos(current_rotation_x_rad)]])
-            Ry = R.from_euler('y', rotation_y_deg[i], degrees=True).as_matrix()    # np.array([[np.cos(current_rotation_y_rad), 0, np.sin(current_rotation_y_rad)], [0, 1, 0], [-np.sin(current_rotation_y_rad), 0, np.cos(current_rotation_y_rad)]])
+            #Rx = R.from_euler('x', rotation_x_deg[i], degrees=True).as_matrix()
+            #Ry = R.from_euler('y', rotation_y_deg[i], degrees=True).as_matrix()
+            Rx = np.array([[1., 0., 0.], [0., np.cos(current_rotation_x_rad), -np.sin(current_rotation_x_rad)], [0., np.sin(current_rotation_x_rad), np.cos(current_rotation_x_rad)]])
+            Ry = np.array([[np.cos(current_rotation_y_rad), 0., np.sin(current_rotation_y_rad)], [0., 1., 0.], [-np.sin(current_rotation_y_rad), 0., np.cos(current_rotation_y_rad)]])
             vane_rotation_matrix = np.dot(Ry, Rx)
             current_vane_coordinate_rotated_vane_reference_frame = np.dot(vane_rotation_matrix,
                                                                              current_vane_coordinate_vane_reference_frame)

@@ -27,8 +27,13 @@ quiver_widths_attitude = 1
 thr_previous_spacecraft_positions_fade_down = 1
 thr_sun_rays = 1 * 24 * 3600
 
+# Load data
+
+state_history_array = np.loadtxt("PropagationData/DetumblingTorqueTest/state_history.dat")
+dependent_variable_history_array = np.loadtxt(
+    "PropagationData/DetumblingTorqueTest/dependent_variable_history.dat")
+
 # Extract state history
-state_history_array = np.loadtxt("PropagationData/state_history.dat")
 t_hours = (state_history_array[:, 0] - state_history_array[0, 0]) / 3600    # hours
 x_J2000 = state_history_array[:, 1]
 y_J2000 = state_history_array[:, 2]
@@ -42,17 +47,16 @@ omega_y = state_history_array[:, 12]
 omega_z = state_history_array[:, 13]
 
 # Extract dependent variables
-dependent_variable_history_array = np.loadtxt("PropagationData/dependent_variable_history.dat")
 t_dependent_variables_hours = (dependent_variable_history_array[:, 0]-dependent_variable_history_array[0, 0])/3600
 keplerian_state = dependent_variable_history_array[:, 1:7]
 received_irradiance_shadow_function = dependent_variable_history_array[:, 7]
 spacecraft_srp_acceleration_vector = dependent_variable_history_array[:, 8:11]
 spacecraft_srp_torque_vector = dependent_variable_history_array[:, 11:14]
-spacecraft_sun_relative_position = dependent_variable_history_array[:, 14-3:17-3]
-earth_sun_relative_position = dependent_variable_history_array[:, 17-3:20-3]
-spacecraft_total_torque_norm = dependent_variable_history_array[:, 20-3]
-vanes_x_rotations = np.rad2deg(dependent_variable_history_array[:, 21-3:25-3])  # Note: this might need to be changed; is there a way to make this automatic?
-vanes_y_rotations = np.rad2deg(dependent_variable_history_array[:, 25-3:29-3])  # Note: this might need to be changed; is there a way to make this automatic?
+spacecraft_sun_relative_position = dependent_variable_history_array[:, 14:17]
+earth_sun_relative_position = dependent_variable_history_array[:, 17:20]
+spacecraft_total_torque_norm = dependent_variable_history_array[:, 20]
+vanes_x_rotations = np.rad2deg(dependent_variable_history_array[:, 21:25])  # Note: this might need to be changed; is there a way to make this automatic?
+vanes_y_rotations = np.rad2deg(dependent_variable_history_array[:, 25:29])  # Note: this might need to be changed; is there a way to make this automatic?
 
 spacecraft_sun_relative_position_in_body_fixed_frame = np.zeros(np.shape(spacecraft_sun_relative_position))
 for i in range(np.shape(t_dependent_variables_hours)[0]):
@@ -61,6 +65,7 @@ for i in range(np.shape(t_dependent_variables_hours)[0]):
     spacecraft_sun_relative_position_in_body_fixed_frame[i, :] = np.dot(current_R_BI, current_spacecraft_sun_relative_position)
 
 spacecraft_srp_torque_norm = np.sqrt(spacecraft_srp_torque_vector[:, 0]**2 + spacecraft_srp_torque_vector[:, 1]**2 + spacecraft_srp_torque_vector[:, 2]**2)
+
 
 gs = gridspec.GridSpec(4, 4)
 fig1 = plt.figure()
@@ -357,15 +362,9 @@ def updateOrbit(frame):
     return (previous_spacecraft_position, current_sail_srp_acceleration, sun_rays, srp_torque_plot)
 
 # Run animation
-ani = animation.FuncAnimation(fig=fig1, func=updateOrbit, frames=len(t_hours), interval=50)
+ani = animation.FuncAnimation(fig=fig1, func=updateOrbit, frames=len(t_hours), interval=5)
 plt.show()
 if generate_mp4:
     FFwriter = animation.FFMpegWriter(fps=10)
     ani.save('animation.mp4', writer=FFwriter)
-
-"""
-plt.figure()
-plt.plot(t_hours, received_irradiance_shadow_function, label='Irradiance')
-plt.plot(t_hours, spacecraft_srp_torque_norm/max(spacecraft_srp_torque_norm), label='SRP torque')
-"""
 

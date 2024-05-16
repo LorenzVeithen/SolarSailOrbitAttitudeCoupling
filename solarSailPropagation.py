@@ -39,7 +39,7 @@ sail = sail_craft("ACS3",
 
 # Set simulation start and end epochs
 simulation_start_epoch = DateTime(2024, 6, 1, 0).epoch()
-simulation_end_epoch = DateTime(2024, 6, 1, 5).epoch()
+simulation_end_epoch = DateTime(2024, 6, 2, 0).epoch()
 
 # Initial states
 initial_translational_state = element_conversion.keplerian_to_cartesian_elementwise(
@@ -71,9 +71,9 @@ t0 = time.time()
 state_history, states_array, dependent_variable_history, dependent_variable_array = sailProp.run_sim(bodies, combined_propagator_settings)
 t1 = time.time()
 sailProp.write_results_to_file(state_history,
-                               'PropagationData/state_history.dat',
+                               'PropagationData/DetumblingTorqueTest/state_history.dat',
                                dependent_variable_history,
-                               'PropagationData/dependent_variable_history.dat')
+                               'PropagationData/DetumblingTorqueTest/dependent_variable_history.dat')
 
 print(t1-t0)
 

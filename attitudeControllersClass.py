@@ -111,7 +111,7 @@ class sail_attitude_control_systems:
         else:
             tau_target = tau_max
         tau_star = - (inertiaTensorTimesAngularVelocity/np.linalg.norm(inertiaTensorTimesAngularVelocity)) * tau_target
-        return np.array([0, 0, 0])#tau_star.reshape(-1, 1)
+        return tau_star.reshape(-1, 1)
 
     def attitude_control(self, bodies, desired_sail_state):
         # Returns an empty array if nothing has changed

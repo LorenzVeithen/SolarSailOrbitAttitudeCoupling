@@ -50,7 +50,7 @@ class sailCoupledDynamicsProblem:
 
         # integrator settings
         self.initial_step_size = 1.0
-        self.control_settings = propagation_setup.integrator.step_size_control_elementwise_scalar_tolerance(1.0E-12, 1.0E-12)
+        self.control_settings = propagation_setup.integrator.step_size_control_elementwise_scalar_tolerance(1.0E-8, 1.0E-8)
         self.validation_settings = propagation_setup.integrator.step_size_validation(1E-5, 1E2)
         self.initial_translational_state = initial_translational_state
         self.initial_rotational_state = initial_rotational_state
@@ -182,10 +182,10 @@ class sailCoupledDynamicsProblem:
             bodies, acceleration_settings, self.bodies_to_propagate, self.central_bodies)
 
         # Rotational dynamics settings
-        optimalDetumblingTorque = lambda t, bd=bodies, sc=self.sail_craft, tau_m=1e-4: attitude_control_system_object.computeBodyFrameTorqueForDetumbling(bd, sc, tau_m)
+        optimalDetumblingTorque = lambda t, bd=bodies, sc=self.sail_craft, tau_m=1e-4: attitude_control_system_object.computeBodyFrameTorqueForDetumbling(bd, sc, tau_m, desired_rotational_velocity_vector=np.array([0., 0., 100 * 2 * np.pi/3600]))
 
-        torque_settings_on_sail = dict(#Sun=[propagation_setup.torque.radiation_pressure()],
-                                       #ACS3=[propagation_setup.torque.custom_torque(optimalDetumblingTorque)]
+        torque_settings_on_sail = dict(Sun=[propagation_setup.torque.radiation_pressure()],
+                                       ACS3=[propagation_setup.torque.custom_torque(optimalDetumblingTorque)],
                                        )  # dict(Earth = [propagation_setup.torque.second_degree_gravitational()])
         torque_settings = {'ACS3': torque_settings_on_sail}
         torque_models = propagation_setup.create_torque_models(bodies, torque_settings, self.bodies_to_propagate)
