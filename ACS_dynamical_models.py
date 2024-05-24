@@ -10,13 +10,16 @@ from MiscFunctions import all_equal, closest_point_on_a_segment_to_a_third_point
 from MiscFunctions import Rx_matrix, Ry_matrix, Rz_matrix
 from numba import jit
 
-@jit(nopython=True, cache=True)
 def vane_dynamical_model(rotation_x_deg,
                          rotation_y_deg,
                          number_of_vanes,
                          vane_reference_frame_origin_list,
                          vane_panels_coordinates_list,
                          vane_reference_frame_rotation_matrix_list):
+    # New version which should be twice as fast as the previous one
+    # Precompute rotation matrices for all vanes using SciPy's Rotation
+    Rx_list = R.from_euler('x', rotation_x_deg, degrees=True).as_matrix()
+    Ry_list = R.from_euler('y', rotation_y_deg, degrees=True).as_matrix()
 
     new_vane_coordinates = []
     for i in range(number_of_vanes):  # For each vane
@@ -24,29 +27,27 @@ def vane_dynamical_model(rotation_x_deg,
         current_vane_coordinates = vane_panels_coordinates_list[i]
         current_vane_frame_rotation_matrix = vane_reference_frame_rotation_matrix_list[i]
 
-        rotated_vane_coordinates = np.zeros(np.shape(current_vane_coordinates))
-        for j in range(len(current_vane_coordinates[:, 0])):  # For each coordinate of the panel
-            # Get the panel coordinate points in the vane-centered coordinate system
-            current_vane_coordinate_vane_reference_frame = np.dot(np.linalg.inv(current_vane_frame_rotation_matrix),
-                                                                     current_vane_coordinates[j,:]
-                                                                     - current_vane_origin)
-            # Now rotate along the vane-fixed x-axis and then y-axis
-            current_rotation_x_rad = np.deg2rad(rotation_x_deg[i])
-            current_rotation_y_rad = np.deg2rad(rotation_y_deg[i])
+        # Combine the rotation matrices
+        vane_rotation_matrix = np.dot(Ry_list[i], Rx_list[i])
 
-            #Rx = R.from_euler('x', rotation_x_deg[i], degrees=True).as_matrix()
-            #Ry = R.from_euler('y', rotation_y_deg[i], degrees=True).as_matrix()
-            Rx = np.array([[1., 0., 0.], [0., np.cos(current_rotation_x_rad), -np.sin(current_rotation_x_rad)], [0., np.sin(current_rotation_x_rad), np.cos(current_rotation_x_rad)]])
-            Ry = np.array([[np.cos(current_rotation_y_rad), 0., np.sin(current_rotation_y_rad)], [0., 1., 0.], [-np.sin(current_rotation_y_rad), 0., np.cos(current_rotation_y_rad)]])
-            vane_rotation_matrix = np.dot(Ry, Rx)
-            current_vane_coordinate_rotated_vane_reference_frame = np.dot(vane_rotation_matrix,
-                                                                             current_vane_coordinate_vane_reference_frame)
+        # Transform coordinates to the vane-centered reference frame
+        current_vane_coordinates_vane_reference_frame = (
+            np.dot(current_vane_coordinates - current_vane_origin, np.linalg.inv(current_vane_frame_rotation_matrix).T)
+        )
 
-            # Convert back to the body fixed reference frame
-            current_vane_coordinate_rotated_body_fixed_reference_frame = np.dot(current_vane_frame_rotation_matrix,
-                                                                                   current_vane_coordinate_rotated_vane_reference_frame) + current_vane_origin
-            rotated_vane_coordinates[j, :] = current_vane_coordinate_rotated_body_fixed_reference_frame
-        new_vane_coordinates.append(rotated_vane_coordinates)
+        # Apply the rotations
+        current_vane_coordinates_rotated_vane_reference_frame = np.dot(
+            current_vane_coordinates_vane_reference_frame, vane_rotation_matrix.T
+        )
+
+        # Convert back to the body fixed reference frame
+        current_vane_coordinates_rotated_body_fixed_reference_frame = (
+            np.dot(current_vane_coordinates_rotated_vane_reference_frame, current_vane_frame_rotation_matrix.T)
+            + current_vane_origin
+        )
+
+        new_vane_coordinates.append(current_vane_coordinates_rotated_body_fixed_reference_frame)
+
     return new_vane_coordinates
 
 #@jit(nopython=True, cache=True)

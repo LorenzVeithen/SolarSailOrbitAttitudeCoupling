@@ -4,26 +4,40 @@ from numba import jit
 
 @jit(nopython=True, cache=True)
 def compute_panel_geometrical_properties(panel_coordinates):
-    current_panel_coordinates = panel_coordinates
-    number_of_attachment_points = len(current_panel_coordinates[:, 0])
+    # Number of attachment points
+    number_of_attachment_points = np.shape(panel_coordinates)[0]
 
     # Compute centroid
-    current_panel_centroid = np.array([np.sum(current_panel_coordinates[:, 0]) / number_of_attachment_points,
-                                       np.sum(current_panel_coordinates[:, 1]) / number_of_attachment_points,
-                                       np.sum(current_panel_coordinates[:, 2]) / number_of_attachment_points])
+    current_panel_centroid = np.zeros(3)
+    for i in range(number_of_attachment_points):
+        current_panel_centroid[0] += panel_coordinates[i, 0]
+        current_panel_centroid[1] += panel_coordinates[i, 1]
+        current_panel_centroid[2] += panel_coordinates[i, 2]
+    current_panel_centroid /= number_of_attachment_points
 
-    # Compute area
-    ref_point_area_calculation = current_panel_coordinates[0, :]
-    current_panel_coordinates_wrt_ref_point = current_panel_coordinates - ref_point_area_calculation
-    current_panel_coordinates_wrt_ref_point = current_panel_coordinates_wrt_ref_point[1:, :]
-    cross_product_sum = np.array([0, 0, 0], dtype='float64')
+    # Compute area using vectorized operations
+    ref_point_area_calculation = panel_coordinates[0, :]
+    current_panel_coordinates_wrt_ref_point = np.zeros((number_of_attachment_points - 1, 3))
+    for i in range(1, number_of_attachment_points):
+        current_panel_coordinates_wrt_ref_point[i - 1, 0] = panel_coordinates[i, 0] - ref_point_area_calculation[0]
+        current_panel_coordinates_wrt_ref_point[i - 1, 1] = panel_coordinates[i, 1] - ref_point_area_calculation[1]
+        current_panel_coordinates_wrt_ref_point[i - 1, 2] = panel_coordinates[i, 2] - ref_point_area_calculation[2]
+
+    # Vectorized cross product sum
+    cross_product_sum = np.zeros(3)
     for i in range(number_of_attachment_points - 2):
-        cross_product_sum += np.cross(current_panel_coordinates_wrt_ref_point[i],
-                                      current_panel_coordinates_wrt_ref_point[i + 1])
-    current_panel_area = (1 / 2) * np.linalg.norm(cross_product_sum)
+        u = current_panel_coordinates_wrt_ref_point[i]
+        v = current_panel_coordinates_wrt_ref_point[i + 1]
+        cross_product_sum[0] += u[1] * v[2] - u[2] * v[1]
+        cross_product_sum[1] += u[2] * v[0] - u[0] * v[2]
+        cross_product_sum[2] += u[0] * v[1] - u[1] * v[0]
+
+    current_panel_area = 0.5 * np.sqrt(cross_product_sum[0]**2 + cross_product_sum[1]**2 + cross_product_sum[2]**2)
 
     # Compute surface normal
-    current_panel_surface_normal = cross_product_sum / np.linalg.norm(cross_product_sum)  # Stokes theorem
+    norm = np.sqrt(cross_product_sum[0]**2 + cross_product_sum[1]**2 + cross_product_sum[2]**2)
+    current_panel_surface_normal = cross_product_sum / norm
+
     return current_panel_centroid, current_panel_area, current_panel_surface_normal
 
 def quiver_data_to_segments(X, Y, Z, u, v, w, length=1):
@@ -47,6 +61,16 @@ def closest_point_on_a_segment_to_a_third_point(p1, p2, p3):
             return p2
         else:
             return p4
+
+def lists_of_arrays_equal(list1, list2):
+    if len(list1) != len(list2):
+        return False
+
+    for arr1, arr2 in zip(list1, list2):
+        if (not np.array_equal(arr1, arr2) and np.amax(abs(arr2-arr1))>1e-15):
+            return False
+
+    return True
 
 def all_equal(iterable):
     g = groupby(iterable)

@@ -20,7 +20,7 @@ from tudatpy.astro.time_conversion import DateTime
 # Define solar sail - see constants file
 acs_object = sail_attitude_control_systems("vanes", boom_list)
 acs_object.set_vane_characteristics(vanes_coordinates_list, vanes_origin_list, vanes_rotation_matrices_list, 0,
-                                    np.array([0, 0, 0]), 0.0045)
+                                    np.array([0, 0, 0]), 0.0045, vanes_rotational_dof)
 
 sail = sail_craft("ACS3",
                   len(wings_coordinates_list),

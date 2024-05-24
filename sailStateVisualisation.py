@@ -67,6 +67,7 @@ vane4 = np.array([[-boom_length, 0, 0],
 
 vane_coordinates_list = [vane1, vane2, vane3, vane4]
 vanes_optical_properties = [np.array([1, 1, 0, 0, 0, 0, 0, 0, 0, 0])] * 4
+vanes_rotational_dof = [['x'], ['y'], ['x', 'y'], ['x', 'y']]
 
 
 vane_origin_list = [vane[0, :] for vane in vane_coordinates_list]
@@ -94,7 +95,12 @@ if (SHIFTED_PANELS_BOOL):
 
 if (VANES_BOOL):
     acs_object = sail_attitude_control_systems("vanes", boom_list)
-    acs_object.set_vane_characteristics(vane_coordinates_list, vane_origin_list, vanes_rotation_matrices_list, 0, np.array([0, 0, 0]), 0.0045)
+    acs_object.set_vane_characteristics(vane_coordinates_list, vane_origin_list,
+                                        vanes_rotation_matrices_list,
+                                        0,
+                                        np.array([0, 0, 0]),
+                                        0.0045,
+                                        vanes_rotational_dof)
 
 elif(SHIFTED_PANELS_BOOL):
     acs_object = sail_attitude_control_systems("shifted_wings", boom_list)

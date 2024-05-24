@@ -22,8 +22,9 @@ class sail_attitude_control_systems:
         self.number_of_vanes = 0                             # [] Number of vanes of the ACS.
         self.vane_panels_coordinates_list = None                # [m] num_of_vanes long list of (num_of_vanes x 3) arrays of the coordinates of the polygons defining the vanes of the ACS.
         self.vane_reference_frame_origin_list = None            # [m] num_of_vanes long list of (1x3) arrays of the coordinates of the vane coordinate frame origins, around which the vane rotations are defined.
-        self.vane_reference_frame_rotation_matrix_list = None   # num_of_vanes long list of (3x3) rotation matrices from from the body fixed frame to the vane fixed frame.
+        self.vane_reference_frame_rotation_matrix_list = None   # num_of_vanes long list of (3x3) rotation matrices from the body fixed frame to the vane fixed frame.
         self.vane_material_areal_density = None
+        self.vanes_rotational_dof_vane_reference_frame = None   # num_of_vanes long list of lists of strings ('x' and 'y') stating the rotational degree of freedom of each vane
 
         # Shifted wings (will also include tilted wings later)
         self.number_of_wings = 0                                # Number of wings in the sail.
@@ -136,7 +137,7 @@ class sail_attitude_control_systems:
             case "vanes":
                 # Here comes the controller of the vanes, which will give the rotations around the x and y axis in the
                 # vane coordinate frame
-                vane_x_rotation_degrees, vane_y_rotation_degrees = np.array([0., 0., 0., 0.]),  np.array([0., 0., 0., 0.])
+                vane_x_rotation_degrees, vane_y_rotation_degrees = np.array([-90., -90., -90., -90.]),  np.array([-90., -90., -90., -90.])
                 self.actuator_states["vane_rotation_x"] = np.deg2rad(vane_x_rotation_degrees.reshape(-1, 1))
                 self.actuator_states["vane_rotation_y"] = np.deg2rad(vane_y_rotation_degrees.reshape(-1, 1))
                 vanes_coordinates = self.__vane_dynamics(vane_x_rotation_degrees, vane_y_rotation_degrees)
@@ -190,24 +191,31 @@ class sail_attitude_control_systems:
         return
 
     # ACS characteristics inputs and dynamics
-    def set_vane_characteristics(self, vanes_coordinates_list, vane_reference_frame_origin_list, vanes_reference_frame_rotation_matrix_list, stationary_system_components_mass, stationary_system_system_CoM, vane_material_areal_density):
+    def set_vane_characteristics(self, vanes_coordinates_list,
+                                 vanes_reference_frame_origin_list,
+                                 vanes_reference_frame_rotation_matrix_list,
+                                 stationary_system_components_mass,
+                                 stationary_system_system_CoM,
+                                 vanes_material_areal_density,
+                                 vanes_rotational_dof_vane_reference_frame):
         """
         Function setting the characteristics of the ACS vanes actuator.
         Should be called a single time.
         :param vanes_coordinates_list:
-        :param vane_reference_frame_origin_list:
+        :param vanes_reference_frame_origin_list:
         :param vanes_reference_frame_rotation_matrix_list:
         :param stationary_system_components_mass:
         :param stationary_system_system_CoM:
-        :param vane_material_areal_density:
+        :param vanes_material_areal_density:
         :return: True if the process was completed successfully
         """
         self.ACS_mass += stationary_system_components_mass  # WITHOUT VANES, which are taken into account below
         self.ACS_CoM_stationary_components += stationary_system_components_mass * stationary_system_system_CoM
-        self.number_of_vanes = len(vane_reference_frame_origin_list)
+        self.number_of_vanes = len(vanes_reference_frame_origin_list)
         self.vane_panels_coordinates_list = vanes_coordinates_list
-        self.vane_reference_frame_origin_list = vane_reference_frame_origin_list
+        self.vane_reference_frame_origin_list = vanes_reference_frame_origin_list
         self.vane_reference_frame_rotation_matrix_list = vanes_reference_frame_rotation_matrix_list
+        self.vanes_rotational_dof_vane_reference_frame = vanes_rotational_dof_vane_reference_frame
         self.actuator_states["vane_rotation_x_default"] = np.zeros((self.number_of_vanes, 1))
         self.actuator_states["vane_rotation_y_default"] = np.zeros((self.number_of_vanes, 1))
 
@@ -215,8 +223,17 @@ class sail_attitude_control_systems:
         for i in range(len(self.vane_panels_coordinates_list)):
             _, vane_area, _ = compute_panel_geometrical_properties(self.vane_panels_coordinates_list[i])
             vanes_areas.append(vane_area)
-        self.vane_material_areal_density = vane_material_areal_density
-        self.ACS_mass = sum(vanes_areas) * vane_material_areal_density
+        self.vane_material_areal_density = vanes_material_areal_density
+        self.ACS_mass = sum(vanes_areas) * vanes_material_areal_density
+
+        # Determine which vanes can do what type of torque
+        for i, vane_origin_body_frame in enumerate(self.vane_reference_frame_origin_list):
+            x_moment_arm_body_frame = np.sqrt(vane_origin_body_frame[1] ** 2 + vane_origin_body_frame[2] ** 2)
+            y_moment_arm_body_frame = np.sqrt(vane_origin_body_frame[0] ** 2 + vane_origin_body_frame[2] ** 2)
+            z_moment_arm_body_frame = np.sqrt(vane_origin_body_frame[0] ** 2 + vane_origin_body_frame[1] ** 2)
+            # The two largest moment arms will considered for which moments can be induced
+            # Afterwards there needs to be a check on whether all moments doable, such that three axis works
+
         return True
 
     def __vane_dynamics(self, rotation_x_deg, rotation_y_deg):
@@ -240,10 +257,22 @@ class sail_attitude_control_systems:
 
         return new_vane_coordinates
 
-    def __vane_actuation_rotation_range(self, sun_light_direction_body_frame):
+    def __vane_actuation_rotation_range(self, sun_light_direction_body_frame):  # Shadowing
         return False
 
-    def __pure_vane_controller(self, desired_sail_state):
+    def __pure_vane_controller(self, desired_total_torque, double_sided_reflective=False):
+        n_dof = 2
+        match n_dof:
+            case 1:
+                pass
+            case 2:
+                pass
+            case _:
+                raise Exception("Unsupported number of degrees of freedom for the pure vane controller.")
+
+        # First allocate the torque to each vane
+
+        # Then determine the vane angles for a given torque
         return False
     def set_shifted_panel_characteristics(self, wings_coordinates_list, wings_areas_list, wings_reference_frame_rotation_matrix_list, keep_constant_area, stationary_system_components_mass, stationary_system_system_CoM):
         """
