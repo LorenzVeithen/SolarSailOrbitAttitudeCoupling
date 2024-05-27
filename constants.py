@@ -10,6 +10,10 @@ w_0 = np.deg2rad(120.0)      # [deg] initial spacecraft argument of pericentre
 raan_0 = np.deg2rad(27.0)    # [deg] initial spacecraft RAAN
 theta_0 = np.deg2rad(275.0)  # [deg] initial spacecraft true anomaly
 
+c = 299792458   # m/s
+W = 1400    # W / m^2 - roughly
+
+
 # Sail characteristics - using ACS3 as baseline for initial testing
 sail_mass = 16  # kg
 sail_mass_without_wings = 15.66     # kg
@@ -19,6 +23,7 @@ sail_I[1, 1] = 10.5
 sail_I[2, 2] = 21
 sail_nominal_CoM = np.array([0., 0., 0.])
 sail_material_areal_density = 0.00425   # kg/m^2
+vane_angles_allocation_scaling_factor = 1e-6
 
 # Sail shape
 boom_length = 7.     # m
@@ -75,14 +80,15 @@ vane4 = np.array([[-boom_length, 0., 0.],
                   [-boom_length - vane_side_length*np.sin(vane_angle), -vane_side_length*np.cos(vane_angle), 0.]])
 
 vanes_coordinates_list = [vane1, vane2, vane3, vane4]
-vanes_optical_properties = [np.array([0.2, 0.3, 0.5, 0.6, 0.3, 0.1, 2/3, 2/3, 1., 1.])] * 4
+#vanes_optical_properties = [np.array([0.2, 0.3, 0.5, 0.6, 0.3, 0.1, 2/3, 2/3, 1., 1.])] * 4
+vanes_optical_properties = [np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])] * 4
 vanes_origin_list = [vane[0, :] for vane in vanes_coordinates_list]
 vanes_rotation_matrices_list = [R.from_euler('z', 90., degrees=True).as_matrix(),
                                 R.from_euler('z', 0., degrees=True).as_matrix(),
                                 R.from_euler('z', 270., degrees=True).as_matrix(),
                                 R.from_euler('z', 180., degrees=True).as_matrix()]
 
-vanes_rotational_dof = [['x'], ['y'], ['x', 'y'], ['x', 'y']]
+vanes_rotational_dof = [[True, False], [False, True], [True, True], [True, True]]
 
 # Sail performance metrics
 acc0 = 0.045 * 1E-3   # m/s/s characteristic sail acceleration

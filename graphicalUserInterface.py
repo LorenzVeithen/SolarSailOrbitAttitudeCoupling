@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from constants import *
 from MiscFunctions import quiver_data_to_segments, set_axes_equal
-from ACS_dynamical_models import vane_dynamical_model
+from ACS_dynamicalModels import vane_dynamical_model
 import matplotlib.animation as animation
 from MiscFunctions import compute_panel_geometrical_properties
 from mpl_toolkits.mplot3d import Axes3D

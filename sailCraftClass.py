@@ -97,6 +97,9 @@ class sail_craft:
         return 0
 
     def compute_sail_center_of_mass(self, ACS_center_of_mass):
+        # Contribution of vanes is already taking into account in the ACS component
+
+        # Recompute everything to be sure
         self.compute_reflective_panels_properties(list(range(self.sail_num_wings)), list(range(self.sail_num_vanes)))
         summation = np.array([0, 0, 0], dtype="float64")
 
@@ -106,10 +109,6 @@ class sail_craft:
         # Compute contribution of panels
         for i in range(self.sail_num_wings):
             summation += self.sail_wings_centroids[i] * (self.sail_wings_areas[i] * self.sail_material_areal_density)
-
-        ## Contribution of vanes - already taking into account in the ACS component
-        #for i in range(self.sail_num_vanes):
-        #    summation += self.sail_vanes_centroids[i] * (self.sail_vanes_areas[i] * self.vane_material_areal_density)
 
         summation += self.attitude_control_system_mass * ACS_center_of_mass
         return summation/self.sail_mass

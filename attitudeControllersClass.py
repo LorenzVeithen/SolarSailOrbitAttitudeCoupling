@@ -2,7 +2,7 @@ from constants import sail_mass, sail_I, sail_nominal_CoM
 from scipy.spatial.transform import Rotation as R
 import numpy as np
 from MiscFunctions import all_equal, closest_point_on_a_segment_to_a_third_point, compute_panel_geometrical_properties
-from  ACS_dynamical_models import vane_dynamical_model, shifted_panel_dynamical_model, sliding_mass_dynamical_model
+from  ACS_dynamicalModels import vane_dynamical_model, shifted_panel_dynamical_model, sliding_mass_dynamical_model
 from numba import jit
 
 class sail_attitude_control_systems:
@@ -19,12 +19,12 @@ class sail_attitude_control_systems:
         self.booms_coordinates_list = booms_coordinates_list    # [m] List of 2x3 arrays (first row is boom origin, second row is boom tip). Assuming straight booms.
 
         # Vanes
-        self.number_of_vanes = 0                             # [] Number of vanes of the ACS.
+        self.number_of_vanes = 0                                # [] Number of vanes of the ACS.
         self.vane_panels_coordinates_list = None                # [m] num_of_vanes long list of (num_of_vanes x 3) arrays of the coordinates of the polygons defining the vanes of the ACS.
         self.vane_reference_frame_origin_list = None            # [m] num_of_vanes long list of (1x3) arrays of the coordinates of the vane coordinate frame origins, around which the vane rotations are defined.
         self.vane_reference_frame_rotation_matrix_list = None   # num_of_vanes long list of (3x3) rotation matrices from the body fixed frame to the vane fixed frame.
         self.vane_material_areal_density = None
-        self.vanes_rotational_dof_vane_reference_frame = None   # num_of_vanes long list of lists of strings ('x' and 'y') stating the rotational degree of freedom of each vane
+        self.vanes_rotational_dof_booleans = None               # num_of_vanes long list of lists of booleans [True, True] stating the rotational degree of freedom of each vane. 0: x and 1:y in vane coordinate frames
 
         # Shifted wings (will also include tilted wings later)
         self.number_of_wings = 0                                # Number of wings in the sail.
@@ -197,7 +197,7 @@ class sail_attitude_control_systems:
                                  stationary_system_components_mass,
                                  stationary_system_system_CoM,
                                  vanes_material_areal_density,
-                                 vanes_rotational_dof_vane_reference_frame):
+                                 vanes_rotational_dof_booleans):
         """
         Function setting the characteristics of the ACS vanes actuator.
         Should be called a single time.
@@ -215,7 +215,7 @@ class sail_attitude_control_systems:
         self.vane_panels_coordinates_list = vanes_coordinates_list
         self.vane_reference_frame_origin_list = vanes_reference_frame_origin_list
         self.vane_reference_frame_rotation_matrix_list = vanes_reference_frame_rotation_matrix_list
-        self.vanes_rotational_dof_vane_reference_frame = vanes_rotational_dof_vane_reference_frame
+        self.vanes_rotational_dof_booleans = vanes_rotational_dof_booleans
         self.actuator_states["vane_rotation_x_default"] = np.zeros((self.number_of_vanes, 1))
         self.actuator_states["vane_rotation_y_default"] = np.zeros((self.number_of_vanes, 1))
 
@@ -233,6 +233,7 @@ class sail_attitude_control_systems:
             z_moment_arm_body_frame = np.sqrt(vane_origin_body_frame[0] ** 2 + vane_origin_body_frame[1] ** 2)
             # The two largest moment arms will considered for which moments can be induced
             # Afterwards there needs to be a check on whether all moments doable, such that three axis works
+            # TODO: Finish this
 
         return True
 
@@ -261,15 +262,6 @@ class sail_attitude_control_systems:
         return False
 
     def __pure_vane_controller(self, desired_total_torque, double_sided_reflective=False):
-        n_dof = 2
-        match n_dof:
-            case 1:
-                pass
-            case 2:
-                pass
-            case _:
-                raise Exception("Unsupported number of degrees of freedom for the pure vane controller.")
-
         # First allocate the torque to each vane
 
         # Then determine the vane angles for a given torque
