@@ -42,14 +42,22 @@ sail = sail_craft("ACS3",
                   acs_object)
 
 vaneAngleProblem = vaneAnglesAllocationProblem(0,
-                                               ([-np.pi, -np.pi], [np.pi, np.pi]),
+                                               ([-np.pi, -np.pi, 0], [np.pi, np.pi, 1]),
                                                10,
                                                sail,
                                                acs_object,
                                                include_shadow=True)
 
-vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([1e-6, 0, 1e-6]), n_s, vane_variable_optical_properties=True)   # and the next time you can put False
-res = vaneAngleProblem.fitness([np.deg2rad(23), np.deg2rad(67)])
+vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([-5e-6, 0, -3e-6]), n_s, vane_variable_optical_properties=True)   # and the next time you can put False
+res = vaneAngleProblem.fitness([np.deg2rad(23), np.deg2rad(67), 1])
+
+t0 = time()
+res_2 = direct(vaneAngleProblem.fitness, bounds=[(-np.pi, np.pi), (-np.pi, np.pi), (0, 1)], len_tol=(1e-3))
+t1 = time()
+print(np.rad2deg(res_2.x[:2]), res_2.x[2], res_2.fun, res_2.nfev)
+print(vaneAngleProblem.single_vane_torque([res_2.x[0], res_2.x[1]]))
+print(t1-t0)
+
 
 POTATO_PLOT = True
 if (POTATO_PLOT):
@@ -135,14 +143,14 @@ TEST_OPTIMISATION_ALGORITHMS = False
 if (TEST_OPTIMISATION_ALGORITHMS):
     t0 = time()
     print(vaneAngleProblem.fitness([0, 0])[0])
-    res = minimize(vaneAngleProblem.fitness, (-1.5, -1.5), method='Nelder-Mead', bounds=[(-np.pi, np.pi), (-np.pi, np.pi)], tol=1e-4)
+    res = minimize(vaneAngleProblem.fitness, (-1.5, -1.5), method='Nelder-Mead', bounds=[(-np.pi, np.pi), (-np.pi, np.pi), (0, 1)], tol=1e-4)
     t1 = time()
     print(np.rad2deg(np.array(res.x)), res.nfev)
     print(vaneAngleProblem.single_vane_torque([res.x[0], res.x[1]]))
     print(t1-t0)
 
     t0 = time()
-    res_2 = direct(vaneAngleProblem.fitness, bounds=[(-np.pi, np.pi), (-np.pi, np.pi)], len_tol=(1e-3))
+    res_2 = direct(vaneAngleProblem.fitness, bounds=[(-np.pi, np.pi), (-np.pi, np.pi), (0, 1)], len_tol=(1e-3))
     t1 = time()
     print(np.rad2deg(res_2.x), res_2.fun, res_2.nfev)
     print(vaneAngleProblem.single_vane_torque([res_2.x[0], res_2.x[1]]))

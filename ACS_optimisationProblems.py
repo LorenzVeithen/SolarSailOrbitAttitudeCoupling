@@ -53,7 +53,7 @@ class vaneAnglesAllocationProblem:
 
     def fitness(self, x):
         return [(1/3) * np.sum(((self.single_vane_torque(x)
-                                - self.vane_target_torque)/vane_angles_allocation_scaling_factor)**2)]
+                                - self.vane_target_torque * x[2])/vane_angles_allocation_scaling_factor)**2) * np.exp(10 * (1 - x[2]))]
 
     def single_vane_torque(self, x):
         rotated_points_body_frame = vane_dynamical_model([np.rad2deg(x[0])],
@@ -65,17 +65,17 @@ class vaneAnglesAllocationProblem:
 
         centroid_body_frame, vane_area, surface_normal_body_frame = compute_panel_geometrical_properties(
             rotated_points_body_frame)
-        c_theta = np.dot(surface_normal_body_frame, self.sun_direction_body_frame)
+        c_theta = np.dot(surface_normal_body_frame, -self.sun_direction_body_frame)
 
         # Get the vane torque according to the optical model
         if (c_theta >= 0):  # the front is exposed
             f = (W * vane_area * abs(c_theta) / c) * ((
               self.alpha_front * self.absorption_reemission_ratio - 2 * self.rho_s_front * c_theta - self.rho_d_front * self.B_front) * surface_normal_body_frame + (
-              self.alpha_front + self.rho_d_front) * self.sun_direction_body_frame)
+              self.alpha_front + self.rho_d_front) * -self.sun_direction_body_frame)
         else:
             f = (W * vane_area * abs(c_theta) / c) * ((
               self.alpha_back * self.absorption_reemission_ratio - 2 * self.rho_s_back * c_theta + self.rho_d_back * self.B_back) * surface_normal_body_frame + (
-              self.alpha_back + self.rho_d_back) * self.sun_direction_body_frame)
+              self.alpha_back + self.rho_d_back) * -self.sun_direction_body_frame)
 
         force_on_vane_body_reference_frame = np.dot(self.R_BV, f)
         torque_on_body_from_vane = np.cross(centroid_body_frame, force_on_vane_body_reference_frame)

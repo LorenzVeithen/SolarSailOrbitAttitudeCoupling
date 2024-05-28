@@ -138,7 +138,7 @@ def generate_AMS(vane_id, sail_obj, acs_obj, sun_angles_num=37, vane_angles_num=
                 plt.xlabel(xlabels[i-1])
                 plt.ylabel(ylabels[i-1])
                 plt.legend(loc='lower left')
-                if (savefig): plt.savefig(f'./AMS/Plots/{optical_model_str}/vane_{vane_id}/plot_{i}/AMS_{i}_alpha_{np.rad2deg(alpha)}_beta_{np.rad2deg(beta)}.png')
+                if (savefig): plt.savefig(f'./AMS/Plots/{optical_model_str}/vane_{vane_id}/plot_{i}/AMS_{i}_alpha_{round(np.rad2deg(alpha), 1)}_beta_{round(np.rad2deg(beta), 1)}.png')
                 plt.close(current_figs[i-1])
 
 #generate_AMS(2, sail, acs_object, 37, 100, True, False)
@@ -164,10 +164,14 @@ if __name__ == "__main__":
                       sail_material_areal_density,
                       sail_material_areal_density,
                       acs_object)
-
+    generate_AMS(0, sail, acs_object, 37, 100, True, True)
+    generate_AMS(1, sail, acs_object, 37, 100, True, True)
+    generate_AMS(2, sail, acs_object, 37, 100, True, True)
+    generate_AMS(3, sail, acs_object, 37, 100, True, True)
+    """
     t0 = time()
     processes = []
-    for i in range(4):
+    for i in [0, 1]:
         pc = Process(target=generate_AMS, args=(i,sail, acs_object, 37, 100, True, False,))
         pc.start()
         processes.append(pc)
@@ -176,3 +180,4 @@ if __name__ == "__main__":
     for pc in processes:
         pc.join()
     print(time()-t0)
+    """
