@@ -17,7 +17,10 @@ class vaneAnglesAllocationProblem:
         self.include_shadow = include_shadow
         self.hull = None
 
-        self.R_BV = acs_object.vane_reference_frame_rotation_matrix_list[vane_id]
+        self.R_BV = np.linalg.inv(acs_object.vane_reference_frame_rotation_matrix_list[vane_id])
+
+        print(self.R_BV)
+
         self.vane_origin = acs_object.vane_reference_frame_origin_list[vane_id]
         self.vane_nominal_coordinates = acs_object.vane_panels_coordinates_list[vane_id]
 
@@ -64,21 +67,23 @@ class vaneAnglesAllocationProblem:
                                                          [self.R_BV])[0]
 
         centroid_body_frame, vane_area, surface_normal_body_frame = compute_panel_geometrical_properties(
-            rotated_points_body_frame)
-        c_theta = np.dot(surface_normal_body_frame, -self.sun_direction_body_frame)
+            rotated_points_body_frame)  # This is all in the body frame
+        c_theta = np.dot(surface_normal_body_frame, -self.sun_direction_body_frame)/(np.linalg.norm(surface_normal_body_frame) * np.linalg.norm(-self.sun_direction_body_frame))
 
-        # Get the vane torque according to the optical model
+        # Get the vane torque according to the optical model, in the body frame
         if (c_theta >= 0):  # the front is exposed
-            f = (W * vane_area * abs(c_theta) / c) * ((
+            # W * vane_area/ c_sol *
+            f = (abs(c_theta)) * ((
               self.alpha_front * self.absorption_reemission_ratio - 2 * self.rho_s_front * c_theta - self.rho_d_front * self.B_front) * surface_normal_body_frame + (
               self.alpha_front + self.rho_d_front) * -self.sun_direction_body_frame)
         else:
-            f = (W * vane_area * abs(c_theta) / c) * ((
+            # W * vane_area/ c_sol *
+            f = (abs(c_theta)) * ((
               self.alpha_back * self.absorption_reemission_ratio - 2 * self.rho_s_back * c_theta + self.rho_d_back * self.B_back) * surface_normal_body_frame + (
               self.alpha_back + self.rho_d_back) * -self.sun_direction_body_frame)
 
-        force_on_vane_body_reference_frame = np.dot(self.R_BV, f)
-        torque_on_body_from_vane = np.cross(centroid_body_frame, force_on_vane_body_reference_frame)
+        force_on_vane_body_frame = f #np.dot(self.R_BV, f)
+        torque_on_body_from_vane = (1/np.linalg.norm(self.vane_origin)) * np.cross(centroid_body_frame, force_on_vane_body_frame)
 
         result = torque_on_body_from_vane
         if (self.include_shadow):
@@ -86,7 +91,7 @@ class vaneAnglesAllocationProblem:
                                            self.hull)  # In practice the hull would be updated at each iteration of the propagation
             if (shadow_bool):
                 result = np.array([1e23, 1e23, 1e23])  # Penalty if in shadow
-        return result
+        return result   # Non-dimensional, physical torque is given when multiplicating by norm(r_arm) * W * vane_area/c_sol
     def get_bounds(self):
         return self.bounds
 
@@ -103,8 +108,8 @@ class vaneAnglesAllocationProblem:
             vstack_stacking = np.vstack((vstack_stacking, wing))
         relative_sun_vector_same_shape = np.zeros(np.shape(vstack_stacking[1:, :]))
         relative_sun_vector_same_shape[:, :3] = self.sun_direction_body_frame
-        total_hull = np.vstack((vstack_stacking[1:, :] + relative_sun_vector_same_shape * 2,
-                                vstack_stacking[1:, :] - relative_sun_vector_same_shape * 2))
+        total_hull = np.vstack((vstack_stacking[1:, :] + relative_sun_vector_same_shape * 20,
+                                vstack_stacking[1:, :] - relative_sun_vector_same_shape * 20))
 
         if (abs(n_s[2]) < 1e-15): # Coplanar hull, no real shadow
             self.sunlight_is_in_sail_plane = True

@@ -14,10 +14,9 @@ from attitudeControllersClass import sail_attitude_control_systems
 from ACS_optimisationProblems import vaneAnglesAllocationProblem
 
 
-sun_angle_alpha = np.deg2rad(125.264)
-sun_angle_beta = np.deg2rad(45)
+sun_angle_alpha = np.deg2rad(-90)
+sun_angle_beta = np.deg2rad(-180)
 n_s = np.array([np.sin(sun_angle_alpha) * np.cos(sun_angle_beta), np.sin(sun_angle_alpha) * np.sin(sun_angle_beta), -np.cos(sun_angle_alpha)])   # In the body reference frame
-#n_s = np.array([1, 1, 1])
 n_s = n_s/np.linalg.norm(n_s)
 
 
@@ -41,7 +40,7 @@ sail = sail_craft("ACS3",
                   sail_material_areal_density,
                   acs_object)
 
-vaneAngleProblem = vaneAnglesAllocationProblem(0,
+vaneAngleProblem = vaneAnglesAllocationProblem(4,
                                                ([-np.pi, -np.pi, 0], [np.pi, np.pi, 1]),
                                                10,
                                                sail,
@@ -125,10 +124,11 @@ if (POTATO_PLOT):
 
     plt.figure()
     flattened_Tx = ZTx.reshape(-1)
+    flattened_Ty = ZTy.reshape(-1)
     flattened_Tz = ZTz.reshape(-1)
-    plt.scatter(flattened_Tx, flattened_Tz, s=1)
+    plt.scatter(flattened_Tx, flattened_Ty, s=1)
     plt.xlabel("Tx")
-    plt.ylabel("Tz")
+    plt.ylabel("Ty")
     plt.show()
 
 

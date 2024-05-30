@@ -47,34 +47,39 @@ wings_coordinates_list = [panel1, panel2, panel3, panel4]
 panels_optical_properties = [np.array([1, 1, 0, 0, 0, 0, 0, 0, 0, 0])] * 4
 
 # vanes
-vane_angle = np.deg2rad(30)             # rad
-vane_side_length = 0.5                  # m
-vane1 = np.array([[0, boom_length, 0],
-                  [vane_side_length*np.cos(vane_angle), boom_length+vane_side_length*np.sin(vane_angle), 0],
-                  [-vane_side_length*np.cos(vane_angle), boom_length+vane_side_length*np.sin(vane_angle), 0]])
+vane_angle = np.deg2rad(30.)
+vane_side_length = 0.5
+vanes_rotation_matrices_list = [R.from_euler('z', 90., degrees=True).as_matrix(),
+                                R.from_euler('z', 0., degrees=True).as_matrix(),
+                                R.from_euler('z', 270., degrees=True).as_matrix(),
+                                R.from_euler('z', 180., degrees=True).as_matrix(),
+                                R.from_euler('z', 45., degrees=True).as_matrix()]
 
-vane2 = np.array([[boom_length, 0, 0],
-                  [boom_length + vane_side_length*np.sin(vane_angle), -vane_side_length*np.cos(vane_angle), 0],
-                  [boom_length + vane_side_length*np.sin(vane_angle), vane_side_length*np.cos(vane_angle), 0]])
+vanes_origin_list = [np.array([0., boom_length, 0.]),
+                     np.array([boom_length, 0., 0.]),
+                     np.array([0, -boom_length, 0.]),
+                     np.array([-boom_length, 0., 0.]),
+                     np.array([np.cos(np.pi/4) * boom_length/np.sqrt(2), np.sin(np.pi/4) * boom_length/np.sqrt(2), 0.])]
 
-vane3 = np.array([[0, -boom_length, 0],
-                  [-vane_side_length*np.cos(vane_angle), -boom_length-vane_side_length*np.sin(vane_angle), 0],
-                  [vane_side_length*np.cos(vane_angle), -boom_length-vane_side_length*np.sin(vane_angle), 0]])
+vane_coordinates_list = []
+for i in range(len(vanes_origin_list)):
+    current_vane_coords_body_frame_coords = vanes_origin_list[i]
+    current_vane_rotation_matrix_body_to_vane = vanes_rotation_matrices_list[i]
+    current_vane_rotation_matrix_vane_to_body = current_vane_rotation_matrix_body_to_vane
 
-vane4 = np.array([[-boom_length, 0, 0],
-                  [-boom_length - vane_side_length*np.sin(vane_angle), vane_side_length*np.cos(vane_angle), 0],
-                  [-boom_length - vane_side_length*np.sin(vane_angle), -vane_side_length*np.cos(vane_angle), 0]])
+    second_point_body_frame = (np.dot(current_vane_rotation_matrix_vane_to_body,
+                                     np.array([np.sin(vane_angle) * vane_side_length, -np.cos(vane_angle) * vane_side_length, 0]))
+                               + current_vane_coords_body_frame_coords)
 
-vane_coordinates_list = [vane1, vane2, vane3, vane4]
+    third_point_body_frame = (np.dot(current_vane_rotation_matrix_vane_to_body,
+                                     np.array([np.sin(vane_angle) * vane_side_length, np.cos(vane_angle) * vane_side_length, 0]))
+                               + current_vane_coords_body_frame_coords)
+
+    current_vane_coords_body_frame_coords = np.vstack((current_vane_coords_body_frame_coords, second_point_body_frame, third_point_body_frame))
+    vane_coordinates_list.append(current_vane_coords_body_frame_coords)
+
 vanes_optical_properties = [np.array([1, 1, 0, 0, 0, 0, 0, 0, 0, 0])] * 4
 vanes_rotational_dof = [['x'], ['y'], ['x', 'y'], ['x', 'y']]
-
-
-vane_origin_list = [vane[0, :] for vane in vane_coordinates_list]
-vanes_rotation_matrices_list = [R.from_euler('z', 90, degrees=True).as_matrix(),
-                                R.from_euler('z', 0, degrees=True).as_matrix(),
-                                R.from_euler('z', 270, degrees=True).as_matrix(),
-                                R.from_euler('z', 180, degrees=True).as_matrix()]
 
 wings_rotation_matrices_list = [R.from_euler('z', -45, degrees=True).as_matrix(),
                                 R.from_euler('z', -135, degrees=True).as_matrix(),
@@ -95,7 +100,7 @@ if (SHIFTED_PANELS_BOOL):
 
 if (VANES_BOOL):
     acs_object = sail_attitude_control_systems("vanes", boom_list)
-    acs_object.set_vane_characteristics(vane_coordinates_list, vane_origin_list,
+    acs_object.set_vane_characteristics(vane_coordinates_list, vanes_origin_list,
                                         vanes_rotation_matrices_list,
                                         0,
                                         np.array([0, 0, 0]),
@@ -118,7 +123,7 @@ else:
     acs_object = sail_attitude_control_systems("None", boom_list)
 
 if (VANES_BOOL):
-    sail = sail_craft("ACS3", 4, 4, wings_coordinates_list, vane_coordinates_list, panels_optical_properties, vanes_optical_properties,
+    sail = sail_craft("ACS3", 4, 5, wings_coordinates_list, vane_coordinates_list, panels_optical_properties, vanes_optical_properties,
                       sail_I, 16, 15.66, np.array([0, 0, 0.05]), 0.00425, 0.00425, acs_object)
 elif(SHIFTED_PANELS_BOOL):
     sail = sail_craft("ACS3", 4, 0, wings_coordinates_list, [], [], vanes_optical_properties,
@@ -135,7 +140,7 @@ CoM = sail.get_sail_center_of_mass(0)
 moving_masses_positions = sail.get_sail_moving_masses_positions(0)
 
 wings_coordinates_list = [sail.get_ith_panel_coordinates(i, "Sail") for i in range(4)]
-if VANES_BOOL: vane_coordinates_list = [sail.get_ith_panel_coordinates( i, "Vane") for i in range(4)]
+if VANES_BOOL: vane_coordinates_list = [sail.get_ith_panel_coordinates( i, "Vane") for i in range(5)]
 
 # Plot booms
 fig = plt.figure()
@@ -153,9 +158,11 @@ else: j_max = 1
 for j in range(j_max):
     if (j > 0):
         tp = "Vane"
+        r = 5
     else:
         tp = "Sail"
-    for i in range(4):
+        r = 4
+    for i in range(r):
         panel_surface_normal_vector = sail.get_ith_panel_surface_normal(i, tp)
         panel_centroid = sail.get_ith_panel_centroid(i, tp)
         hstack_centroid_surface_normal = np.hstack((panel_centroid, panel_surface_normal_vector))

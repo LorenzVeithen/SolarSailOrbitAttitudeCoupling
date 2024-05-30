@@ -14,7 +14,7 @@ import os
 matplotlib.pyplot.switch_backend('Agg')
 
 
-def generate_AMS(vane_id, sail_obj, acs_obj, sun_angles_num=37, vane_angles_num=100, savefig=True, savedat=False):
+def generate_AMS_data(vane_id, sail_obj, acs_obj, sun_angles_num=37, vane_angles_num=100, savefig=True, savedat=False):
     # TODO: WATCH OUT CHANGE FILENAME WRT OPTICAL MODEL USED
     optical_model_str = "Ideal_model"
     xlabels = ["Tx", "Tx", "Ty"]
@@ -49,10 +49,11 @@ def generate_AMS(vane_id, sail_obj, acs_obj, sun_angles_num=37, vane_angles_num=
                                                                        vane_variable_optical_properties=False)  # and the next time you can put False
             t0 = time()
             print(f'vane_id={vane_id}, alpha={np.rad2deg(alpha)}, beta={np.rad2deg(beta)}')
-            current_fig1 = plt.figure(1)
-            current_fig2 = plt.figure(2)
-            current_fig3 = plt.figure(3)
-            current_figs = [current_fig1, current_fig2, current_fig3]
+            if (savefig):
+                current_fig1 = plt.figure(1)
+                current_fig2 = plt.figure(2)
+                current_fig3 = plt.figure(3)
+                current_figs = [current_fig1, current_fig2, current_fig3]
             for m in range(2):
                 if (m==1):
                     SHADOW_BOOL = True
@@ -96,9 +97,9 @@ def generate_AMS(vane_id, sail_obj, acs_obj, sun_angles_num=37, vane_angles_num=
                 ZC = vstackC_[1:, :]
 
                 # Remove the shadow points, if any
+                BT[BT < 1e20] = 0
+                BT[BT > 1e20] = 1
                 if (SHADOW_BOOL):
-                    BT[BT < 1e20] = 0
-                    BT[BT > 1e20] = 1
                     ZT[ZT > 1e20] = None
                     ZTx[ZTx > 1e20] = None
                     ZTy[ZTy > 1e20] = None
@@ -118,66 +119,66 @@ def generate_AMS(vane_id, sail_obj, acs_obj, sun_angles_num=37, vane_angles_num=
                                               beta * np.ones(np.shape(flattened_alpha_1_range_grid)), flattened_BT,
                                               flattened_Tx, flattened_Ty, flattened_Tz], axis=1)
                     np.savetxt(
-                        f"./AMS/Datasets/{optical_model_str}/vane_{vane_id}/AMS_alpha_{np.rad2deg(alpha)}_beta_{np.rad2deg(beta)}_shadow_{str(SHADOW_BOOL)}.csv",
+                        f"./AMS/Datasets/{optical_model_str}/vane_{vane_id}/AMS_alpha_{round(np.rad2deg(alpha), 1)}_beta_{round(np.rad2deg(beta), 1)}_shadow_{str(SHADOW_BOOL)}.csv",
                         array_to_save, delimiter=",",
                         header='alpha_1, alpha_2, alpha_sun, beta_sun, Shadow_bool, Tx, Ty, Tz')
 
-                # Plot the scatter-data
-                plt.figure(1)
-                plt.scatter(flattened_Tx, flattened_Ty, s=1, label=current_fig_label)
+                if (savefig):
+                    # Plot the scatter-data
+                    plt.figure(1)
+                    plt.scatter(flattened_Tx, flattened_Ty, s=1, label=current_fig_label)
 
-                plt.figure(2)
-                plt.scatter(flattened_Tx, flattened_Tz, s=1, label=current_fig_label)
+                    plt.figure(2)
+                    plt.scatter(flattened_Tx, flattened_Tz, s=1, label=current_fig_label)
 
-                plt.figure(3)
-                plt.scatter(flattened_Ty, flattened_Tz, s=1, label=current_fig_label)
+                    plt.figure(3)
+                    plt.scatter(flattened_Ty, flattened_Tz, s=1, label=current_fig_label)
 
-            for i in range(1, 4):
-                plt.figure(i)
-                plt.title(f'vane {vane_id}: alpha={np.rad2deg(alpha)}, beta={np.rad2deg(beta)}')
-                plt.xlabel(xlabels[i-1])
-                plt.ylabel(ylabels[i-1])
-                plt.legend(loc='lower left')
-                if (savefig): plt.savefig(f'./AMS/Plots/{optical_model_str}/vane_{vane_id}/plot_{i}/AMS_{i}_alpha_{round(np.rad2deg(alpha), 1)}_beta_{round(np.rad2deg(beta), 1)}.png')
-                plt.close(current_figs[i-1])
-
-#generate_AMS(2, sail, acs_object, 37, 100, True, False)
+            if (savefig):
+                for i in range(1, 4):
+                    plt.figure(i)
+                    plt.title(f'vane {vane_id}: alpha={round(np.rad2deg(alpha), 1)}, beta={round(np.rad2deg(beta), 1)}')
+                    plt.xlabel(xlabels[i-1])
+                    plt.ylabel(ylabels[i-1])
+                    plt.legend(loc='lower left')
+                    plt.savefig(f'./AMS/Plots/{optical_model_str}/vane_{vane_id}/plot_{i}/AMS_{i}_alpha_{round(np.rad2deg(alpha), 1)}_beta_{round(np.rad2deg(beta), 1)}.png')
+                    plt.close(current_figs[i-1])
 
 if __name__ == "__main__":
+    COMPUTE_DATA = True
+    GENERATE_AMS_formula = False
+    if (COMPUTE_DATA):
+        # Define solar sail - see constants file
+        acs_object = sail_attitude_control_systems("vanes", boom_list)
+        acs_object.set_vane_characteristics(vanes_coordinates_list, vanes_origin_list, vanes_rotation_matrices_list, 0,
+                                            np.array([0, 0, 0]), 0.0045, vanes_rotational_dof)
 
-    # Define solar sail - see constants file
-    acs_object = sail_attitude_control_systems("vanes", boom_list)
-    acs_object.set_vane_characteristics(vanes_coordinates_list, vanes_origin_list, vanes_rotation_matrices_list, 0,
-                                        np.array([0, 0, 0]), 0.0045, vanes_rotational_dof)
+        sail = sail_craft("ACS3",
+                          len(wings_coordinates_list),
+                          len(vanes_coordinates_list),
+                          wings_coordinates_list,
+                          vanes_coordinates_list,
+                          wings_optical_properties,
+                          [np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])] * (5),
+                          sail_I,
+                          sail_mass,
+                          sail_mass_without_wings,
+                          sail_nominal_CoM,
+                          sail_material_areal_density,
+                          sail_material_areal_density,
+                          acs_object)
+        parallel_processes_lists = [[0, 1], [2, 3], [4]]
+        for parallel_processes in parallel_processes_lists:
+            processes = []
+            for i in parallel_processes:
+                pc = Process(target=generate_AMS_data, args=(i, sail, acs_object, 37, 100, True, True,))
+                pc.start()
+                processes.append(pc)
 
-    sail = sail_craft("ACS3",
-                      len(wings_coordinates_list),
-                      len(vanes_coordinates_list),
-                      wings_coordinates_list,
-                      vanes_coordinates_list,
-                      wings_optical_properties,
-                      vanes_optical_properties,
-                      sail_I,
-                      sail_mass,
-                      sail_mass_without_wings,
-                      sail_nominal_CoM,
-                      sail_material_areal_density,
-                      sail_material_areal_density,
-                      acs_object)
-    generate_AMS(0, sail, acs_object, 37, 100, True, True)
-    generate_AMS(1, sail, acs_object, 37, 100, True, True)
-    generate_AMS(2, sail, acs_object, 37, 100, True, True)
-    generate_AMS(3, sail, acs_object, 37, 100, True, True)
-    """
-    t0 = time()
-    processes = []
-    for i in [0, 1]:
-        pc = Process(target=generate_AMS, args=(i,sail, acs_object, 37, 100, True, False,))
-        pc.start()
-        processes.append(pc)
+            # Waiting for all threads to complete
+            for pc in processes:
+                pc.join()
 
-    # Waiting for all threads to complete
-    for pc in processes:
-        pc.join()
-    print(time()-t0)
-    """
+
+    # Generate_AMS_formula
+
