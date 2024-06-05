@@ -52,10 +52,10 @@ vaneAngleProblem = vaneAnglesAllocationProblem(1,
                                                10,
                                                sail,
                                                acs_object,
-                                               include_shadow=True)
+                                               include_shadow=False)
 
 vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([-5e-6, 0, -3e-6]), n_s, vane_variable_optical_properties=True)   # and the next time you can put False
-res = vaneAngleProblem.fitness([np.deg2rad(23), np.deg2rad(67), 1])
+#res = vaneAngleProblem.fitness([np.deg2rad(23), np.deg2rad(67), 1])
 
 #t0 = time()
 #for i in range(100000):
@@ -125,9 +125,11 @@ if (RUN):
     plt.scatter(flattened_Ty, flattened_Tz, s=1)
     plt.plot(flattened_Ty[flattened_color2==1], flattened_Tz[flattened_color2==1], color='r')
     plt.plot(flattened_Ty[flattened_color1==1], flattened_Tz[flattened_color1==1], color='g')
+    T00 = vaneAngleProblem.single_vane_torque([np.deg2rad(0), np.deg2rad(180)])
+    plt.scatter(T00[1], T00[2], s=50)
     plt.xlabel("Ty")
     plt.ylabel("Tz")
-    plt.close()
+    #plt.close()
 
     for alpha_s in [-60]:
         for beta_s in [140]:
@@ -145,15 +147,15 @@ if (RUN):
                 start_point = -np.pi
                 end_point = np.pi
                 n_points = 100
-                alpha_range = np.linspace(-np.pi, np.pi, n_points)
+                alpha_range = np.linspace(start_point, end_point, n_points)
                 Tx_ = np.zeros(np.shape(alpha_range))
                 Ty_ = np.zeros(np.shape(alpha_range))
                 Tz_ = np.zeros(np.shape(alpha_range))
                 for k, alpha in enumerate(alpha_range):
                     if case==0:
-                        T = vaneAngleProblem.single_vane_torque([alpha, 0])
+                        T = vaneAngleProblem.single_vane_torque([alpha, np.deg2rad(0)])
                     else:
-                        T = vaneAngleProblem.single_vane_torque([0, alpha])
+                        T = vaneAngleProblem.single_vane_torque([np.deg2rad(0), alpha])
                     Tx_[k] = T[0]
                     Ty_[k] = T[1]
                     Tz_[k] = T[2]
@@ -167,7 +169,7 @@ if (RUN):
                 cut_indices = np.where(diff_alpha > 1.1*(end_point-start_point)/n_points)[0]
                 alpha_range = alpha_range[..., None]
                 alpha_range = alpha_range
-                data_points = np.hstack((alpha_range, np.column_stack((Ty_, Tz_))))
+                data_points = np.hstack((alpha_range, np.column_stack((Tx_, Ty_, Tz_))))
 
                 # Cut early points
                 if (len(cut_indices)!=0):
@@ -179,41 +181,58 @@ if (RUN):
                         data_points = data_points[:-1, :]
 
                 split_arrays = np.split(data_points, cut_indices+1)
-                sx_list, sy_list = [], []
-                if ((len(cut_indices)==0) and (abs(alpha_range[0])==np.pi) and (abs(alpha_range[0])-abs(alpha_range[-1]))<1e-15):
-                    sp = split_arrays[0]
-                    sx_list.append(make_interp_spline(sp[:, 0], sp[:, 1], k=3, bc_type="periodic"))
-                    sy_list.append(make_interp_spline(sp[:, 0], sp[:, 2], k=3, bc_type="periodic"))
-
+                sx_TyTz_list, sy_TyTz_list = [], []
+                sx_TxTz_list, sy_TxTz_list = [], []
+                fTx_list, fTy_list, fTz_list = [], [], []
+                if ((len(cut_indices) == 0) and (abs(alpha_range[0]) == np.pi) and (
+                        abs(alpha_range[0]) - abs(alpha_range[-1])) < 1e-15):
+                    boundary_type = "periodic"
                 else:
-                    for i, sp in enumerate(split_arrays):
-                        k_int = min(np.shape(sp)[0]-1, 3)   # aim for cubicsplines but go smaller if necessary
-                        sx_list.append(make_interp_spline(sp[:, 0], sp[:, 1], k=k_int))
-                        sy_list.append(make_interp_spline(sp[:, 0], sp[:, 2], k=k_int))
+                    boundary_type = "not-a-knot"
 
-                sx_new_list, sy_new_list = [], []
+                for i, sp in enumerate(split_arrays):
+                    k_int = min(np.shape(sp)[0]-1, 3)   # aim for cubicsplines but go smaller if necessary
+                    fTx = make_interp_spline(sp[:, 0], sp[:, 1], k=k_int, bc_type=boundary_type)
+                    fTy = make_interp_spline(sp[:, 0], sp[:, 2], k=k_int, bc_type=boundary_type)
+                    fTz = make_interp_spline(sp[:, 0], sp[:, 3], k=k_int, bc_type=boundary_type)
+                    fTx_list.append(fTx)
+                    fTy_list.append(fTy)
+                    fTz_list.append(fTz)
+
+
+                sx_TyTz_plot_list, sy_TyTz_plot_list = [], []
+                sx_TxTz_plot_list, sy_TxTz_plot_list = [], []
                 for i in range(len(split_arrays)):
                     c_alpha_list = split_arrays[i][:,0]
                     ca = np.linspace(c_alpha_list[0], c_alpha_list[-1], 1000)
-                    sx_new_list.append(sx_list[i](ca))
-                    sy_new_list.append(sy_list[i](ca))
+                    sx_TyTz_plot_list.append(fTy_list[i](ca))
+                    sy_TyTz_plot_list.append(fTz_list[i](ca))
+                    sx_TxTz_plot_list.append(fTx_list[i](ca))
+                    sy_TxTz_plot_list.append(fTz_list[i](ca))
                 #print(time()-t0)
 
-                #for sx, sy in zip(sx_list, sy_list):
-                #    u0 = PPoly.from_spline((sx.t, sx.c + 0.03, 3), extrapolate=False).roots()
-                #    print(u0)
-                #    print(sy(u0))
+                for sx, sy in zip(fTy_list, fTz_list):
+                    u0 = PPoly.from_spline((sx.t, sx.c + 0.03, 3), extrapolate=False).roots()
+                    #print(sx(sx.t), sx.c)
+                    #print(u0)
+                    #print(sy(u0))
 
 
                 fig, ax = plt.subplots()
                 ax.scatter(Ty_, Tz_)
-                for sx_new, sy_new in zip(sx_new_list, sy_new_list):
+                for sx_new, sy_new in zip(sx_TyTz_plot_list, sy_TyTz_plot_list):
                     ax.plot(sx_new, sy_new, '-')
                 plt.grid(True)
-                plt.savefig(f'/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject'+
-                            f'/MSc_Thesis_Source_Python/AMS/Plots/reducedDOF_const/{case}_alpha_s_{round(alpha_s, 1)}_beta_s_{round(beta_s, 1)}.png')
+
+                fig, ax = plt.subplots()
+                ax.scatter(Tx_, Tz_)
+                for sx_new, sy_new in zip(sx_TxTz_plot_list, sy_TxTz_plot_list):
+                    ax.plot(sx_new, sy_new, '-')
+                plt.grid(True)
+                #plt.savefig(f'/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject'+
+                #            f'/MSc_Thesis_Source_Python/AMS/Plots/reducedDOF_const/{case}_alpha_s_{round(alpha_s, 1)}_beta_s_{round(beta_s, 1)}.png')
                 #n = list(np.round(np.rad2deg(alpha_range), 1))
                 #for i, ni in enumerate(n):
                 #    plt.annotate(ni, (Ty_[i], Tz_[i]))
                 #plt.close()
-                plt.show()
+plt.show()

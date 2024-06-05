@@ -42,7 +42,7 @@ if __name__ == "__main__":
                                                        sail,
                                                        acs_object,
                                                        include_shadow=True)
-        vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0, 0, 0]), np.array([0, 0, -1]),
+        vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([1e-6, 1e-6, 1e-6]), np.array([0, 0, -1]),
                                                                    vane_variable_optical_properties=True)  # and the next time you can put False
 
         if (COMPUTE_MULTIPLE_VANES):    # and over a large range of sun angles
@@ -51,7 +51,7 @@ if __name__ == "__main__":
             sun_angle_beta_list = np.linspace(-180, 180, sun_angles_num)
             alpha_1_range = np.linspace(-np.pi, np.pi, vane_angles_num)
             alpha_2_range = np.linspace(-np.pi, np.pi, vane_angles_num)
-            parallel_processes_lists = [[0, 1]]
+            parallel_processes_lists = [[0, 1], [2, 3]]
 
             for parallel_processes in parallel_processes_lists:
                 processes = []

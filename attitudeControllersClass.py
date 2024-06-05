@@ -137,7 +137,7 @@ class sail_attitude_control_systems:
             case "vanes":
                 # Here comes the controller of the vanes, which will give the rotations around the x and y axis in the
                 # vane coordinate frame
-                vane_x_rotation_degrees, vane_y_rotation_degrees = np.array([-32., -32., -32., -32., -32]),  np.array([-32., -32., -32., -32., -32])
+                vane_x_rotation_degrees, vane_y_rotation_degrees = np.array([0., 0., 0., 0., 0.]),  np.array([-180., -180., -180., -180., -180])
                 self.actuator_states["vane_rotation_x"] = np.deg2rad(vane_x_rotation_degrees.reshape(-1, 1))
                 self.actuator_states["vane_rotation_y"] = np.deg2rad(vane_y_rotation_degrees.reshape(-1, 1))
                 vanes_coordinates = self.__vane_dynamics(vane_x_rotation_degrees, vane_y_rotation_degrees)
@@ -240,7 +240,7 @@ class sail_attitude_control_systems:
     def __vane_dynamics(self, rotation_x_deg, rotation_y_deg):
         # Get the vane panel coordinates as a result of the rotation
         # Based on the initial vane position and orientation in the body frame
-        if (not all(-90 <= angle <= 90 for angle in rotation_x_deg) or not all(-90 <= angle <= 90 for angle in rotation_y_deg)):
+        if (not all(-180 <= angle <= 180 for angle in rotation_x_deg) or not all(-180 <= angle <= 180 for angle in rotation_y_deg)):
             raise Exception("Requested vane deflection is not permitted:" + f"x-rotation={rotation_x_deg} degrees and y-rotation={rotation_y_deg} degrees.")
 
         if (self.vane_reference_frame_origin_list == None

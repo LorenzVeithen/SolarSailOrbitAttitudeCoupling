@@ -24,7 +24,8 @@ sail_I[2, 2] = 21
 sail_nominal_CoM = np.array([0., 0., 0.])
 sail_material_areal_density = 0.00425   # kg/m^2
 vane_angles_allocation_scaling_factor = 1e-6        # Scaling of the objective function for the vane angles allocation algorithm
-
+number_shadow_mesh_nodes = 10
+vane_mechanical_rotation_limits = ([-np.pi, -np.pi], [np.pi, np.pi])
 # Sail shape
 boom_length = 7.     # m
 boom_attachment_point = 0.64    # m
@@ -66,13 +67,13 @@ vane_side_length = 0.5
 vanes_rotation_matrices_list = [R.from_euler('z', 90., degrees=True).as_matrix(),
                                 R.from_euler('z', 0., degrees=True).as_matrix(),
                                 R.from_euler('z', 270., degrees=True).as_matrix(),
-                                R.from_euler('z', 180., degrees=True).as_matrix(),
-                                ]   #R.from_euler('z', 45., degrees=True).as_matrix()
+                                R.from_euler('z', 180., degrees=True).as_matrix()
+                                ]   # R.from_euler('z', 45., degrees=True).as_matrix()
 
 vanes_origin_list = [np.array([0., boom_length, 0.]),
                      np.array([boom_length, 0., 0.]),
                      np.array([0, -boom_length, 0.]),
-                     np.array([-boom_length, 0., 0.]),
+                     np.array([-boom_length, 0., 0.])
                      ]  # np.array([np.cos(np.pi/4) * boom_length/np.sqrt(2), np.sin(np.pi/4) * boom_length/np.sqrt(2), 0.])
 
 vanes_coordinates_list = []
@@ -120,6 +121,6 @@ vanes_optical_properties = [np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])
 #vanes_optical_properties = [np.array([0.2, 0.3, 0.5, 0.6, 0.3, 0.1, 2/3, 2/3, 1., 1.])] * 4
 
 vanes_rotational_dof = [[True, False], [False, True], [True, True], [True, True]]   # [True, True]
-
+vane_is_on_boom = [True, True, True, True]
 # Sail performance metrics
 acc0 = 0.045 * 1E-3   # m/s/s characteristic sail acceleration

@@ -78,7 +78,7 @@ for i in range(len(vanes_origin_list)):
     current_vane_coords_body_frame_coords = np.vstack((current_vane_coords_body_frame_coords, second_point_body_frame, third_point_body_frame))
     vane_coordinates_list.append(current_vane_coords_body_frame_coords)
 
-vanes_optical_properties = [np.array([1, 1, 0, 0, 0, 0, 0, 0, 0, 0])] * 4
+vanes_optical_properties = [np.array([0, 0, 1, 1, 0, 0, 0, 0, 0, 0])] * 4
 vanes_rotational_dof = [['x'], ['y'], ['x', 'y'], ['x', 'y']]
 
 wings_rotation_matrices_list = [R.from_euler('z', -45, degrees=True).as_matrix(),
