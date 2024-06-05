@@ -1,13 +1,9 @@
 """
 Functions describing the attitude control systems dynamics.
-This code was outsourced from attitudeControllersClass.py to allow Numba optimisation
 """
-
-
 from scipy.spatial.transform import Rotation as R
 import numpy as np
 from MiscFunctions import all_equal, closest_point_on_a_segment_to_a_third_point, compute_panel_geometrical_properties
-from MiscFunctions import Rx_matrix, Ry_matrix, Rz_matrix
 from numba import jit
 
 def vane_dynamical_model(rotation_x_deg,

@@ -1,6 +1,7 @@
 import numpy as np
 from itertools import groupby
 from numba import jit
+from scipy.linalg import lu
 
 @jit(nopython=True, cache=True)
 def compute_panel_geometrical_properties(panel_coordinates):
@@ -69,7 +70,6 @@ def lists_of_arrays_equal(list1, list2):
     for arr1, arr2 in zip(list1, list2):
         if (not np.array_equal(arr1, arr2) and np.amax(abs(arr2-arr1))>1e-15):
             return False
-
     return True
 
 def all_equal(iterable):
@@ -130,111 +130,196 @@ def Rz_matrix(theta):
     '''
     return np.array([[np.cos(theta), -np.sin(theta), 0], [np.sin(theta), np.cos(theta), 0], [0, 0, 1]])
 
-def fit_2d_ellipse(x, y):
-    """
-    https://scipython.com/blog/direct-linear-least-squares-fitting-of-an-ellipse/
-    Fit the coefficients a,b,c,d,e,f, representing an ellipse described by
-    the formula F(x,y) = ax^2 + bxy + cy^2 + dx + ey + f = 0 to the provided
-    arrays of data points x=[x1, x2, ..., xn] and y=[y1, y2, ..., yn].
+def find_linearly_independent_rows(matrix):
+    # Perform LU decomposition
+    P, L, U = lu(matrix)
 
-    Based on the algorithm of Halir and Flusser, "Numerically stable direct
-    least squares fitting of ellipses'.
+    # Identify the pivot rows
+    # The pivots are the rows in the original matrix that are linearly independent
+    pivot_rows = np.where(np.abs(U.diagonal()) > 1e-10)[0]
 
+    # Extract the linearly independent rows
+    independent_rows = matrix[pivot_rows, :]
 
-    """
+    return pivot_rows, independent_rows
 
-    D1 = np.vstack([x**2, x*y, y**2]).T
-    D2 = np.vstack([x, y, np.ones(len(x))]).T
-    S1 = D1.T @ D1
-    S2 = D1.T @ D2
-    S3 = D2.T @ D2
-    T = -np.linalg.inv(S3) @ S2.T
-    M = S1 + S2 @ T
-    C = np.array(((0, 0, 2), (0, -1, 0), (2, 0, 0)), dtype=float)
-    M = np.linalg.inv(C) @ M
-    eigval, eigvec = np.linalg.eig(M)
-    con = 4 * eigvec[0]* eigvec[2] - eigvec[1]**2
-    ak = eigvec[:, np.nonzero(con > 0)[0]]
-    return np.concatenate((ak, T @ ak)).ravel()
+def bring_inside_bounds(original: float | np.ndarray, lower_bound: float,
+                        upper_bound: float, include: str = 'lower') -> float | np.ndarray:
 
-def get_ellipse_pts(params, npts=100, tmin=0, tmax=2*np.pi):
-    """
-    Return npts points on the ellipse described by the params = x0, y0, ap,
-    bp, e, phi for values of the parametric variable t between tmin and tmax.
+    """This function brings a number inside the given bounds, assuming the interval defined by the bounds can periodically extend the whole real line (e.g. an angle of 9$\pi$ is equivalent to an angle of $\pi$ and at the same time equivalent to an angle of $-\pi$). If a (multidimensional) array is passed, the operation is performed on all its entries. It returns the same object and of the same dimension as it was given.
+    *Note:* This function's support of arrays is limited to one-dimensional and two-dimensional arrays.
 
-    """
+    Parameters
+    ----------
+    original: float | np.ndarray
+        The original number or array of numbers.
 
-    x0, y0, ap, bp, e, phi = params
-    # A grid of the parametric variable, t.
-    t = np.linspace(tmin, tmax, npts)
-    x = x0 + ap * np.cos(t) * np.cos(phi) - bp * np.sin(t) * np.sin(phi)
-    y = y0 + ap * np.cos(t) * np.sin(phi) + bp * np.sin(t) * np.cos(phi)
-    return x, y
+    lower_bound: float
+        The lower bound of the periodic interval.
 
-@jit(nopython=True)
-def cart_to_pol(coeffs):
-    """
+    upper_bound: float
+        The upper bound of the periodic interval.
 
-    Convert the cartesian conic coefficients, (a, b, c, d, e, f), to the
-    ellipse parameters, where F(x, y) = ax^2 + bxy + cy^2 + dx + ey + f = 0.
-    The returned parameters are x0, y0, ap, bp, e, phi, where (x0, y0) is the
-    ellipse centre; (ap, bp) are the semi-major and semi-minor axes,
-    respectively; e is the eccentricity; and phi is the rotation of the semi-
-    major axis from the x-axis.
+    include: str
+        The bound that is to be kept. It can be 'upper' or 'lower'. Anything else will result in an error.
+
+    Returns
+    -------
+    float | np.array
+        The number of array of numbers, all inside the interval.
 
     """
 
-    # We use the formulas from https://mathworld.wolfram.com/Ellipse.html
-    # which assumes a cartesian form ax^2 + 2bxy + cy^2 + 2dx + 2fy + g = 0.
-    # Therefore, rename and scale b, d and f appropriately.
-    a = coeffs[0]
-    b = coeffs[1] / 2
-    c = coeffs[2]
-    d = coeffs[3] / 2
-    f = coeffs[4] / 2
-    g = coeffs[5]
+    if include not in ['upper', 'lower']:
+        raise ValueError('(bring_inside_bounds): Invalid value for argument "include". Only "upper" and "lower" are allowed. Provided: ' + include)
 
-    den = b**2 - a*c
-    if den > 0:
-        print(a, b, c, d, f, g)
-        raise ValueError('coeffs do not represent an ellipse: b^2 - 4ac must'
-                         ' be negative!')
-
-    # The location of the ellipse centre.
-    x0, y0 = (c*d - b*f) / den, (a*f - b*d) / den
-
-    num = 2 * (a*f**2 + c*d**2 + g*b**2 - 2*b*d*f - a*c*g)
-    fac = np.sqrt((a - c)**2 + 4*b**2)
-    # The semi-major and semi-minor axis lengths (these are not sorted).
-    ap = np.sqrt(num / den / (fac - a - c))
-    bp = np.sqrt(num / den / (-fac - a - c))
-
-    # Sort the semi-major and semi-minor axis lengths but keep track of
-    # the original relative magnitudes of width and height.
-    width_gt_height = True
-    if ap < bp:
-        width_gt_height = False
-        ap, bp = bp, ap
-
-    # The eccentricity.
-    r = (bp/ap)**2
-    if r > 1:
-        r = 1/r
-    e = np.sqrt(1 - r)
-
-    # The angle of anticlockwise rotation of the major-axis from x-axis.
-    if b == 0:
-        phi = 0 if a < c else np.pi/2
+    if type(original) in [float, np.float32, np.float64, np.float128]:
+        to_return = bring_inside_bounds_scalar(original, lower_bound, upper_bound, include)
     else:
-        phi = np.arctan((2.*b) / (a - c)) / 2
-        if a > c:
-            phi += np.pi/2
-    if not width_gt_height:
-        # Ensure that phi is the angle to rotate to the semi-major axis.
-        phi += np.pi/2
-    phi = phi % np.pi
+        dim_num = len(original.shape)
 
-    return x0, y0, ap, bp, e, phi
+        if dim_num == 1:
+            to_return = bring_inside_bounds_single_dim(original, lower_bound, upper_bound, include)
+        elif dim_num == 2:
+            to_return = bring_inside_bounds_double_dim(original, lower_bound, upper_bound, include)
+        else:
+            raise ValueError('(bring_inside_bounds): Invalid input array.')
 
-def sigmoid(x):
-    return 1/(1 + np.exp(-x))
+    return to_return
+
+
+def bring_inside_bounds_single_dim(original: np.ndarray, lower_bound: float,
+                                   upper_bound: float, include: str = 'lower') -> np.ndarray:
+
+    """This function brings the entries of a one-dimensional array inside the given bounds, assuming the interval defined by the bounds can periodically extend the whole real line (e.g. an angle of 9$\pi$ is equivalent to an angle of $\pi$ and at the same time equivalent to an angle of $-\pi$). It returns another one-dimensional array.
+
+    Parameters
+    ----------
+    original: np.ndarray
+        The original array.
+
+    lower_bound: float
+        The lower bound of the periodic interval.
+
+    upper_bound: float
+        The upper bound of the periodic interval.
+
+    include: str
+        The bound that is to be kept. It can be 'upper' or 'lower'. Anything else will result in an error.
+
+    Returns
+    -------
+    np.array
+        The array of numbers, all inside the interval.
+
+    """
+
+    new = np.zeros_like(original)
+    for idx in range(len(new)):
+        new[idx] = bring_inside_bounds_scalar(original[idx], lower_bound, upper_bound, include)
+
+    return new
+
+
+def bring_inside_bounds_double_dim(original: np.ndarray, lower_bound: float,
+                                   upper_bound: float, include: str = 'lower') -> np.ndarray:
+
+    """This function brings the entries of a two-dimensional array inside the given bounds, assuming the interval defined by the bounds can periodically extend the whole real line (e.g. an angle of 9$\pi$ is equivalent to an angle of $\pi$ and at the same time equivalent to an angle of $-\pi$). It returns another two-dimensional array.
+
+    Parameters
+    ----------
+    original: np.ndarray
+        The original array.
+
+    lower_bound: float
+        The lower bound of the periodic interval.
+
+    upper_bound: float
+        The upper bound of the periodic interval.
+
+    include: str
+        The bound that is to be kept. It can be 'upper' or 'lower'. Anything else will result in an error.
+
+    Returns
+    -------
+    np.array
+        The array of numbers, all inside the interval.
+
+    """
+
+    lengths = original.shape
+    new = np.zeros_like(original)
+    for idx0 in range(lengths[0]):
+        for idx1 in range(lengths[1]):
+            new[idx0, idx1] = bring_inside_bounds_scalar(original[idx0, idx1], lower_bound, upper_bound, include)
+
+    return new
+
+
+def bring_inside_bounds_scalar(original: float, lower_bound: float,
+                               upper_bound: float, include: str = 'lower') -> float:
+
+    """This function brings a scalar inside the given bounds, assuming the interval defined by the bounds can periodically extend the whole real line (e.g. an angle of 9$\pi$ is equivalent to an angle of $\pi$ and at the same time equivalent to an angle of $-\pi$). It returns another scalar.
+
+    Parameters
+    ----------
+    original: float
+        The original number.
+
+    lower_bound: float
+        The lower bound of the periodic interval.
+
+    upper_bound: float
+        The upper bound of the periodic interval.
+
+    include: str
+        The bound that is to be kept. It can be 'upper' or 'lower'. Anything else will result in an error.
+
+    Returns
+    -------
+    float
+        The number, now inside the interval.
+
+    """
+
+    # EXPLAIN THINGS HERE. MAKE CLEAR WHAT VARIABLES REPRESENT.
+
+    if original == upper_bound or original == lower_bound:
+        if include == 'lower':
+            return lower_bound
+        else:
+            return upper_bound
+
+    if lower_bound < original < upper_bound:
+        return original
+
+    center = (upper_bound + lower_bound) / 2.0
+
+    if original < lower_bound:
+        reflect = True
+    else:
+        reflect = False
+
+    if reflect:
+        original = 2.0 * center - original
+
+    dividend = original - lower_bound
+    divisor = upper_bound - lower_bound
+    remainder = dividend % divisor
+    new = lower_bound + remainder
+
+    if reflect: new = 2.0 * center - new
+
+    if new == lower_bound and include == 'upper':
+        new = upper_bound
+    if new == upper_bound and include == 'lower':
+        new = lower_bound
+
+    return new
+
+
+
+
+
+
+

@@ -1,83 +1,109 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull, convex_hull_plot_2d
-from scipy.optimize import minimize
-from MiscFunctions import cart_to_pol, fit_2d_ellipse, get_ellipse_pts, compute_panel_geometrical_properties, sigmoid
+from scipy.optimize import curve_fit
 import pygmo as pg
-from constants import W, c_sol, vanes_coordinates_list, vanes_origin_list
 import os
 import itertools
+from time import time
+from matplotlib import cm
 
-# Best ellipse optimisation
-class constrainedEllipseCoefficientsProblem:
-    def __init__(self, convex_hull_points):
-        self.convex_hull_points = convex_hull_points
-        self.A0 = None
-
-        # Vector of inequality constraints
-        D = np.array([0, 0, 0, 0, 0, 0])
-        for xp in convex_hull_points[0:, :]:
-            D = np.vstack((D, np.array([xp[0] ** 2, xp[0] * xp[1], xp[1] ** 2, xp[0], xp[1], 1])))
-        self.D = D[1:, :]
-
-    def fitness(self, x):
-        [a, b, c, d, e, f] = x
-        if (self.check_inequality_sign(x)):
-            ineq_constraint = list(np.dot(-self.D, x))  # all rows < 0
-        else:
-            ineq_constraint = list(np.dot(self.D, x))  # all rows < 0
-        A = self.ellipse_area(x)
-        self.previous_A = A
-        obj = -A
-        return [obj] + ineq_constraint + [b**2 - 4 * a * c]
-
-    def ellipse_area(self, x):
-        [a, b, c, d, e, f] = x
-        if ((b ** 2 - 4 * a * c) < 0):
-            x0, y0, ap, bp, e, phi = cart_to_pol([a, b, c, d, e, f])
-            A = np.pi * ap * bp
-        else:
-            A = self.previous_A
-        return A
-
-    def get_bounds(self):
-        return ([-20, -21, -22, -23, -24, -25], [20, 21, 22, 23, 24, 25])    # Generic bounds as they are necessary for pygmo
-
-    def get_nic(self):
-        return np.shape(self.D)[0] + 1
-
-    def gradient(self, x):
-        return pg.estimate_gradient_h(lambda x: self.fitness(x), x)
-
-    def sef_initial_area(self, a0):
-        self.A0 = a0
-
-    def check_inequality_sign(self, current_weights):
-        inf_point = np.array([1e23, 1e23])
-        D_inf = np.array([[inf_point[0] ** 2, inf_point[0] * inf_point[1], inf_point[1] ** 2, inf_point[0], inf_point[1], 1]])
-        return np.dot(D_inf, current_weights)[0] > 0     # return True if infinity is outside, False if it is inside
-
-def is_dup_simple(arr):
-    u, c = np.unique(arr, axis=0, return_counts=True)
-    return (c>1).any()
+from constants import *
+from MiscFunctions import compute_panel_geometrical_properties, find_linearly_independent_rows
+from vaneControllerMethods import constrainedEllipseCoefficientsProblem
+from vaneControllerMethods import fourierSumFunction, fourierSeriesFunction, combinedFourierFitFunction, cart_to_pol, fit_2d_ellipse, get_ellipse_pts
+from vaneControllerMethods import generate_AMS_data, vaneAnglesAllocationProblem
+from attitudeControllersClass import sail_attitude_control_systems
+from sailCraftClass import sail_craft
+import h5py
 
 PLOT = False
+COMPUTE_DATA = False
 COMPUTE_ELLIPSES = False
-COMPUTE_ELLIPSE_FORMULA = True
+COMPUTE_ELLIPSE_FOURIER_FORMULA = True
+ALL_HULLS = False
 dir = "./AMS/Datasets/Ideal_model/vane_1"
+f1 = h5py.File('backupData2.h5', 'w')
 
+if (COMPUTE_DATA):
+    # Define solar sail - see constants file
+    sh_comp = 1     # Define whether to work with or without shadow effects
+    vane_id = 1
+
+    if (sh_comp != 0 and sh_comp != 1):
+        raise Exception(
+            "Error.AMS generation for both shadow TRUE and FALSE is not supported in AMSFormulaDerivation." +
+            "Do one after the other")
+
+    acs_object = sail_attitude_control_systems("vanes", boom_list)
+    acs_object.set_vane_characteristics(vanes_coordinates_list, vanes_origin_list, vanes_rotation_matrices_list, 0,
+                                        np.array([0, 0, 0]), 0.0045, vanes_rotational_dof)
+
+    current_optical_model_str = "Ideal_model"
+    sail = sail_craft("ACS3",
+                      len(wings_coordinates_list),
+                      len(vanes_coordinates_list),
+                      wings_coordinates_list,
+                      vanes_coordinates_list,
+                      wings_optical_properties,
+                      [np.array([0., 0., 1., 1., 0., 0., 2 / 3, 2 / 3, 1., 1.])] * (5),
+                      sail_I,
+                      sail_mass,
+                      sail_mass_without_wings,
+                      sail_nominal_CoM,
+                      sail_material_areal_density,
+                      sail_material_areal_density,
+                      acs_object)
+
+    vaneAngleProblem = vaneAnglesAllocationProblem(vane_id,
+                                                   ([-np.pi, -np.pi], [np.pi, np.pi]),
+                                                   10,
+                                                   sail,
+                                                   acs_object,
+                                                   include_shadow=True)
+    vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0, 0, 0]), np.array([0, 0, -1]),
+                                                               vane_variable_optical_properties=True)  # and the next time you can put False
+
+    sun_angles_num, vane_angles_num = 181, 100
+    sun_angle_alpha_list = np.linspace(-180, 180, sun_angles_num)
+    sun_angle_beta_list = np.linspace(-180, 180, sun_angles_num)
+    alpha_1_range = np.linspace(-np.pi, np.pi, vane_angles_num)
+    alpha_2_range = np.linspace(-np.pi, np.pi, vane_angles_num)
+
+t0 = time()-1
 if (COMPUTE_ELLIPSES):
     # Extract data
-    all_files_list = os.listdir(dir)
-    number_files = len(all_files_list)
     optimised_ellipse_coefficients_stack_without_shadow = np.array([0, 0, 0, 0, 0, 0, 0, 0])
     optimised_ellipse_coefficients_stack_with_shadow = np.array([0, 0, 0, 0, 0, 0, 0, 0])
-    for i, dataset_file in enumerate(os.listdir(dir)):
-        print(f'{100 * (i/number_files)} %')
-        ams_data = np.genfromtxt(dir + "/" + dataset_file, delimiter=',')
+    if (COMPUTE_DATA):
+        loop_list = list(itertools.product(sun_angle_alpha_list, sun_angle_beta_list))
+    else:
+        all_files_list = os.listdir(dir)
+        number_files = len(all_files_list)
+        loop_list = os.listdir(dir)
+    for i, input in enumerate(loop_list):
+        print(time() - t0)
+        t0 = time()
+        if (COMPUTE_DATA):
+            print(f'{100 * (i / len(list(loop_list)))} %')
+            ams_data, shadow_list = generate_AMS_data(vane_id, vaneAngleProblem,
+                                                  input[0],
+                                                  input[1],
+                                                  alpha_1_range,
+                                                  alpha_2_range,
+                                                  optical_model_str=current_optical_model_str,
+                                                  savefig=False, savedat=False,
+                                                  shadow_computation=sh_comp)
+            ams_data = ams_data[0]
+        else:   # retrieve data from file
+            print(f'{100 * (i / number_files)} %')
+            if (os.path.isdir(dir + "/" + input)):
+                continue
+            ams_data = np.genfromtxt(dir + "/" + input, delimiter=',')
+            shadow_list = []
 
-        alpha_1, alpha_2 = np.rad2deg(ams_data[:, 0]), np.rad2deg(ams_data[:, 1])
-        alpha_sun, beta_sun = np.rad2deg(ams_data[0, 2]), np.rad2deg(ams_data[0, 3])
+        alpha_1_deg, alpha_2_deg = np.rad2deg(ams_data[:, 0]), np.rad2deg(ams_data[:, 1])
+        alpha_sun_rad, beta_sun_rad = np.rad2deg(ams_data[0, 2]), np.rad2deg(ams_data[0, 3])
         point_in_shadow = ams_data[:, 4]    # watch out, for now this is only the torque magnitude
 
         centroid_body_frame, vane_area, surface_normal_body_frame = compute_panel_geometrical_properties(vanes_coordinates_list[1])
@@ -87,21 +113,22 @@ if (COMPUTE_ELLIPSES):
         Tx, Ty, Tz = Tx[..., None], Ty[..., None], Tz[..., None]
 
         # Compute complex hull
-        TxTz_2d_points = np.hstack((Tx, Tz))
-        TxTz_2d_hull = ConvexHull(TxTz_2d_points)
-        TxTz_2d_hull_points = TxTz_2d_hull.points[TxTz_2d_hull.vertices]
+        if (ALL_HULLS):
+            TxTz_2d_points = np.hstack((Tx, Tz))
+            TxTz_2d_hull = ConvexHull(TxTz_2d_points)
+            TxTz_2d_hull_points = TxTz_2d_hull.points[TxTz_2d_hull.vertices]
+
+            TxTy_2d_points = np.hstack((Tx, Ty))
+            TxTy_2d_hull = ConvexHull(TxTy_2d_points)
+            TxTy_2d_hull_points = TxTy_2d_hull.points[TxTy_2d_hull.vertices]
+
+            TxTyTz_3d_points = np.hstack((Tx, Ty, Tz))
+            TxTyTz_3d_hull = ConvexHull(TxTyTz_3d_points)
+            TxTyTz_3d_hull_points = TxTyTz_3d_hull.points[TxTyTz_3d_hull.vertices]
 
         TyTz_2d_points = np.hstack((Ty, Tz))
         TyTz_2d_hull = ConvexHull(TyTz_2d_points)
         TyTz_2d_hull_points = TyTz_2d_hull.points[TyTz_2d_hull.vertices]
-
-        TxTy_2d_points = np.hstack((Tx, Ty))
-        TxTy_2d_hull = ConvexHull(TxTy_2d_points)
-        TxTy_2d_hull_points = TxTy_2d_hull.points[TxTy_2d_hull.vertices]
-
-        TxTyTz_3d_points = np.hstack((Tx, Ty, Tz))
-        TxTyTz_3d_hull = ConvexHull(TxTyTz_3d_points)
-        TxTyTz_3d_hull_points = TxTyTz_3d_hull.points[TxTyTz_3d_hull.vertices]
 
         # Fitted ellipse
         weightsTyTz = fit_2d_ellipse(TyTz_2d_hull_points[:, 0], TyTz_2d_hull_points[:, 1])
@@ -139,12 +166,16 @@ if (COMPUTE_ELLIPSES):
         if (not prob.feasibility_x(pop.champion_x)):
             print("Constraint violation")
         if ((abs(A_final) > abs(A0)) or (not prob.feasibility_x(pop.champion_x))):
-            print(dataset_file)
+            print(input)
             print(abs(A_final), abs(A0))
             print(worst_inequality_constraint_final)
 
-        current_stack = np.hstack((np.deg2rad(alpha_sun), np.deg2rad(beta_sun), optimised_ellipse_coefficients))
-        if (dataset_file[-8:-4] == 'True'):
+        current_stack = np.hstack((np.deg2rad(alpha_sun_rad), np.deg2rad(beta_sun_rad), optimised_ellipse_coefficients))
+        if (COMPUTE_DATA):
+            array_storage_selection = str(bool(sh_comp))
+        else:
+            array_storage_selection = input[-8:-4]
+        if (array_storage_selection == 'True'):
             # Store ellipse coefficients and write file
             optimised_ellipse_coefficients_stack_with_shadow = np.vstack((optimised_ellipse_coefficients_stack_with_shadow,
                                                               current_stack))
@@ -152,6 +183,7 @@ if (COMPUTE_ELLIPSES):
             # Store ellipse coefficients and write file
             optimised_ellipse_coefficients_stack_without_shadow = np.vstack((optimised_ellipse_coefficients_stack_without_shadow,
                                                               current_stack))
+
         if PLOT:
             # Plots
             plt.figure()
@@ -165,87 +197,129 @@ if (COMPUTE_ELLIPSES):
             plt.scatter(TyTz_2d_hull_points[:, 0], TyTz_2d_hull_points[:, 1])
             plt.xlabel("Ty [-]")
             plt.ylabel("Tz [-]")
-            plt.title(r"$\alpha$=" + f'{round(alpha_sun, 1)}' +  r" and $\beta$=" + f'{round(beta_sun, 1)}')
+            plt.title(r"$\alpha$=" + f'{round(alpha_sun_rad, 1)}' + r" and $\beta$=" + f'{round(beta_sun_rad, 1)}')
             plt.legend()
-            plt.savefig(f"./AMS/Plots/Ideal_model/vane_1/Fitted_Ellipses/{dataset_file[:-4]}.png")
+            if (not COMPUTE_DATA):
+                plt.savefig(f"./AMS/Plots/Ideal_model/vane_1/Fitted_Ellipses/{input[:-4]}.png")
+            else:
+                plt.savefig(f"./AMS/Plots/Ideal_model/vane_1/Fitted_Ellipses/AMS_alpha_{round(np.rad2deg(alpha_sun_rad), 1)}_beta_{round(np.rad2deg(beta_sun_rad), 1)}_shadow_{str(bool(sh_comp))}.png")
             #plt.show()
             plt.close()
 
-            """
-            plt.figure()
-            plt.grid(True)
-            plt.scatter(Tx, Tz, s=1, label="Vane points")
-            for simplex in TxTz_2d_hull.simplices:
-                plt.plot(TxTz_2d_points[simplex, 0], TxTz_2d_points[simplex, 1], 'r-')
-            plt.plot([], [], 'r-', label="Convex Hull")
-            plt.xlabel("Tx [-]")
-            plt.ylabel("Tz [-]")
-            plt.title(r"$\alpha$=" + f'{alpha_sun}' + r" and $\beta$=" + f'{beta_sun}')
-            plt.legend()
-            plt.close()
+            if (ALL_HULLS):
+                plt.figure()
+                plt.grid(True)
+                plt.scatter(Tx, Tz, s=1, label="Vane points")
+                for simplex in TxTz_2d_hull.simplices:
+                    plt.plot(TxTz_2d_points[simplex, 0], TxTz_2d_points[simplex, 1], 'r-')
+                plt.plot([], [], 'r-', label="Convex Hull")
+                plt.xlabel("Tx [-]")
+                plt.ylabel("Tz [-]")
+                plt.title(r"$\alpha$=" + f'{alpha_sun_rad}' + r" and $\beta$=" + f'{beta_sun_rad}')
+                plt.legend()
+                plt.close()
 
-            plt.figure()
-            plt.grid(True)
-            plt.scatter(Tx, Ty, s=1, label="Vane points")
-            for simplex in TxTy_2d_hull.simplices:
-                plt.plot(TxTy_2d_points[simplex, 0], TxTy_2d_points[simplex, 1], 'r-')
-            plt.plot([], [], 'r-', label="Convex Hull")
-            plt.xlabel("Tx [-]")
-            plt.ylabel("Ty [-]")
-            plt.title(r"$\alpha$=" + f'{alpha_sun}' +  r" and $\beta$=" + f'{beta_sun}')
-            plt.legend()
-            plt.close()
-            """
+                plt.figure()
+                plt.grid(True)
+                plt.scatter(Tx, Ty, s=1, label="Vane points")
+                for simplex in TxTy_2d_hull.simplices:
+                    plt.plot(TxTy_2d_points[simplex, 0], TxTy_2d_points[simplex, 1], 'r-')
+                plt.plot([], [], 'r-', label="Convex Hull")
+                plt.xlabel("Tx [-]")
+                plt.ylabel("Ty [-]")
+                plt.title(r"$\alpha$=" + f'{alpha_sun_rad}' + r" and $\beta$=" + f'{beta_sun_rad}')
+                plt.legend()
+                plt.close()
 
-    np.savetxt(
-        dir + f"/AMS_ellipse_coefficients_shadow_False.csv",
-        optimised_ellipse_coefficients_stack_without_shadow, delimiter=",",
-        header='alpha_sun, beta_sun, A, B, C, D, E, F')
+    if (len(np.shape(optimised_ellipse_coefficients_stack_with_shadow)) == 1):
+        optimised_ellipse_coefficients_stack_with_shadow = optimised_ellipse_coefficients_stack_with_shadow[..., None]
+    if (len(np.shape(optimised_ellipse_coefficients_stack_without_shadow)) == 1):
+        optimised_ellipse_coefficients_stack_without_shadow = optimised_ellipse_coefficients_stack_without_shadow[..., None]
+    optimised_ellipse_coefficients_stack_with_shadow = optimised_ellipse_coefficients_stack_with_shadow[1:, :]
+    optimised_ellipse_coefficients_stack_without_shadow = optimised_ellipse_coefficients_stack_without_shadow[1:, :]
 
-    np.savetxt(
-        dir + f"/AMS_ellipse_coefficients_shadow_True.csv",
-        optimised_ellipse_coefficients_stack_with_shadow, delimiter=",",
-        header='alpha_sun, beta_sun, A, B, C, D, E, F')
+    if (np.shape(optimised_ellipse_coefficients_stack_with_shadow)[0] >1e2):
+        np.savetxt(
+            dir + f"/ellipseCoefficients/" + "AMS_ellipse_coefficients_shadow_True.csv",
+            optimised_ellipse_coefficients_stack_with_shadow, delimiter=",",
+            header='alpha_sun, beta_sun, A, B, C, D, E, F')
 
-    print(optimised_ellipse_coefficients_stack_without_shadow)
-    print(optimised_ellipse_coefficients_stack_with_shadow)
+    if (np.shape(optimised_ellipse_coefficients_stack_without_shadow)[0] >1e2):
+        np.savetxt(
+            dir + f"/ellipseCoefficients/" + "AMS_ellipse_coefficients_shadow_False.csv",
+            optimised_ellipse_coefficients_stack_without_shadow, delimiter=",",
+            header='alpha_sun, beta_sun, A, B, C, D, E, F')
 
-if (COMPUTE_ELLIPSE_FORMULA):
-    ellipse_coefficients_data = np.genfromtxt(dir + "/" + "AMS_ellipse_coefficients_shadow_False.csv", delimiter=',')
-    alpha_sun = ellipse_coefficients_data[:, 0]
-    beta_sun = ellipse_coefficients_data[:, 1]
 
-    sun_angles = np.stack([alpha_sun, beta_sun], axis=1)
 
-    lst = []
-    for i in range(2):
-        lst += [i]
+if (COMPUTE_ELLIPSE_FOURIER_FORMULA):
+    ellipse_coefficients_data = np.genfromtxt(dir + "/ellipseCoefficients/" + "detailed_AMS_ellipse_coefficients_shadow_False.csv", delimiter=',')
+    sorted_indices = np.lexsort((ellipse_coefficients_data[:, 1], ellipse_coefficients_data[:, 0]))
+    ellipse_coefficients_data = ellipse_coefficients_data[sorted_indices]
 
-    combs = []
-    for x in itertools.product(lst, repeat=2):
-        combs.append(list(x))
+    alpha_sun_rad = ellipse_coefficients_data[:, 0]
+    beta_sun_rad = ellipse_coefficients_data[:, 1]
 
-    combs = combs[1:]
-    print(combs)
-    A = np.zeros((1, 1 + len(combs)*4))
-    for xp in sun_angles[0:, :]:
-        current_alpha_sun = xp[0]
-        current_beta_sun = xp[1]
-        Ap = np.array([0])
-        for c in combs:
-            gamma_1 = np.sin(current_alpha_sun) ** c[0] * np.sin(current_beta_sun) ** c[1]
-            gamma_2 = np.cos(current_alpha_sun) ** c[0] * np.sin(current_beta_sun) ** c[1]
-            gamma_3 = np.sin(current_alpha_sun) ** c[0] * np.cos(current_beta_sun) ** c[1]
-            gamma_4 = np.cos(current_alpha_sun) ** c[0] * np.cos(current_beta_sun) ** c[1]
-            Ap = np.hstack((Ap, np.array([gamma_1, gamma_2, gamma_3, gamma_4])))
-        A = np.vstack((A, Ap))
-    A = A[1:, :]
-    print(is_dup_simple(A))
-    print(A)
-    current_coefficient = ellipse_coefficients_data[:, 2]
+    sun_angles = np.stack([alpha_sun_rad, beta_sun_rad], axis=1)
+    Y = ellipse_coefficients_data[:, 2:]    # Take all the ellipse coefficients
 
-    ATA = np.dot(A.T, A)
-    ATY = np.dot(A.T, current_coefficient)
-    current_fit_coefficients = np.dot(np.linalg.inv(ATA), ATY)
-    print(current_fit_coefficients)
+    current_fit_coefficients = []
+    order_i = 6
+    #num_coefficients = (order_i*2-1)**2
+    #fourierSumFunc = lambda x, *b, ordi=order_i: fourierSumFunction(x, *b, order=ordi)
+
+    order_m = 4
+    order_n = 4
+    #num_coefficients = order_n * order_m * 4 + 1
+    #fourierSeriesFunc = lambda x, *b, ord_n=order_m, ord_m=order_m: fourierSeriesFunction(x, *b, order_n=ord_n, order_m=ord_m)
+
+    num_coefficients = (order_i*2-1)**2 + order_n * order_m * 4
+    fourierSeriesFunc = lambda x, *b, ordi=order_i, ord_n=order_m, ord_m=order_m: combinedFourierFitFunction(x, *b, order=ordi, order_n=ord_n, order_m=ord_m)
+    for i in range(np.shape(Y)[1]):
+        popt, pcov = curve_fit(fourierSeriesFunc, xdata=sun_angles, ydata=Y[:, i], p0=[1] * (num_coefficients))
+        print(popt)
+        print(np.linalg.cond(pcov))
+        current_fit_coefficients.append(popt)
+
+    # Evaluate the fit quality - start with A
+    fourier_ellipse_coefficients = np.zeros(np.shape(ellipse_coefficients_data[:, :]))
+    fourier_ellipse_coefficients[:, 0] = alpha_sun_rad
+    fourier_ellipse_coefficients[:, 1] = beta_sun_rad
+    for i in range(6):
+        fourier_ellipse_coefficients[:, 2 + i] = combinedFourierFitFunction(sun_angles, *current_fit_coefficients[i], order=order_i, order_n=order_n, order_m=order_m)
+    sorted_indices = np.lexsort((fourier_ellipse_coefficients[:, 1], fourier_ellipse_coefficients[:, 0]))
+    fourier_ellipse_coefficients = fourier_ellipse_coefficients[sorted_indices]
+
+    n_data_points = len(alpha_sun_rad)
+    x = np.reshape(np.rad2deg(alpha_sun_rad), (int(np.sqrt(n_data_points)), int(np.sqrt(n_data_points))))
+    y = np.reshape(np.rad2deg(beta_sun_rad), (int(np.sqrt(n_data_points)), int(np.sqrt(n_data_points))))
+    for i in range(6):
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        ax.grid(b=True, color='grey',
+                linestyle='-.', linewidth=0.3,
+                alpha=0.2)
+        my_cmap = plt.get_cmap('jet')
+        z = np.reshape(fourier_ellipse_coefficients[:, i+2], (int(np.sqrt(n_data_points)), int(np.sqrt(n_data_points))))
+        ax.plot_surface(x, y, z,cmap=cm.coolwarm, alpha=0.5, label="Fourier fit")
+        ax.scatter(np.rad2deg(alpha_sun_rad), np.rad2deg(beta_sun_rad), ellipse_coefficients_data[:, i + 2],
+                   c=ellipse_coefficients_data[:, i + 2], cmap=my_cmap, alpha=0.5, label="Data")
+        ax.set_xlabel('alpha')
+        ax.set_ylabel('beta')
+        ax.set_zlabel(f"Ellipse coefficient {['A', 'B', 'C', 'D', 'E', 'F'][i]}")
+        ax.legend()
+        plt.close()
+
+    for i in range(6):
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        z = 100 * (fourier_ellipse_coefficients[:, i+2]-ellipse_coefficients_data[:, i + 2])/(1+ abs(ellipse_coefficients_data[:, i + 2]))
+        id = z.argmax(axis=0)
+        #print(z[id])
+        #print(fourier_ellipse_coefficients[id, i+2], ellipse_coefficients_data[id, i+2])
+        ax.scatter(np.rad2deg(alpha_sun_rad), np.rad2deg(beta_sun_rad), z,
+                   c=z, cmap=my_cmap, alpha=0.5, label="Data")
+
+    plt.show()
+    #plt.close()
 

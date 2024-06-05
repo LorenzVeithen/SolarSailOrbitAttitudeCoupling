@@ -5,7 +5,7 @@ from MiscFunctions import *
 from sailCraftClass import sail_craft
 from attitudeControllersClass import sail_attitude_control_systems
 from time import time
-from ACS_optimisationProblems import torqueAllocationProblem
+from vaneControllerMethods import vaneTorqueAllocationProblem
 
 acs_object = sail_attitude_control_systems("vanes", boom_list)
 acs_object.set_vane_characteristics(vanes_coordinates_list, vanes_origin_list, vanes_rotation_matrices_list, 0,
@@ -26,8 +26,8 @@ sail = sail_craft("ACS3",
                   sail_material_areal_density,
                   acs_object)
 
-tap = torqueAllocationProblem(acs_object)
-tap.set_desired_torque(np.array([-0.01, 0.1, -0.005]), np.array([0, 0, 0]))
+tap = vaneTorqueAllocationProblem(acs_object)
+tap.set_desired_torque(np.array([-0.01, 0.1, -5]), np.array([0, 0, 0]))
 prob = pg.problem(tap)
 algo = pg.algorithm(uda = pg.nlopt('auglag'))
 algo.extract(pg.nlopt).local_optimizer = pg.nlopt('var2')
