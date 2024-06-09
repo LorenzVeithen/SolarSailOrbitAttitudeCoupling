@@ -219,12 +219,24 @@ class sail_attitude_control_systems:
         self.actuator_states["vane_rotation_x_default"] = np.zeros((self.number_of_vanes, 1))
         self.actuator_states["vane_rotation_y_default"] = np.zeros((self.number_of_vanes, 1))
 
+        # Determine vane component of the ACS mass
         vanes_areas = []
         for i in range(len(self.vane_panels_coordinates_list)):
             _, vane_area, _ = compute_panel_geometrical_properties(self.vane_panels_coordinates_list[i])
             vanes_areas.append(vane_area)
         self.vane_material_areal_density = vanes_material_areal_density
         self.ACS_mass = sum(vanes_areas) * vanes_material_areal_density
+
+        # Determine if a vane is on a boom
+        self.vane_is_on_boom_boolean_list = [False]*self.number_of_vanes
+        for vane_id, vane in enumerate(self.vane_panels_coordinates_list):
+            vane_attachment_point = vane[0, :]  # as per convention
+            for boom in self.booms_coordinates_list:
+                if ((np.linalg.norm(vane_attachment_point - boom[0, :]) < 1e-15) or
+                        (np.linalg.norm(vane_attachment_point - boom[1, :]) < 1e-15)):
+                    self.vane_is_on_boom_boolean_list[vane_id] = True
+                    break
+        self.vane_is_on_boom_boolean_list = np.array(self.vane_is_on_boom_boolean_list)
 
         # Determine which vanes can do what type of torque
         for i, vane_origin_body_frame in enumerate(self.vane_reference_frame_origin_list):

@@ -215,11 +215,12 @@ class vaneAnglesAllocationProblem:
         return ax
 
 class vaneTorqueAllocationProblem:
-    def __init__(self, acs_object, sail_object, vane_has_ideal_model, include_shadow, num_points_ellipse_constraint=1000):
+    def __init__(self, acs_object, sail_object, vane_has_ideal_model, include_shadow, vanes_AMS_coefficient_functions, num_points_ellipse_constraint=1000):
         self.acs_object = acs_object    # Object with all vane characteristics
         self.sail_object = sail_object
         self.vane_has_ideal_model = vane_has_ideal_model
         self.include_shadow = include_shadow
+        self.vanes_AMS_coefficient_functions = vanes_AMS_coefficient_functions
         self.previous_torque = None
         self.current_torque = None
         self.desired_torque = None
@@ -269,20 +270,21 @@ class vaneTorqueAllocationProblem:
             Tx = T_current_vane[0]
             Ty = T_current_vane[1]
             Tz = T_current_vane[2]
+
             if (self.acs_object.vanes_rotational_dof_booleans[i][0] and self.acs_object.vanes_rotational_dof_booleans[i][1]):
                 # Given vane has two degrees of freedom, therefore the AMS is necessary
-                if (vane_AMS_coeff_x != None and self.eq_constraints_vane_capabilities[vane_id * 3] != 1):
+                if (self.eq_constraints_vane_capabilities[vane_id * 3] != 1):
                     if (self.eq_constraints_vane_capabilities[vane_id * 3] == 0):  # is an inequality constraint
                         ineq_constraint_list.append(np.dot(np.array([[Tx[0] ** 2, Tx[0] * Tz[1], Tz[1] ** 2, Tx[0], Tz[1], 1]]), vane_AMS_coeff_x))
 
-                if (vane_AMS_coeff_y != None and self.eq_constraints_vane_capabilities[vane_id * 3 + 1] != 1):
+                if (self.eq_constraints_vane_capabilities[vane_id * 3 + 1] != 1):
                     if (self.eq_constraints_vane_capabilities[vane_id * 3 + 1] == 0):  # is an inequality constraint
                         ineq_constraint_list.append(np.dot(np.array([[Ty[0] ** 2, Ty[0] * Tz[1], Tz[1] ** 2, Ty[0], Tz[1], 1]]), vane_AMS_coeff_y))
             elif (self.acs_object.vanes_rotational_dof_booleans[i][0]==False and self.acs_object.vanes_rotational_dof_booleans[i][1]==False):
                 Tdefault = self.default_vane_torque_body_frame[vane_id]
                 eq_constraint_list.append((Tx-Tdefault[0]))     # = 0
                 eq_constraint_list.append((Ty - Tdefault[1]))   # = 0
-                eq_constraint_list.append((Tz- Tdefault[2]))    # = 0
+                eq_constraint_list.append((Tz - Tdefault[2]))    # = 0
             else:
                 list_alpha_tuples = []
                 if (self.acs_object.vanes_rotational_dof_booleans[vane_id][0] == False):
@@ -336,32 +338,47 @@ class vaneTorqueAllocationProblem:
     def get_nec(self):
         count_0Dof_vane = 0
         for sublist in self.acs_object.vanes_rotational_dof_booleans:
-            if sublist.count(False) == 2:
-                count_0Dof_vane += 1
+            unique, counts = np.unique(sublist, return_counts=True)
+            sublist_dict = dict(zip(unique, counts))
+            if False in sublist_dict:
+                if (sublist_dict[False] == 2):
+                    count_0Dof_vane += 1
 
         count_1Dof_vane_on_boom = 0
-        for sublist in self.acs_object.vanes_rotational_dof_booleans[self.acs_object.vane_is_on_boom==True]:
-            if sublist.count(True) == 1:
-                count_1Dof_vane_on_boom += 1
+        for sublist in self.acs_object.vanes_rotational_dof_booleans[self.acs_object.vane_is_on_boom_boolean_list==True]:
+            unique, counts = np.unique(sublist, return_counts=True)
+            sublist_dict = dict(zip(unique, counts))
+            if True in sublist_dict:
+                if sublist_dict[True] == 1:
+                    count_1Dof_vane_on_boom += 1
 
         count_1Dof_vane_off_boom = 0
-        for sublist in self.acs_object.vanes_rotational_dof_booleans[self.acs_object.vane_is_on_boom==False]:
-            if sublist.count(True) == 1:
-                count_1Dof_vane_off_boom += 1
+        for sublist in self.acs_object.vanes_rotational_dof_booleans[self.acs_object.vane_is_on_boom_boolean_list==False]:
+            unique, counts = np.unique(sublist, return_counts=True)
+            sublist_dict = dict(zip(unique, counts))
+            if True in sublist_dict:
+                if sublist_dict[True] == 1:
+                    count_1Dof_vane_off_boom += 1
 
         #len(self.eq_constraints_vane_capabilities[self.eq_constraints_vane_capabilities == True]))
-        return 3 + 4 * len(self.acs_object.vane_is_on_boom[self.acs_object.vane_is_on_boom == True]) + 3 * count_0Dof_vane + 1 * count_1Dof_vane_on_boom + 2 * count_1Dof_vane_off_boom
+        return 3 + 4 * len(self.acs_object.vane_is_on_boom_boolean_list[self.acs_object.vane_is_on_boom_boolean_list == True]) + 3 * count_0Dof_vane + 1 * count_1Dof_vane_on_boom + 2 * count_1Dof_vane_off_boom
 
     def get_nic(self):
         count_on_boom = 0
-        for sublist in self.acs_object.vanes_rotational_dof_booleans[self.acs_object.vane_is_on_boom==True]:
-            if sublist.count(True) == 2:
-                count_on_boom += 1
+        for sublist in self.acs_object.vanes_rotational_dof_booleans[self.acs_object.vane_is_on_boom_boolean_list==True]:
+            unique, counts = np.unique(sublist, return_counts=True)
+            sublist_dict = dict(zip(unique, counts))
+            if True in sublist_dict:
+                if sublist_dict[True] == 2:
+                    count_on_boom += 1
 
         count_off_boom = 0
-        for sublist in self.acs_object.vanes_rotational_dof_booleans[self.acs_object.vane_is_on_boom==False]:
-            if sublist.count(True) == 2:
-                count_off_boom += 1
+        for sublist in self.acs_object.vanes_rotational_dof_booleans[self.acs_object.vane_is_on_boom_boolean_list==False]:
+            unique, counts = np.unique(sublist, return_counts=True)
+            sublist_dict = dict(zip(unique, counts))
+            if True in sublist_dict:
+                if sublist_dict[True] == 2:
+                    count_off_boom += 1
         return 1 * count_on_boom + 2 * count_off_boom
 
     def gradient(self, x):
@@ -378,20 +395,29 @@ class vaneTorqueAllocationProblem:
         self.desired_torque = desired_torque
         return True
 
-    def set_attaignable_moment_set_ellipses(self, vanes_AMS_coefficients_x, vanes_AMS_coefficients_y, n_s):
+    def set_attaignable_moment_set_ellipses(self, n_s):
         """
 
-        :param vanes_AMS_coefficients_x:
-        :param vanes_AMS_coefficients_y:
         :param n_s:
         :return:
         """
         # Compute default torque values
         self.default_vane_config_torque_body_frame(default_alpha_1_deg=0, default_alpha_2_deg=0)
 
-        # Use pre-computed ellipses TODO: replace this by the selected formula directly, and store in that list
-        self.vanes_AMS_coefficients_x = vanes_AMS_coefficients_x
-        self.vanes_AMS_coefficients_y = vanes_AMS_coefficients_y
+        # Use pre-computed ellipses
+        self.vanes_AMS_coefficients_x = []
+        self.vanes_AMS_coefficients_y = []
+        for vane_id in range(self.acs_object.number_of_vanes):
+            R_VBi = np.linalg.inv(self.acs_object.vane_reference_frame_rotation_matrix_list[vane_id])
+            alpha_s_rad_vane_reference_frame, beta_s_rad_vane_reference_frame = sun_angles_from_sunlight_vector(
+                R_VBi , n_s)
+            fourier_ellipse_coefficient = []
+            for func in self.vanes_AMS_coefficient_functions:
+                fourier_ellipse_coefficient.append(func(alpha_s_rad_vane_reference_frame, beta_s_rad_vane_reference_frame))
+            Tx_tuple, Ty_tuple = rotated_ellipse_coefficients_wrt_vane_1(R_VBi, tuple(fourier_ellipse_coefficient))
+            scaling = 1    #TODO: implement the scaling
+            self.vanes_AMS_coefficients_x.append(ellipse_stretching(scaling, scaling, Tx_tuple))
+            self.vanes_AMS_coefficients_y.append(ellipse_stretching(scaling, scaling, Ty_tuple))
 
         # Ensure that the weights have the right sign
         for m, weights in enumerate((self.vanes_AMS_coefficients_x + self.vanes_AMS_coefficients_y)):
@@ -621,17 +647,17 @@ def generate_AMS_data(vane_id, vaneAngleProblem, current_sun_angle_alpha_deg, cu
     flattened_alpha_2_range_grid = alpha_2_range_grid.reshape(-1)
 
     # Current sun angles
-    alpha_s_deg = np.deg2rad(current_sun_angle_alpha_deg)
-    beta_s_deg = np.deg2rad(current_sun_angle_beta_deg)
+    alpha_s_rad = np.deg2rad(current_sun_angle_alpha_deg)
+    beta_s_rad = np.deg2rad(current_sun_angle_beta_deg)
 
     # Compute sun vector in body frame
-    n_s = np.array([np.sin(alpha_s_deg) * np.cos(beta_s_deg),
-                    np.sin(alpha_s_deg) * np.sin(beta_s_deg),
-                    -np.cos(alpha_s_deg)])   # In the body reference frame
+    n_s = np.array([np.sin(alpha_s_rad) * np.cos(beta_s_rad),
+                    np.sin(alpha_s_rad) * np.sin(beta_s_rad),
+                    -np.cos(alpha_s_rad)])   # In the body reference frame
 
     vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0, 0, 0]), n_s,
                                                                vane_variable_optical_properties=False)  # False at the next call
-    print(f'vane_id={vane_id}, alpha_s_deg={round(np.rad2deg(alpha_s_deg), 1)}, beta_s_deg={round(np.rad2deg(beta_s_deg), 1)}')
+    print(f'vane_id={vane_id}, alpha_s_deg={round(np.rad2deg(alpha_s_rad), 1)}, beta_s_deg={round(np.rad2deg(beta_s_rad), 1)}')
     if (savefig): current_figs = [plt.figure(1), plt.figure(2), plt.figure(3)]
     if (shadow_computation==2):
         shadow_l = [0, 1]
@@ -670,13 +696,13 @@ def generate_AMS_data(vane_id, vaneAngleProblem, current_sun_angle_alpha_deg, cu
 
         # Write data to file for further processing
         array_to_save = np.stack([flattened_alpha_1_range_grid, flattened_alpha_2_range_grid,
-                                  alpha_s_deg * np.ones(np.shape(flattened_alpha_1_range_grid)),
-                                  beta_s_deg * np.ones(np.shape(flattened_alpha_1_range_grid)), flattened_BT,
+                                  alpha_s_rad * np.ones(np.shape(flattened_alpha_1_range_grid)),
+                                  beta_s_rad * np.ones(np.shape(flattened_alpha_1_range_grid)), flattened_BT,
                                   flattened_Tx, flattened_Ty, flattened_Tz], axis=1)
         returned_arrays.append(array_to_save)
         if (savedat):
             np.savetxt(
-                f"./AMS/Datasets/{optical_model_str}/vane_{vane_id}/AMS_alpha_{round(np.rad2deg(alpha_s_deg), 1)}_beta_{round(np.rad2deg(beta_s_deg), 1)}_shadow_{str(SHADOW_BOOL)}.csv",
+                f"./AMS/Datasets/{optical_model_str}/vane_{vane_id}/AMS_alpha_{round(np.rad2deg(alpha_s_rad), 1)}_beta_{round(np.rad2deg(beta_s_rad), 1)}_shadow_{str(SHADOW_BOOL)}.csv",
                 array_to_save, delimiter=",",
                 header='alpha_1, alpha_2, alpha_sun, beta_sun, Shadow_bool, Tx, Ty, Tz')
 
@@ -692,11 +718,11 @@ def generate_AMS_data(vane_id, vaneAngleProblem, current_sun_angle_alpha_deg, cu
     if (savefig):
         for i in range(1, 4):
             plt.figure(i)
-            plt.title(f'vane {vane_id}: alpha_s_deg={round(np.rad2deg(alpha_s_deg), 1)}, beta_s_deg={round(np.rad2deg(beta_s_deg), 1)}')
+            plt.title(f'vane {vane_id}: alpha_s_deg={round(np.rad2deg(alpha_s_rad), 1)}, beta_s_deg={round(np.rad2deg(beta_s_rad), 1)}')
             plt.xlabel(xlabels[i-1])
             plt.ylabel(ylabels[i-1])
             plt.legend(loc='lower left')
-            plt.savefig(f'./AMS/Plots/{optical_model_str}/vane_{vane_id}/plot_{i}/AMS_{i}_alpha_{round(np.rad2deg(alpha_s_deg), 1)}_beta_{round(np.rad2deg(beta_s_deg), 1)}.png')
+            plt.savefig(f'./AMS/Plots/{optical_model_str}/vane_{vane_id}/plot_{i}/AMS_{i}_alpha_{round(np.rad2deg(alpha_s_rad), 1)}_beta_{round(np.rad2deg(beta_s_rad), 1)}.png')
             plt.close(current_figs[i-1])
     return returned_arrays, shadow_l    # shadow_l returned to indicate the shadow condition used in the calculation
 
@@ -876,25 +902,158 @@ def combinedFourierFitFunction(x, *bargs, order=4, order_n=4, order_m=4):
     alpha_s = x[:, 0]
     beta_s = x[:, 1]
 
+    res_array = np.zeros((len(alpha_s), len(bargs)))
+    terms_list = []
     b_ind = 0
-    res = 1 * bargs[b_ind]; b_ind += 1
+    res_array[:, b_ind] = np.ones_like(alpha_s) * bargs[b_ind]; b_ind += 1
+    terms_list.append('1')
     for c in combinations:
-        if (c[0] == 0):
-            res += (np.sin(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
-            res += (np.cos(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
-        elif (c[1] == 0):
-            res += (np.sin(alpha_s) ** c[0]) * bargs[b_ind]; b_ind += 1
-            res += (np.cos(alpha_s) ** c[0]) * bargs[b_ind]; b_ind += 1
-        else:
-            res += (np.sin(alpha_s) ** c[0]) * (np.sin(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
-            res += (np.cos(alpha_s) ** c[0]) * (np.sin(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
-            res += (np.sin(alpha_s) ** c[0]) * (np.cos(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
-            res += (np.cos(alpha_s) ** c[0]) * (np.cos(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
+        if (c[0] == 0):     # Note, this favourises sines, not sure of the implication of that
+            res_array[:, b_ind] = (np.sin(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
+            terms_list.append(f'(np.sin(beta_s) ** {c[1]})')
+            if (c[1]<2):
+                res_array[:, b_ind] = (np.cos(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
+                terms_list.append(f'(np.cos(beta_s) ** {c[1]})')
 
-    for i in range(1, order_n + 1):
-        for j in range(1, order_m + 1):
-            res += bargs[b_ind] * np.sin(i * alpha_s) * np.sin(j * beta_s); b_ind += 1
-            res += bargs[b_ind] * np.sin(i * alpha_s) * np.cos(j * beta_s); b_ind += 1
-            res += bargs[b_ind] * np.cos(i * alpha_s) * np.sin(j * beta_s); b_ind += 1
-            res += bargs[b_ind] * np.cos(i * alpha_s) * np.cos(j * beta_s); b_ind += 1
+        elif (c[1] == 0):   # Note, this favourises sines, not sure of the implication of that
+            res_array[:, b_ind] = (np.sin(alpha_s) ** c[0]) * bargs[b_ind]; b_ind += 1
+            terms_list.append(f'(np.sin(alpha_s) ** {c[0]})')
+            if (c[0] < 2):
+                res_array[:, b_ind] = (np.cos(alpha_s) ** c[0]) * bargs[b_ind]; b_ind += 1
+                terms_list.append(f'(np.cos(alpha_s) ** {c[0]})')
+
+        else:
+            res_array[:, b_ind] = (np.sin(alpha_s) ** c[0]) * (np.sin(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
+            terms_list.append(f'(np.sin(alpha_s) ** {c[0]}) * (np.sin(beta_s) ** {c[1]})')
+            res_array[:, b_ind] = (np.cos(alpha_s) ** c[0]) * (np.sin(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
+            terms_list.append(f'(np.cos(alpha_s) ** {c[0]}) * (np.sin(beta_s) ** {c[1]})')
+            res_array[:, b_ind] = (np.sin(alpha_s) ** c[0]) * (np.cos(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
+            terms_list.append(f'(np.sin(alpha_s) ** {c[0]}) * (np.cos(beta_s) ** {c[1]})')
+            res_array[:, b_ind] = (np.cos(alpha_s) ** c[0]) * (np.cos(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
+            terms_list.append(f'(np.cos(alpha_s) ** {c[0]}) * (np.cos(beta_s) ** {c[1]})')
+
+    if (order_n > 1 or order_m>1):
+        for i in range(1, order_n + 1):
+            for j in range(1, order_m + 1):
+                if (i==1 and j==1):
+                    continue
+                res_array[:, b_ind] = bargs[b_ind] * np.sin(i * alpha_s) * np.sin(j * beta_s); b_ind += 1
+                terms_list.append(f'(np.sin({i} * alpha_s) * np.sin({j} * beta_s))')
+                res_array[:, b_ind] = bargs[b_ind] * np.sin(i * alpha_s) * np.cos(j * beta_s); b_ind += 1
+                terms_list.append(f'(np.sin({i} * alpha_s) * np.cos({j} * beta_s))')
+                res_array[:, b_ind] = bargs[b_ind] * np.cos(i * alpha_s) * np.sin(j * beta_s); b_ind += 1
+                terms_list.append(f'(np.cos({i} * alpha_s) * np.sin({j} * beta_s))')
+                res_array[:, b_ind] = bargs[b_ind] * np.cos(i * alpha_s) * np.cos(j * beta_s); b_ind += 1
+                terms_list.append(f'(np.cos({i} * alpha_s) * np.cos({j} * beta_s))')
+
+    return np.sum(res_array, axis=1), np.sum(abs(res_array), axis=0)/np.shape(res_array)[0], terms_list, res_array
+
+def combinedFourierFitDesignMatrix(x, *bargs, order=4, order_n=4, order_m=4):
+    comb_range = int(order)
+    lst = list(range(comb_range))
+    combinations = []
+    for it in itertools.product(lst, repeat=2):
+        combinations.append(list(it))
+    combinations = combinations[1:]
+
+    alpha_s = x[:, 0]
+    beta_s = x[:, 1]
+
+    res_array = np.zeros((len(alpha_s), len(bargs)))
+    terms_list = []
+    b_ind = 0
+    res_array[:, b_ind] = np.ones_like(alpha_s); b_ind += 1
+    terms_list.append('1')
+    for c in combinations:
+        if (c[0] == 0):     # Note, this favourises sines, not sure of the implication of that
+            res_array[:, b_ind] = (np.sin(beta_s) ** c[1]); b_ind += 1
+            terms_list.append(f'(np.sin(beta_s) ** {c[1]})')
+            if (c[1]<2):
+                res_array[:, b_ind] = (np.cos(beta_s) ** c[1]); b_ind += 1
+                terms_list.append(f'(np.cos(beta_s) ** {c[1]})')
+
+        elif (c[1] == 0):   # Note, this favourises sines, not sure of the implication of that
+            res_array[:, b_ind] = (np.sin(alpha_s) ** c[0]); b_ind += 1
+            terms_list.append(f'(np.sin(alpha_s) ** {c[0]})')
+            if (c[0] < 2):
+                res_array[:, b_ind] = (np.cos(alpha_s) ** c[0]); b_ind += 1
+                terms_list.append(f'(np.cos(alpha_s) ** {c[0]})')
+
+        else:
+            res_array[:, b_ind] = (np.sin(alpha_s) ** c[0]) * (np.sin(beta_s) ** c[1]); b_ind += 1
+            terms_list.append(f'(np.sin(alpha_s) ** {c[0]}) * (np.sin(beta_s) ** {c[1]})')
+            res_array[:, b_ind] = (np.cos(alpha_s) ** c[0]) * (np.sin(beta_s) ** c[1]); b_ind += 1
+            terms_list.append(f'(np.cos(alpha_s) ** {c[0]}) * (np.sin(beta_s) ** {c[1]})')
+            res_array[:, b_ind] = (np.sin(alpha_s) ** c[0]) * (np.cos(beta_s) ** c[1]); b_ind += 1
+            terms_list.append(f'(np.sin(alpha_s) ** {c[0]}) * (np.cos(beta_s) ** {c[1]})')
+            res_array[:, b_ind] = (np.cos(alpha_s) ** c[0]) * (np.cos(beta_s) ** c[1]); b_ind += 1
+            terms_list.append(f'(np.cos(alpha_s) ** {c[0]}) * (np.cos(beta_s) ** {c[1]})')
+
+    if (order_n > 1 or order_m>1):
+        for i in range(1, order_n + 1):
+            for j in range(1, order_m + 1):
+                if (i==1 and j==1):
+                    continue
+                res_array[:, b_ind] = np.sin(i * alpha_s) * np.sin(j * beta_s); b_ind += 1
+                terms_list.append(f'(np.sin({i} * alpha_s) * np.sin({j} * beta_s))')
+                res_array[:, b_ind] = np.sin(i * alpha_s) * np.cos(j * beta_s); b_ind += 1
+                terms_list.append(f'(np.sin({i} * alpha_s) * np.cos({j} * beta_s))')
+                res_array[:, b_ind] = np.cos(i * alpha_s) * np.sin(j * beta_s); b_ind += 1
+                terms_list.append(f'(np.cos({i} * alpha_s) * np.sin({j} * beta_s))')
+                res_array[:, b_ind] = np.cos(i * alpha_s) * np.cos(j * beta_s); b_ind += 1
+                terms_list.append(f'(np.cos({i} * alpha_s) * np.cos({j} * beta_s))')
+    return res_array, terms_list
+def buildEllipseCoefficientFunctions(filename):
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+        functions = []
+
+        for line in lines:
+            parts = line.strip().split(',')
+            coeff = float(parts[0])
+            expr = parts[2].strip()
+
+            # Create a function for each line
+            def make_function(coeff, expr):
+                def fcn(alpha_s, beta_s):
+                    return coeff * eval(expr)
+                return fcn
+
+            functions.append(make_function(coeff, expr))
+    return functions
+
+def ellipseCoefficientFunction(alpha_s, beta_s, built_functions_A):
+    res = np.zeros_like(alpha_s)
+    for func in built_functions_A:
+        res += func(alpha_s, beta_s)
     return res
+
+def rotated_ellipse_coefficients_wrt_vane_1(R_VB, base_coeffs):
+    theta = np.arctan2(R_VB[1, 0], R_VB[0, 0])  # Check that this is correct in this context
+    stheta, ctheta = np.sin(theta), np.cos(theta)
+
+    (A, B, C, D, E, F) = base_coeffs
+    A_Tx = A * 1
+    B_Tx = B * stheta
+    C_Tx = C * stheta ** 2
+    D_Tx = D * stheta
+    E_Tx = E * stheta ** 2
+    F_Tx = F * stheta ** 2
+
+    A_Ty = A * 1
+    B_Ty = B * ctheta
+    C_Ty = C * ctheta ** 2
+    D_Ty = D * ctheta
+    E_Ty = E * ctheta ** 2
+    F_Ty = F * ctheta ** 2
+    return [(A_Tx, B_Tx, C_Tx, D_Tx, E_Tx, F_Tx), (A_Ty, B_Ty, C_Ty, D_Ty, E_Ty, F_Ty)]
+
+def ellipse_stretching(scaling_x, scaling_y, base_coeffs):
+    (A, B, C, D, E, F) = base_coeffs
+    A *= scaling_y ** 2
+    B *= scaling_x * scaling_y
+    C *= scaling_x ** 2
+    D *= (scaling_y ** 2) * scaling_x
+    E *= (scaling_x ** 2) * scaling_y
+    F *= (scaling_x ** 2) * (scaling_y ** 2)
+    return (A, B, C, D, E, F)

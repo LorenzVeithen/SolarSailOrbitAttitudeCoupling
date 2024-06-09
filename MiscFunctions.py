@@ -317,6 +317,35 @@ def bring_inside_bounds_scalar(original: float, lower_bound: float,
 
     return new
 
+def small_singular_value_entries(M, threshold=1e-10):
+    # https://stackoverflow.com/questions/18452633/how-do-i-associate-which-singular-value-corresponds-to-what-entry
+    U, s, V = np.linalg.svd(M)
+    S = np.zeros(M.shape,dtype = np.float64)
+    m = min(M.shape)
+    S[:m,:m] = np.diag(s)
+    Sp = S.copy()
+    for m in range(0,m):
+      Sp[m,m] = 1.0/Sp[m,m] if Sp[m,m] != 0 else 0
+    Vs = np.matrix(V).getH()
+    Vs_significant = Vs[np.where(s>threshold)]
+
+    significant_var_index = np.where(np.sum(np.abs(Vs_significant),axis = 0) > threshold)[1]
+    return significant_var_index
+
+def sun_angles_from_sunlight_vector(R_VB, n_s):
+    n_s_vane_frame = np.dot(R_VB, n_s)
+    n_s_vane_frame /= np.linalg.norm(n_s_vane_frame)
+    if (abs((abs(n_s_vane_frame[2]) - 1)) < 1e-15):
+        current_alpha_s = np.arccos(-n_s_vane_frame[2])
+        current_beta_s = 0  # beta does not matter
+    else:
+        current_beta_s = np.arctan2(n_s_vane_frame[1], n_s_vane_frame[0])
+        if (abs(np.cos(current_beta_s)) >= 1e-15):
+            current_alpha_s = np.arctan2(n_s_vane_frame[0] / np.cos(current_beta_s), -n_s_vane_frame[2])
+        else:
+            current_alpha_s = np.arctan2(n_s_vane_frame[1] / np.sin(current_beta_s), -n_s_vane_frame[2])
+
+    return current_alpha_s, current_beta_s
 
 
 
