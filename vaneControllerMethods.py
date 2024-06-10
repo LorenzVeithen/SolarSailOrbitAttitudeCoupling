@@ -10,7 +10,7 @@ from constants import *
 from ACS_dynamicalModels import vane_dynamical_model
 from MiscFunctions import *
 import itertools
-
+from time import time
 
 #matplotlib.pyplot.switch_backend('Agg')
 
@@ -119,7 +119,7 @@ class vaneAnglesAllocationProblem:
               self.alpha_back + self.rho_d_back) * -self.sun_direction_body_frame)
 
         force_on_vane_body_frame = f
-        torque_on_body_from_vane = (1/np.linalg.norm(self.vane_origin)) * np.cross(centroid_body_frame, force_on_vane_body_frame)
+        torque_on_body_from_vane = (1/np.linalg.norm(self.vane_origin)) * np.cross(centroid_body_frame, force_on_vane_body_frame)   #TODO: why is this flagged as unreachable ?
         result = torque_on_body_from_vane
         if (self.include_shadow):
             shadow_bool = self.vane_shadow(rotated_points_body_frame[2:-1, :],
@@ -215,18 +215,41 @@ class vaneAnglesAllocationProblem:
         return ax
 
 class vaneTorqueAllocationProblem:
-    def __init__(self, acs_object, sail_object, vane_has_ideal_model, include_shadow, vanes_AMS_coefficient_functions, num_points_ellipse_constraint=1000):
+    def __init__(self,
+                 acs_object,
+                 sail_object,
+                 vane_has_ideal_model,
+                 include_shadow,
+                 vanes_AMS_coefficient_functions,
+                 w1=2./3.,
+                 w2=1./3.):
         self.acs_object = acs_object    # Object with all vane characteristics
         self.sail_object = sail_object
         self.vane_has_ideal_model = vane_has_ideal_model
         self.include_shadow = include_shadow
         self.vanes_AMS_coefficient_functions = vanes_AMS_coefficient_functions
-        self.previous_torque = None
+        self.w_1, self.w_2 = w1, w2
+        self.previous_x = None
         self.current_torque = None
         self.desired_torque = None
         self.default_vane_torque_body_frame = None
-        self.num_points_ellipse_constraint = num_points_ellipse_constraint
         self.bounds = ([-100] * (self.acs_object.number_of_vanes * 3), [100] * (self.acs_object.number_of_vanes * 3))
+        self.scaling_list = []
+        for vid in range(len(self.acs_object.vanes_areas_list)):
+            self.scaling_list.append(self.acs_object.vanes_areas_list[vid] * np.linalg.norm(self.acs_object.vane_reference_frame_origin_list[vid])) # * W/c_sol  #TODO: decide what to do with this scaling
+
+
+        self.vane_angle_problem_objects_list = []
+        for vane_id in range(self.acs_object.number_of_vanes):
+            vaneAngleProblem_obj_i = vaneAnglesAllocationProblem(vane_id,
+                                        vane_mechanical_rotation_limits,
+                                        number_shadow_mesh_nodes,
+                                        self.sail_object,
+                                        self.acs_object,
+                                        include_shadow=self.include_shadow)
+            vaneAngleProblem_obj_i.update_vane_angle_determination_algorithm(np.array([0, 0, 0]), np.array([0, 0, 0]),
+                                                                           vane_variable_optical_properties=True)
+            self.vane_angle_problem_objects_list.append(vaneAngleProblem_obj_i)
 
         # Determine if the degrees of freedom and position of each vane allows a moment around the x, y, or z axis
         # Make an array of booleans with True if the related torque should be equal to zero
@@ -239,28 +262,43 @@ class vaneTorqueAllocationProblem:
                 # Only certain combinations of torques in Z and X/Y are feasible
                 self.eq_constraints_vane_capabilities[i * 3] = 2                # X
                 self.eq_constraints_vane_capabilities[i * 3 + 1] = 2            # Y
-            else:
-                # A torque around X, Y or both is possible based on the DoF.
-                # Check with the vane orientation (position will be taken care of with the attaignable moment set
-                idx = np.where(abs(abs(np.linalg.inv(self.acs_object.vane_reference_frame_rotation_matrix_list[i])[:, 1]) - 1) < 1e-15)[0]
-                if (len(idx) !=0):
-                    if (idx[0] == 0): self.eq_constraints_vane_capabilities[i * 3 + 1] = 1       # Torque fully around X, no torque around Y
-                    elif (idx[0] == 1): self.eq_constraints_vane_capabilities[i * 3] = 1         # Torque fully around Y, no torque around X
-                    # Else, no constraint
 
+            # A torque around X, Y or both is possible based on the DoF.
+            # Check with the vane orientation (position will be taken care of with the attaignable moment set)
+            idx = np.where(abs(abs(np.linalg.inv(self.acs_object.vane_reference_frame_rotation_matrix_list[i])[:, 1]) - 1) < 1e-15)[0]
+            if (len(idx) !=0):
+                if (idx[0] == 0):
+                    self.eq_constraints_vane_capabilities[i * 3 + 1] = 1     # Torque fully around X, no torque around Y
+                elif (idx[0] == 1):
+                    self.eq_constraints_vane_capabilities[i * 3] = 1         # Torque fully around Y, no torque around X
+                # Else, no constraint
     def fitness(self, x):
         # x is 3 * self.acs_object.number_of_vanes long array with the x-y-z body torques for each vane in the same
         # order as the rest of the vane lists
         self.current_torque = x.reshape((self.acs_object.number_of_vanes, 3)).sum(axis=0)
+        obj = self.w_1 * np.linalg.norm(self.current_torque - self.desired_torque) ** 2 + self.w_2 * np.linalg.norm(x - self.previous_x) ** 2
 
         eq_constraint_list = []
-        # The total torque needs to be the desired torque
-        eq_constraint_list.append((self.current_torque - self.desired_torque)[0])  # = 0
-        eq_constraint_list.append((self.current_torque - self.desired_torque)[1])  # = 0
-        eq_constraint_list.append((self.current_torque - self.desired_torque)[2])  # = 0
+        # The total torque needs to be the desired torque - became an objective
+        if (self.w_1 == 0):
+            eq_constraint_list.append((self.current_torque - self.desired_torque)[0])  # = 0
+            eq_constraint_list.append((self.current_torque - self.desired_torque)[1])  # = 0
+            eq_constraint_list.append((self.current_torque - self.desired_torque)[2])  # = 0
+        else:
+            if (np.linalg.norm(self.desired_torque)>1e-15 and np.linalg.norm(self.current_torque)>1e-15):
+                # the torque selected should be in the desired torque direction
+                current_torque_direction = self.current_torque/np.linalg.norm(self.current_torque)
+                desired_torque_direction = self.desired_torque / np.linalg.norm(self.desired_torque)
+                eq_constraint_list.append((current_torque_direction - desired_torque_direction)[0])  # = 0
+                eq_constraint_list.append((current_torque_direction - desired_torque_direction)[1])  # = 0
+                eq_constraint_list.append((current_torque_direction - desired_torque_direction)[2])  # = 0
+            else:
+                eq_constraint_list.append((self.current_torque - self.desired_torque)[0])  # = 0
+                eq_constraint_list.append((self.current_torque - self.desired_torque)[1])  # = 0
+                eq_constraint_list.append((self.current_torque - self.desired_torque)[2])  # = 0
 
         # Degree of freedom limitations and constraints based on the orientation of the vanes
-        eq_constraint_list = eq_constraint_list + list(x[self.eq_constraints_vane_capabilities==1])
+        eq_constraint_list = eq_constraint_list + list(x[self.eq_constraints_vane_capabilities == 1])
 
         # Ellipse inequality constraints and
         ineq_constraint_list = []
@@ -271,20 +309,23 @@ class vaneTorqueAllocationProblem:
             Ty = T_current_vane[1]
             Tz = T_current_vane[2]
 
-            if (self.acs_object.vanes_rotational_dof_booleans[i][0] and self.acs_object.vanes_rotational_dof_booleans[i][1]):
+            if (self.acs_object.vanes_rotational_dof_booleans[vane_id][0] and self.acs_object.vanes_rotational_dof_booleans[vane_id][1]):
                 # Given vane has two degrees of freedom, therefore the AMS is necessary
                 if (self.eq_constraints_vane_capabilities[vane_id * 3] != 1):
                     if (self.eq_constraints_vane_capabilities[vane_id * 3] == 0):  # is an inequality constraint
-                        ineq_constraint_list.append(np.dot(np.array([[Tx[0] ** 2, Tx[0] * Tz[1], Tz[1] ** 2, Tx[0], Tz[1], 1]]), vane_AMS_coeff_x))
+                        ineq_constraint_list.append(np.dot(np.array([[Tx ** 2, Tx * Tz, Tz ** 2, Tx, Tz, 1]]), vane_AMS_coeff_x)[0])
 
                 if (self.eq_constraints_vane_capabilities[vane_id * 3 + 1] != 1):
                     if (self.eq_constraints_vane_capabilities[vane_id * 3 + 1] == 0):  # is an inequality constraint
-                        ineq_constraint_list.append(np.dot(np.array([[Ty[0] ** 2, Ty[0] * Tz[1], Tz[1] ** 2, Ty[0], Tz[1], 1]]), vane_AMS_coeff_y))
-            elif (self.acs_object.vanes_rotational_dof_booleans[i][0]==False and self.acs_object.vanes_rotational_dof_booleans[i][1]==False):
+                        ineq_constraint_list.append(np.dot(np.array([[Ty ** 2, Ty * Tz, Tz ** 2, Ty, Tz, 1]]), vane_AMS_coeff_y)[0])
+
+            elif (self.acs_object.vanes_rotational_dof_booleans[vane_id][0]==False and self.acs_object.vanes_rotational_dof_booleans[vane_id][1]==False):
                 Tdefault = self.default_vane_torque_body_frame[vane_id]
-                eq_constraint_list.append((Tx-Tdefault[0]))     # = 0
+                diff_to_default = T_current_vane - Tdefault
+                eq_constraint_list.append((Tx - Tdefault[0]))   # = 0
                 eq_constraint_list.append((Ty - Tdefault[1]))   # = 0
-                eq_constraint_list.append((Tz - Tdefault[2]))    # = 0
+                eq_constraint_list.append((Tz - Tdefault[2]))   # = 0
+
             else:
                 list_alpha_tuples = []
                 if (self.acs_object.vanes_rotational_dof_booleans[vane_id][0] == False):
@@ -325,12 +366,13 @@ class vaneTorqueAllocationProblem:
                             k_int = min(len(s_a.t) - 1, 3)  # aim for cubicsplines but go smaller if necessary
                             u0 = PPoly.from_spline((s_a.t, s_a.c - current_abscissa, k_int), extrapolate=False).roots()
                             if (len(u0) != 0):
-                                min_distance_to_spline = min(abs(s_b(u0) - Tz), min_distance_to_spline)
+                                min_distance_to_spline = min(min(abs(s_b(u0) - Tz * np.ones_like(u0))), min_distance_to_spline)
                                 if (len(np.where(abs(s_b(u0) - Tz) == min_distance_to_spline)[0]) != 0):
                                     current_equality_constraint = \
                                     (s_b(u0) - Tz)[abs(s_b(u0) - Tz) == min_distance_to_spline][0]
                         eq_constraint_list.append(current_equality_constraint)  # add to the equality constraints list
-        return [np.linalg.norm(self.current_torque - self.previous_torque)**2] + eq_constraint_list + ineq_constraint_list
+        fitness_array = [obj] + eq_constraint_list + ineq_constraint_list
+        return fitness_array
 
     def get_bounds(self):
         return self.bounds
@@ -344,78 +386,89 @@ class vaneTorqueAllocationProblem:
                 if (sublist_dict[False] == 2):
                     count_0Dof_vane += 1
 
-        count_1Dof_vane_on_boom = 0
-        for sublist in self.acs_object.vanes_rotational_dof_booleans[self.acs_object.vane_is_on_boom_boolean_list==True]:
+        count_1Dof_vane_on_body_axis = 0
+        for sublist in self.acs_object.vanes_rotational_dof_booleans[self.acs_object.vane_is_aligned_on_body_axis == True]:
             unique, counts = np.unique(sublist, return_counts=True)
             sublist_dict = dict(zip(unique, counts))
             if True in sublist_dict:
                 if sublist_dict[True] == 1:
-                    count_1Dof_vane_on_boom += 1
+                    count_1Dof_vane_on_body_axis += 1
 
-        count_1Dof_vane_off_boom = 0
-        for sublist in self.acs_object.vanes_rotational_dof_booleans[self.acs_object.vane_is_on_boom_boolean_list==False]:
+        count_1Dof_vane_off_body_axis = 0
+        for sublist in self.acs_object.vanes_rotational_dof_booleans[self.acs_object.vane_is_aligned_on_body_axis == False]:
             unique, counts = np.unique(sublist, return_counts=True)
             sublist_dict = dict(zip(unique, counts))
             if True in sublist_dict:
                 if sublist_dict[True] == 1:
-                    count_1Dof_vane_off_boom += 1
+                    count_1Dof_vane_off_body_axis += 1
 
-        #len(self.eq_constraints_vane_capabilities[self.eq_constraints_vane_capabilities == True]))
-        return 3 + 4 * len(self.acs_object.vane_is_on_boom_boolean_list[self.acs_object.vane_is_on_boom_boolean_list == True]) + 3 * count_0Dof_vane + 1 * count_1Dof_vane_on_boom + 2 * count_1Dof_vane_off_boom
+        num_ec = 3                                  # in the same direction as the desired torque
+        num_ec += 3 * count_0Dof_vane               # torque of 0DoF vane is fully known
+        num_ec += len(self.acs_object.vane_is_aligned_on_body_axis[self.acs_object.vane_is_aligned_on_body_axis == True])   # Constraint on one of the torques due to position
+        num_ec += 1 * count_1Dof_vane_on_body_axis  # spline constraints when on a body axis
+        num_ec += 2 * count_1Dof_vane_off_body_axis # spline constraints when off the body axes
+        return num_ec
 
     def get_nic(self):
-        count_on_boom = 0
-        for sublist in self.acs_object.vanes_rotational_dof_booleans[self.acs_object.vane_is_on_boom_boolean_list==True]:
+        count_on_body_axis = 0
+        for sublist in self.acs_object.vanes_rotational_dof_booleans[self.acs_object.vane_is_aligned_on_body_axis == True]:
             unique, counts = np.unique(sublist, return_counts=True)
             sublist_dict = dict(zip(unique, counts))
             if True in sublist_dict:
                 if sublist_dict[True] == 2:
-                    count_on_boom += 1
+                    count_on_body_axis += 1
 
-        count_off_boom = 0
-        for sublist in self.acs_object.vanes_rotational_dof_booleans[self.acs_object.vane_is_on_boom_boolean_list==False]:
+        count_off_body_axis = 0
+        for sublist in self.acs_object.vanes_rotational_dof_booleans[self.acs_object.vane_is_aligned_on_body_axis == False]:
             unique, counts = np.unique(sublist, return_counts=True)
             sublist_dict = dict(zip(unique, counts))
             if True in sublist_dict:
                 if sublist_dict[True] == 2:
-                    count_off_boom += 1
-        return 1 * count_on_boom + 2 * count_off_boom
+                    count_off_body_axis += 1
+
+        # 1 ellipse when on body axis, 2 otherwise
+        num_ic = 1 * count_on_body_axis + 2 * count_off_body_axis
+        return num_ic
 
     def gradient(self, x):
         return pg.estimate_gradient(lambda x: self.fitness(x), x)
 
-    def set_desired_torque(self, desired_torque, previous_torque):
+    def set_desired_torque(self, desired_torque, previous_x):
         """
         et les docstrings wesh? comment la pouponne va comprendre sinon?(déjà qu'elle écoute rien)
 
         :param Td: s
         :return:
         """
-        self.previous_torque = previous_torque
+        self.previous_x = previous_x
         self.desired_torque = desired_torque
         return True
 
-    def set_attaignable_moment_set_ellipses(self, n_s):
+    def set_attaignable_moment_set_ellipses(self, n_s_body_frame, W, default_x_rotation_deg=0, default_y_rotation_deg=0):
         """
 
-        :param n_s:
+        :param n_s_body_frame:
         :return:
         """
+        print("set_attaignable_moment_set_ellipses")
+        t_ii = time()
         # Compute default torque values
-        self.default_vane_config_torque_body_frame(default_alpha_1_deg=0, default_alpha_2_deg=0)
-
+        self.default_vane_config_torque_body_frame(n_s_body_frame,
+                                                   default_alpha_1_deg=default_x_rotation_deg,
+                                                   default_alpha_2_deg=default_y_rotation_deg)
         # Use pre-computed ellipses
         self.vanes_AMS_coefficients_x = []
         self.vanes_AMS_coefficients_y = []
         for vane_id in range(self.acs_object.number_of_vanes):
             R_VBi = np.linalg.inv(self.acs_object.vane_reference_frame_rotation_matrix_list[vane_id])
             alpha_s_rad_vane_reference_frame, beta_s_rad_vane_reference_frame = sun_angles_from_sunlight_vector(
-                R_VBi , n_s)
+                R_VBi , n_s_body_frame)
             fourier_ellipse_coefficient = []
+
             for func in self.vanes_AMS_coefficient_functions:
                 fourier_ellipse_coefficient.append(func(alpha_s_rad_vane_reference_frame, beta_s_rad_vane_reference_frame))
             Tx_tuple, Ty_tuple = rotated_ellipse_coefficients_wrt_vane_1(R_VBi, tuple(fourier_ellipse_coefficient))
-            scaling = 1    #TODO: implement the scaling
+            scaling = self.scaling_list[vane_id]
             self.vanes_AMS_coefficients_x.append(ellipse_stretching(scaling, scaling, Tx_tuple))
             self.vanes_AMS_coefficients_y.append(ellipse_stretching(scaling, scaling, Ty_tuple))
 
@@ -430,39 +483,72 @@ class vaneTorqueAllocationProblem:
 
         # If the degrees of freedom of the vanes are limited, compute relevant constraints and adapt the bounds of the
         # optimisation variables
-        new_bounds_temp = []
+        new_bounds = (1E23 * np.ones_like(self.bounds[0]), -1E23 * np.ones_like(self.bounds[1]))
         self.vanes_spline_constraints_alpha_1_list = []
         self.vanes_spline_constraints_alpha_2_list = []
         for vane_id, vane_rotational_dof_booleans in enumerate(self.acs_object.vanes_rotational_dof_booleans):
-            vaneAngleProblem_obj = vaneAnglesAllocationProblem(vane_id,
-                                                               vane_mechanical_rotation_limits,
-                                                               number_shadow_mesh_nodes,
-                                                               self.sail_object,
-                                                               self.acs_object,
-                                                               include_shadow=self.include_shadow)
+            vaneAngleProblem_obj = self.vane_angle_problem_objects_list[vane_id]
             if (vane_rotational_dof_booleans[0] == False and vane_rotational_dof_booleans[1] == False):
                 # Trivial case, skip time-expensive computations
+                vane_feasible_torque = self.default_vane_torque_body_frame[vane_id]
+                for j in range(3):
+                    new_bounds[0][vane_id * 3 + j] = vane_feasible_torque[j]
+                    new_bounds[1][vane_id * 3 + j] = vane_feasible_torque[j]
                 self.vanes_spline_constraints_alpha_1_list.append((None, None, None))
                 self.vanes_spline_constraints_alpha_2_list.append((None, None, None))
+            elif (vane_rotational_dof_booleans[0] == True and vane_rotational_dof_booleans[1] == True):
+                # Determine the bounding box around the ellipse to simplify the optimisation
+                if (self.eq_constraints_vane_capabilities[vane_id * 3] != 1):
+                    # Torque around X, and there is an ellipse for TxTz
+                    x0_TxTz, y0_TxTz, ap_TxTz, bp_TxTz, e_TxTz, phi_TxTz = cart_to_pol(
+                        self.vanes_AMS_coefficients_x[vane_id])
+                    min_Tx, min_Tz1, max_Tx, max_Tz1 = get_ellipse_bb(x0_TxTz, y0_TxTz, ap_TxTz, bp_TxTz,
+                                                                      np.rad2deg(phi_TxTz))
+                    new_bounds[0][vane_id * 3 + 0] = min_Tx
+                    new_bounds[1][vane_id * 3 + 0] = max_Tx
+                    new_bounds[0][vane_id * 3 + 2] = min_Tz1
+                    new_bounds[1][vane_id * 3 + 2] = max_Tz1
+                else:
+                    new_bounds[0][vane_id * 3 + 0] = 0
+                    new_bounds[1][vane_id * 3 + 0] = 0
 
+                if (self.eq_constraints_vane_capabilities[vane_id * 3 + 1] != 1):
+                    x0_TyTz, y0_TyTz, ap_TyTz, bp_TyTz, e_TyTz, phi_TyTz = cart_to_pol(
+                        self.vanes_AMS_coefficients_y[vane_id])
+                    min_Ty, min_Tz2, max_Ty, max_Tz2 = get_ellipse_bb(x0_TyTz, y0_TyTz, ap_TyTz, bp_TyTz,
+                                                                      np.rad2deg(phi_TyTz))
+                    new_bounds[0][vane_id * 3 + 1] = min_Ty
+                    new_bounds[1][vane_id * 3 + 1] = max_Ty
+                    new_bounds[0][vane_id * 3 + 2] = min_Tz2
+                    new_bounds[1][vane_id * 3 + 2] = max_Tz2
+                else:
+                    new_bounds[0][vane_id * 3 + 1] = 0
+                    new_bounds[1][vane_id * 3 + 1] = 0
+
+                if (self.eq_constraints_vane_capabilities[vane_id * 3] != 1 and
+                        self.eq_constraints_vane_capabilities[vane_id * 3 + 1] != 1):
+                    if (abs(min_Tz2 - min_Tz1)>1e-15 or abs(max_Tz2 - max_Tz1)>1e-15):
+                        print(min_Tz2, min_Tz1)
+                        print(max_Tz2, max_Tz1)
+                        raise Exception("Tz different in TxTz and TyTz ellipses")
+                self.vanes_spline_constraints_alpha_1_list.append((None, None, None))
+                self.vanes_spline_constraints_alpha_2_list.append((None, None, None))
             else:
                 if (vane_rotational_dof_booleans[0] == False):
                     tuple_fT_alpha_1 = self.reducedDOFConstraintSplines(vaneAngleProblem_obj,
                                                                         case=0,
-                                                                        default_alpha_1_deg=0,
-                                                                        default_alpha_2_deg=0,
+                                                                        default_alpha_1_deg=default_x_rotation_deg,
+                                                                        default_alpha_2_deg=default_y_rotation_deg,
                                                                         n_points=100)
-                    #(fTx_list_alpha_1, fTy_list_alpha_1, fTz_list_alpha_1)
-                    new_bounds_alpha_1 = (1E23 * np.ones_like(self.bounds[0]), -1E23 * np.ones_like(self.bounds[1]))
+
                     for j, fT_list in enumerate(tuple_fT_alpha_1):
                         for fT in fT_list:
                             interpolation_range = fT(fT.t)
-                            new_bounds_alpha_1[0][vane_id * 3 + j] = min(min(interpolation_range), new_bounds_alpha_1[0][vane_id * 3 + j])
-                            new_bounds_alpha_1[1][vane_id * 3 + j] = max(max(interpolation_range), new_bounds_alpha_1[0][vane_id * 3 + j])
-                    new_bounds_temp.append(new_bounds_alpha_1)
+                            new_bounds[0][vane_id * 3 + j] = min(min(interpolation_range), new_bounds[0][vane_id * 3 + j])
+                            new_bounds[1][vane_id * 3 + j] = max(max(interpolation_range), new_bounds[0][vane_id * 3 + j])
                     # alpha_1 is zero
                     if (self.vane_has_ideal_model==True):   # ideal model - Tz is zero no matter what
-                        fTz_list_alpha_1 = [lambda a: 0.]        # Tz
+                        fTz_list_alpha_1 = [lambda a: np.zeros_like(a)]        # Tz
                         tuple_fT_alpha_1 = (tuple_fT_alpha_1[0], tuple_fT_alpha_1[1], fTz_list_alpha_1)
                     self.vanes_spline_constraints_alpha_1_list.append(tuple_fT_alpha_1)
                 else:
@@ -471,33 +557,29 @@ class vaneTorqueAllocationProblem:
                 if (vane_rotational_dof_booleans[1] == False):
                     tuple_fT_alpha_2 = self.reducedDOFConstraintSplines(vaneAngleProblem_obj,
                                                                         case=1,
-                                                                        default_alpha_1_deg=0,
-                                                                        default_alpha_2_deg=0,
+                                                                        default_alpha_1_deg=default_x_rotation_deg,
+                                                                        default_alpha_2_deg=default_y_rotation_deg,
                                                                         n_points=100)
-                    #(fTx_list_alpha_2, fTy_list_alpha_2, fTz_list_alpha_2)
-                    new_bounds_alpha_2 = (1E23 * np.ones_like(self.bounds[0]), -1E23 * np.ones_like(self.bounds[1]))
+
                     for j, fT_list in enumerate(tuple_fT_alpha_2):
                         for fT in fT_list:
                             interpolation_range = fT(fT.t)
-                            new_bounds_alpha_2[0][vane_id * 3 + j] = min(min(interpolation_range), new_bounds_alpha_2[0][vane_id * 3 + j])
-                            new_bounds_alpha_2[1][vane_id * 3 + j] = max(max(interpolation_range), new_bounds_alpha_2[1][vane_id * 3 + j])
-                    new_bounds_temp.append(new_bounds_alpha_2)
+                            new_bounds[0][vane_id * 3 + j] = min(min(interpolation_range), new_bounds[0][vane_id * 3 + j])
+                            new_bounds[1][vane_id * 3 + j] = max(max(interpolation_range), new_bounds[1][vane_id * 3 + j])
                     self.vanes_spline_constraints_alpha_2_list.append(tuple_fT_alpha_2)
                 else:
                     self.vanes_spline_constraints_alpha_2_list.append((None, None, None))
-
+        print(time()-t_ii)
         # Modify the bounds of the optimisation problem
-        if (len(new_bounds_temp) != 0):
-            bound_stack0 = np.array([0, 0, 0, 0, 0, 0])
-            bound_stack1 = np.array([0, 0, 0, 0, 0, 0])
-            for bound in new_bounds_temp:
-                bound_stack0 = np.vstack((bound_stack0, bound[0]))
-                bound_stack1 = np.vstack((bound_stack1, bound[1]))
-            min_array = bound_stack0[1:, :].max(axis=0)          # Take the maximum of the minimum bounds
-            max_array = bound_stack1[1:, :].min(axis=0)          # Take the minimum of the maximum bounds
-            if (any(max_array-min_array) < 0):
-                raise Exception("Incompatible bounds")
-            self.bounds = (min_array, max_array)                 # Redefine the bounds of the search such that the equality constraint is always valid
+        bound_stack0 = np.vstack((new_bounds[0], new_bounds[0]))
+        bound_stack1 = np.vstack((new_bounds[1], new_bounds[1]))
+        min_array = bound_stack0.max(axis=0)          # Take the maximum of the minimum bounds
+        max_array = bound_stack1.min(axis=0)          # Take the minimum of the maximum bounds
+        min_array[abs(min_array) < 1e-15] = 0
+        max_array[abs(max_array) < 1e-15] = 0
+        if (any(max_array-min_array) < 0):
+            raise Exception("Incompatible bounds")
+        self.bounds = (min_array, max_array)                 # Redefine the bounds of the search such that the equality constraint is always valid
         return True
 
     def check_inequality_sign(self, weights):
@@ -506,7 +588,7 @@ class vaneTorqueAllocationProblem:
             [[inf_point[0] ** 2, inf_point[0] * inf_point[1], inf_point[1] ** 2, inf_point[0], inf_point[1], 1]])
         return np.dot(D_inf, weights)[0] > 0  # return True if infinity is outside, False if it is inside
 
-    def reducedDOFConstraintSplines(self, vaneAngleProblem_obj, case=0, default_alpha_1_deg=0, default_alpha_2_deg=0, n_points = 100):
+    def reducedDOFConstraintSplines(self, vaneAngleProblem_obj, case=0, default_alpha_1_deg=0, default_alpha_2_deg=0, n_points = 50):
         """
 
         :param: vaneAngleProblem_obj: object from the vaneAnglesAllocationProblem class used to compute the torque of
@@ -518,13 +600,14 @@ class vaneTorqueAllocationProblem:
         :param: n_points: the number of points used to compute the CubicSpline representing the solution.
         :return:
         """
+        current_vane_id = vaneAngleProblem_obj.vane_id
         alpha_range = np.linspace(-np.pi, np.pi, n_points)
         Tx_, Ty_, Tz_ = np.zeros(np.shape(alpha_range)), np.zeros(np.shape(alpha_range)), np.zeros(np.shape(alpha_range))
         for k, alpha in enumerate(alpha_range):
             if (case == 0):
-                T = vaneAngleProblem_obj.single_vane_torque([np.deg2rad(default_alpha_1_deg), alpha])
+                T = vaneAngleProblem_obj.single_vane_torque([np.deg2rad(default_alpha_1_deg), alpha]) * self.scaling_list[current_vane_id]
             elif (case == 1):
-                T = vaneAngleProblem_obj.single_vane_torque([alpha, np.deg2rad(default_alpha_2_deg)])
+                T = vaneAngleProblem_obj.single_vane_torque([alpha, np.deg2rad(default_alpha_2_deg)]) * self.scaling_list[current_vane_id]
             else:
                 raise Exception('Error. Unsupported case for reduced degree of freedom constraint calculations')
             Tx_[k] = T[0]
@@ -568,16 +651,12 @@ class vaneTorqueAllocationProblem:
             fTz_list.append(fTz)
         return (fTx_list, fTy_list, fTz_list)
 
-    def default_vane_config_torque_body_frame(self, default_alpha_1_deg=0, default_alpha_2_deg=0):
-        self.default_vane_torque_body_frame = np.array([0] * self.acs_object.number_of_vanes)
+    def default_vane_config_torque_body_frame(self, n_s, default_alpha_1_deg=0, default_alpha_2_deg=0):
+        self.default_vane_torque_body_frame = np.array([None] * self.acs_object.number_of_vanes)
         for vane_id in range(self.acs_object.number_of_vanes):
-            vaneAngleProblem_obj = vaneAnglesAllocationProblem(vane_id,
-                                                               vane_mechanical_rotation_limits,
-                                                               number_shadow_mesh_nodes,
-                                                               self.sail_object,
-                                                               self.acs_object,
-                                                               include_shadow=self.include_shadow)
-            self.default_vane_torque_body_frame[vane_id] = vaneAngleProblem_obj.single_vane_torque([np.deg2rad(default_alpha_1_deg), np.deg2rad(default_alpha_2_deg)])
+            vaneAngleProblem_obj = self.vane_angle_problem_objects_list[vane_id]
+            vaneAngleProblem_obj.update_vane_angle_determination_algorithm(np.array([0, 1, 0]), n_s, vane_variable_optical_properties=False)
+            self.default_vane_torque_body_frame[vane_id] = self.scaling_list[vane_id] * vaneAngleProblem_obj.single_vane_torque([np.deg2rad(default_alpha_1_deg), np.deg2rad(default_alpha_2_deg)])
         return True
 
 class constrainedEllipseCoefficientsProblem:
@@ -637,8 +716,21 @@ class constrainedEllipseCoefficientsProblem:
 def generate_AMS_data(vane_id, vaneAngleProblem, current_sun_angle_alpha_deg, current_sun_angle_beta_deg,
                           alpha_1_range, alpha_2_range, optical_model_str="Ideal_model", savefig=True, savedat=False,
                           shadow_computation=0):
+    """
+
+    :param vane_id:
+    :param vaneAngleProblem:
+    :param current_sun_angle_alpha_deg:
+    :param current_sun_angle_beta_deg:
+    :param alpha_1_range:
+    :param alpha_2_range:
+    :param optical_model_str:
+    :param savefig:
+    :param savedat:
+    :param shadow_computation:
+    :return:
+    """
     # shadow computation; 0: without shadow effects, 1: with shadow effects, 2: both
-    # TODO: WATCH OUT CHANGE FILENAME WRT OPTICAL MODEL USED
     xlabels = ["Tx", "Tx", "Ty"]
     ylabels = ["Ty", "Tz", "Tz"]
 
@@ -781,7 +873,7 @@ def get_ellipse_pts(params, npts=100, tmin=0, tmax=2*np.pi):
     y = y0 + ap * np.cos(t) * np.sin(phi) + bp * np.sin(t) * np.cos(phi)
     return x, y
 
-@jit(nopython=True)
+@jit(nopython=True, cache=True)
 def cart_to_pol(coeffs):
     """
     Convert the cartesian conic coefficients, (a, b, c, d, e, f), to the
@@ -1057,3 +1149,27 @@ def ellipse_stretching(scaling_x, scaling_y, base_coeffs):
     E *= (scaling_x ** 2) * scaling_y
     F *= (scaling_x ** 2) * (scaling_y ** 2)
     return (A, B, C, D, E, F)
+
+
+def get_ellipse_bb(x, y, ap, bp, angle_deg):
+    """
+    Compute tight ellipse bounding box.
+
+    see https://stackoverflow.com/questions/87734/how-do-you-calculate-the-axis-aligned-bounding-box-of-an-ellipse#88020
+    :param x:
+    :param y:
+    :param ap:
+    :param bp:
+    :param angle_deg:
+    :return:
+    """
+    major = 2 * ap
+    minor = 2 * bp
+    if (angle_deg == 0): angle_deg = 1e-8  # slight fudge to avoid division by zero
+    t = np.arctan(-minor / 2 * np.tan(np.radians(angle_deg)) / (major / 2))
+    [min_x, max_x] = sorted([x + major / 2 * np.cos(t) * np.cos(np.radians(angle_deg)) -
+                             minor / 2 * np.sin(t) * np.sin(np.radians(angle_deg)) for t in (t + np.pi, t)])
+    t = np.arctan(minor / 2 * 1. / np.tan(np.radians(angle_deg)) / (major / 2))
+    [min_y, max_y] = sorted([y + minor / 2 * np.sin(t) * np.cos(np.radians(angle_deg)) +
+                             major / 2 * np.cos(t) * np.sin(np.radians(angle_deg)) for t in (t + np.pi, t)])
+    return min_x, min_y, max_x, max_y

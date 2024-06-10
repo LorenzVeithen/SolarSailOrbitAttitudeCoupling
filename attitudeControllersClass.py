@@ -25,6 +25,7 @@ class sail_attitude_control_systems:
         self.vane_reference_frame_rotation_matrix_list = None   # num_of_vanes long list of (3x3) rotation matrices from the body fixed frame to the vane fixed frame.
         self.vane_material_areal_density = None
         self.vanes_rotational_dof_booleans = None               # num_of_vanes long list of lists of booleans [True, True] stating the rotational degree of freedom of each vane. 0: x and 1:y in vane coordinate frames
+        self.vanes_areas_list = None
 
         # Shifted wings (will also include tilted wings later)
         self.number_of_wings = 0                                # Number of wings in the sail.
@@ -73,18 +74,19 @@ class sail_attitude_control_systems:
         control system, this function can be evaluated a single time.
 
         :param bodies:  tudatpy.kernel.numerical_simulation.environment.SystemOfBodies object containing the information
-                        on the bodies present in the TUDAT simulation.
+        on the bodies present in the TUDAT simulation.
         :param sailCraft: sail_craft class object.
         :param tau_max: Maximum input torque of the ACS at a given time.
         :param desired_rotational_velocity_vector=np.array([0, 0, 0]): desired final rotational velocity vector.
         :param rotational_velocity_tolerance=1e-6: tolerance on the magnitude of the rotational velocity vector,
-                                                    under which no detumbling torque is induced.
+        under which no detumbling torque is induced.
         :param timeToPassivateACS=0: Estimated time to passivate the attitude control system, to avoid a discontinuous
-                                    actuator control.
+        actuator control.
         :return tau_star: the optimal control torque.
 
         References:
-        Aghili, F. (2009). Time-optimal detumbling control of spacecraft. Journal of guidance, control, and dynamics, 32(5), 1671-1675.
+        Aghili, F. (2009). Time-optimal detumbling control of spacecraft. Journal of guidance, control, and dynamics,
+        32(5), 1671-1675.
         """
         body_fixed_angular_velocity_vector = bodies.get_body(sailCraft.sail_name).body_fixed_angular_velocity
         if (np.linalg.norm(desired_rotational_velocity_vector - np.array([0, 0, 0]))>1e-15):
@@ -154,8 +156,8 @@ class sail_attitude_control_systems:
 
                 moving_masses_positions["sliding_masses"] = sliding_masses_positions_body_fixed_frame_list
             case "None":
-                # No attitude control system
-                pass    # TODO: is this really good practice to keep a pass statement
+                # No attitude control system - the spacecraft remains inert
+                pass
             case "test":
                 pass
             case _:
@@ -224,19 +226,17 @@ class sail_attitude_control_systems:
         for i in range(len(self.vane_panels_coordinates_list)):
             _, vane_area, _ = compute_panel_geometrical_properties(self.vane_panels_coordinates_list[i])
             vanes_areas.append(vane_area)
+        self.vanes_areas_list = vanes_areas
         self.vane_material_areal_density = vanes_material_areal_density
         self.ACS_mass = sum(vanes_areas) * vanes_material_areal_density
 
         # Determine if a vane is on a boom
-        self.vane_is_on_boom_boolean_list = [False]*self.number_of_vanes
+        self.vane_is_aligned_on_body_axis = [False] * self.number_of_vanes
         for vane_id, vane in enumerate(self.vane_panels_coordinates_list):
             vane_attachment_point = vane[0, :]  # as per convention
-            for boom in self.booms_coordinates_list:
-                if ((np.linalg.norm(vane_attachment_point - boom[0, :]) < 1e-15) or
-                        (np.linalg.norm(vane_attachment_point - boom[1, :]) < 1e-15)):
-                    self.vane_is_on_boom_boolean_list[vane_id] = True
-                    break
-        self.vane_is_on_boom_boolean_list = np.array(self.vane_is_on_boom_boolean_list)
+            if (np.shape(np.nonzero(vane_attachment_point)[0])[0]==1):
+                self.vane_is_aligned_on_body_axis[vane_id] = True
+        self.vane_is_aligned_on_body_axis = np.array(self.vane_is_aligned_on_body_axis)
 
         # Determine which vanes can do what type of torque
         for i, vane_origin_body_frame in enumerate(self.vane_reference_frame_origin_list):
