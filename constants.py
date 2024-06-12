@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
+
+AMS_directory = "/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/AMS"
 R_E = 6371e3
 # initial orbit
 a_0 = R_E + 1000e3           # [m ]initial spacecraft semi-major axis
@@ -12,7 +14,6 @@ theta_0 = np.deg2rad(275.0)  # [deg] initial spacecraft true anomaly
 
 c_sol = 299792458   # m/s
 W = 1400    # W / m^2 - roughly
-
 
 # Sail characteristics - using ACS3 as baseline for initial testing
 sail_mass = 16  # kg
@@ -118,9 +119,19 @@ vanes_coordinates_list_old = [vane1, vane2, vane3, vane4]
 #vanes_origin_list = [vane[0, :] for vane in vanes_coordinates_list]
 
 vanes_optical_properties = [np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)
+vane_has_ideal_model = True
 #vanes_optical_properties = [np.array([0.2, 0.3, 0.5, 0.6, 0.3, 0.1, 2/3, 2/3, 1., 1.])] * 4
 
 vanes_rotational_dof = np.array([[True, True], [True, True], [True, True], [True, True]])   #
 
 # Sail performance metrics
 acc0 = 0.045 * 1E-3   # m/s/s characteristic sail acceleration
+
+# pure vane controller user-defined parameters
+tol_vane_angle_determination_start_golden_section = 1e-3
+tol_vane_angle_determination_golden_section = 1e-3
+tol_vane_angle_determination_global_search = 1e-4
+
+tol_torque_allocation_problem_constraint = 1e-7
+tol_torque_allocation_problem_objective = 0#1e-7
+tol_torque_allocation_problem_x = 0#1e-4

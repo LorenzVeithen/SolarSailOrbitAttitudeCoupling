@@ -29,9 +29,9 @@ thr_sun_rays = 1 * 24 * 3600
 
 # Load data
 
-state_history_array = np.loadtxt("PropagationData/DetumblingTorqueTest/state_history_to_spinz.dat")
+state_history_array = np.loadtxt("PropagationData/vaneDetumblingTest/state_history.dat")
 dependent_variable_history_array = np.loadtxt(
-    "PropagationData/DetumblingTorqueTest/dependent_variable_history_to_spinz.dat")
+    "PropagationData/vaneDetumblingTest/dependent_variable_history.dat")
 
 # Extract state history
 t_hours = (state_history_array[:, 0] - state_history_array[0, 0]) / 3600    # hours

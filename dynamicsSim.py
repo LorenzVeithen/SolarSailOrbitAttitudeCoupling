@@ -83,10 +83,10 @@ class sailCoupledDynamicsProblem:
                 panel_type_str = "Vane"
                 number_of_panels = self.sail_craft.get_number_of_vanes()
 
-            panel_normal_functions_list = []
-            panel_area_functions_list = []
-            panel_centroid_functions_list = []
-            panel_properties_functions_list = []
+            #panel_normal_functions_list = []
+            #panel_area_functions_list = []
+            #panel_centroid_functions_list = []
+            #panel_properties_functions_list = []
             for i in range(number_of_panels):
                 panel_functions_dict[f"{panel_type_str}_panel_{i}_surface_normal"] = lambda current_panel_i=i, current_panel_type=panel_type_str: self.sail_craft.get_ith_panel_surface_normal(panel_id=current_panel_i, panel_type=current_panel_type)
                 panel_functions_dict[f"{panel_type_str}_panel_{i}_centroid"] = lambda current_panel_i=i, current_panel_type=panel_type_str: self.sail_craft.get_ith_panel_centroid(panel_id=current_panel_i, panel_type=current_panel_type)
@@ -182,10 +182,10 @@ class sailCoupledDynamicsProblem:
             bodies, acceleration_settings, self.bodies_to_propagate, self.central_bodies)
 
         # Rotational dynamics settings
-        optimalDetumblingTorque = lambda t, bd=bodies, sc=self.sail_craft, tau_m=1e-4: attitude_control_system_object.computeBodyFrameTorqueForDetumbling(bd, sc, tau_m, desired_rotational_velocity_vector=np.array([0., 0., 100 * 2 * np.pi/3600]))
+        #optimalDetumblingTorque = lambda t, bd=bodies, tau_m=1e-4: attitude_control_system_object.computeBodyFrameTorqueForDetumbling(bd, tau_m, desired_rotational_velocity_vector=np.array([0., 0., 0]))
 
         torque_settings_on_sail = dict(Sun=[propagation_setup.torque.radiation_pressure()],
-                                       ACS3=[propagation_setup.torque.custom_torque(optimalDetumblingTorque)],
+                                       #ACS3=[propagation_setup.torque.custom_torque(optimalDetumblingTorque)],
                                        )  # dict(Earth = [propagation_setup.torque.second_degree_gravitational()])
         torque_settings = {'ACS3': torque_settings_on_sail}
         torque_models = propagation_setup.create_torque_models(bodies, torque_settings, self.bodies_to_propagate)

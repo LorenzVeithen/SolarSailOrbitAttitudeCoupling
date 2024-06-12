@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib
 from numba import jit
 from scipy.spatial import Delaunay
+from scipy.optimize import golden, direct
 from scipy.interpolate import make_interp_spline, PPoly
 import matplotlib.pyplot as plt
 import pygmo as pg
@@ -16,13 +17,13 @@ from time import time
 
 class vaneAnglesAllocationProblem:
     # Solving the angle allocation problem of the vanes for a single vane
-    def __init__(self, vane_id, bounds, vane_edge_mesh_nodes, sail_craft_object, acs_object, include_shadow=True):
+    def __init__(self, vane_id, bounds, vane_edge_mesh_nodes, sail_wings_coordinates, acs_object, include_shadow=True):
         self.vane_id = vane_id
         self.bounds = bounds    # [[-np.pi, np.pi], [-np.pi, np.pi]]
         self.vane_target_torque = None
         self.unit_direction_vane_target_torque = None
         self.sun_direction_body_frame = None
-        self.sail_craft = sail_craft_object
+        self.sail_wings_coordinates = sail_wings_coordinates
         self.include_shadow = include_shadow
         self.hull = None
 
@@ -128,7 +129,7 @@ class vaneAnglesAllocationProblem:
                 result = np.array([1e23, 1e23, 1e23])  # Penalty if in shadow
         return result   # Non-dimensional, physical torque is given when multiplicating by norm(r_arm) * W * vane_area/c_sol
 
-    def update_vane_angle_determination_algorithm(self, Td, n_s, vane_variable_optical_properties=False):
+    def update_vane_angle_determination_algorithm(self, Td, n_s, vane_variable_optical_properties=False, vane_optical_properties_list=[np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])]* len(vanes_origin_list)):
         """
         Function permitting to update the properties of the class object at each iteration of the propagation to target
         different target torques under different sunlight conditions or vane optical properties.
@@ -147,7 +148,7 @@ class vaneAnglesAllocationProblem:
 
         # Spacecraft shadow hull
         vstack_stacking = np.array([[0, 0, 0]])
-        for wing in self.sail_craft.sail_wings_coordinates:
+        for wing in self.sail_wings_coordinates:
             vstack_stacking = np.vstack((vstack_stacking, wing))
         relative_sun_vector_same_shape = np.zeros(np.shape(vstack_stacking[1:, :]))
         relative_sun_vector_same_shape[:, :3] = self.sun_direction_body_frame
@@ -166,7 +167,7 @@ class vaneAnglesAllocationProblem:
 
         # Surface optical properties
         if (vane_variable_optical_properties):
-            vane_optical_properties = self.sail_craft.get_ith_panel_optical_properties(self.vane_id, "Vane")
+            vane_optical_properties = vane_optical_properties_list[self.vane_id] #self.sail_craft.get_ith_panel_optical_properties(self.vane_id, "Vane")
             self.alpha_front = vane_optical_properties[0]
             self.alpha_back = vane_optical_properties[1]
             self.rho_s_front = vane_optical_properties[2]
@@ -214,17 +215,31 @@ class vaneAnglesAllocationProblem:
             plt.plot(self.total_hull[simplex, 0], self.total_hull[simplex, 1], self.total_hull[simplex, 2], 'k-')
         return ax
 
+
+def vaneAngleAllocationScaling(t, desired_torque, n_s, vaneAngleProblem, vane_angle_determination_bounds, tol_global_search, tol_golden_search):
+    scaled_desired_torque = desired_torque * t
+    vaneAngleProblem.update_vane_angle_determination_algorithm(scaled_desired_torque, n_s)
+    fit_function = lambda x: vaneAngleProblem.fitness(x)[0]
+    optRes = direct(fit_function, bounds=vane_angle_determination_bounds,
+                    len_tol=tol_global_search)
+    obtainedFitness = vaneAngleProblem.fitness([optRes.x[0], optRes.x[1]])[0]
+    if (obtainedFitness < tol_golden_search):
+        return 1, optRes
+    else:
+        return -1, optRes
+
+
 class vaneTorqueAllocationProblem:
     def __init__(self,
                  acs_object,
-                 sail_object,
+                 sail_wings_coordinates,
                  vane_has_ideal_model,
                  include_shadow,
                  vanes_AMS_coefficient_functions,
                  w1=2./3.,
                  w2=1./3.):
         self.acs_object = acs_object    # Object with all vane characteristics
-        self.sail_object = sail_object
+        self.sail_wings_coordinates = sail_wings_coordinates
         self.vane_has_ideal_model = vane_has_ideal_model
         self.include_shadow = include_shadow
         self.vanes_AMS_coefficient_functions = vanes_AMS_coefficient_functions
@@ -236,19 +251,19 @@ class vaneTorqueAllocationProblem:
         self.bounds = ([-100] * (self.acs_object.number_of_vanes * 3), [100] * (self.acs_object.number_of_vanes * 3))
         self.scaling_list = []
         for vid in range(len(self.acs_object.vanes_areas_list)):
-            self.scaling_list.append(self.acs_object.vanes_areas_list[vid] * np.linalg.norm(self.acs_object.vane_reference_frame_origin_list[vid])) # * W/c_sol  #TODO: decide what to do with this scaling
+            self.scaling_list.append(self.acs_object.vanes_areas_list[vid] * np.linalg.norm(self.acs_object.vane_reference_frame_origin_list[vid]))
 
 
         self.vane_angle_problem_objects_list = []
         for vane_id in range(self.acs_object.number_of_vanes):
             vaneAngleProblem_obj_i = vaneAnglesAllocationProblem(vane_id,
-                                        vane_mechanical_rotation_limits,
+                                        self.acs_object.vane_mechanical_rotation_limits,
                                         number_shadow_mesh_nodes,
-                                        self.sail_object,
+                                        self.sail_wings_coordinates,
                                         self.acs_object,
                                         include_shadow=self.include_shadow)
             vaneAngleProblem_obj_i.update_vane_angle_determination_algorithm(np.array([0, 0, 0]), np.array([0, 0, 0]),
-                                                                           vane_variable_optical_properties=True)
+                                                                           vane_variable_optical_properties=True, vane_optical_properties_list=vanes_optical_properties)
             self.vane_angle_problem_objects_list.append(vaneAngleProblem_obj_i)
 
         # Determine if the degrees of freedom and position of each vane allows a moment around the x, y, or z axis
@@ -293,6 +308,7 @@ class vaneTorqueAllocationProblem:
                 eq_constraint_list.append((current_torque_direction - desired_torque_direction)[1])  # = 0
                 eq_constraint_list.append((current_torque_direction - desired_torque_direction)[2])  # = 0
             else:
+
                 eq_constraint_list.append((self.current_torque - self.desired_torque)[0])  # = 0
                 eq_constraint_list.append((self.current_torque - self.desired_torque)[1])  # = 0
                 eq_constraint_list.append((self.current_torque - self.desired_torque)[2])  # = 0
@@ -444,14 +460,12 @@ class vaneTorqueAllocationProblem:
         self.desired_torque = desired_torque
         return True
 
-    def set_attaignable_moment_set_ellipses(self, n_s_body_frame, W, default_x_rotation_deg=0, default_y_rotation_deg=0):
+    def set_attaignable_moment_set_ellipses(self, n_s_body_frame, default_x_rotation_deg=0, default_y_rotation_deg=0):
         """
 
         :param n_s_body_frame:
         :return:
         """
-        print("set_attaignable_moment_set_ellipses")
-        t_ii = time()
         # Compute default torque values
         self.default_vane_config_torque_body_frame(n_s_body_frame,
                                                    default_alpha_1_deg=default_x_rotation_deg,
@@ -569,7 +583,6 @@ class vaneTorqueAllocationProblem:
                     self.vanes_spline_constraints_alpha_2_list.append(tuple_fT_alpha_2)
                 else:
                     self.vanes_spline_constraints_alpha_2_list.append((None, None, None))
-        print(time()-t_ii)
         # Modify the bounds of the optimisation problem
         bound_stack0 = np.vstack((new_bounds[0], new_bounds[0]))
         bound_stack1 = np.vstack((new_bounds[1], new_bounds[1]))
@@ -655,9 +668,78 @@ class vaneTorqueAllocationProblem:
         self.default_vane_torque_body_frame = np.array([None] * self.acs_object.number_of_vanes)
         for vane_id in range(self.acs_object.number_of_vanes):
             vaneAngleProblem_obj = self.vane_angle_problem_objects_list[vane_id]
-            vaneAngleProblem_obj.update_vane_angle_determination_algorithm(np.array([0, 1, 0]), n_s, vane_variable_optical_properties=False)
+            vaneAngleProblem_obj.update_vane_angle_determination_algorithm(np.array([0, 1, 0]), n_s)
             self.default_vane_torque_body_frame[vane_id] = self.scaling_list[vane_id] * vaneAngleProblem_obj.single_vane_torque([np.deg2rad(default_alpha_1_deg), np.deg2rad(default_alpha_2_deg)])
         return True
+
+def vane_system_angles_from_desired_torque(acs_object, vane_angles_bounds, desired_torque, previous_vanes_torque, sunlight_vector_body_frame):
+    # vane torque allocation problem
+    tap = acs_object.vane_torque_allocation_problem_object
+    tap.set_desired_torque(desired_torque, (previous_vanes_torque if (previous_vanes_torque[0] !=None) else np.array([0] * 3 * acs_object.number_of_vanes)))
+
+    tap.set_attaignable_moment_set_ellipses(sunlight_vector_body_frame)
+    prob = pg.problem(tap)
+    nl = pg.nlopt('cobyla')
+    nl.xtol_rel = tol_torque_allocation_problem_x
+    nl.ftol_rel = tol_torque_allocation_problem_objective
+    algo = pg.algorithm(uda=nl)
+    #algo.set_verbosity(10000)
+    if (previous_vanes_torque[0] == None):
+        pop = pg.population(prob, size=1, seed=42)
+    else:
+        pop = pg.population(prob, size=1)
+        pop.push_back(x=previous_vanes_torque)
+    pop.problem.c_tol = tol_torque_allocation_problem_constraint
+    pop = algo.evolve(pop)          # Evolve population
+    x_final = pop.champion_x
+    final_torques = x_final.reshape((acs_object.number_of_vanes, 3))
+    resulting_sail_torque = final_torques.sum(axis=0)
+    # Determine associated angles
+    torque_from_vane_angles_list = np.zeros((acs_object.number_of_vanes, 3))
+    vane_angles_rad = np.zeros((acs_object.number_of_vanes, 2))
+    for current_vane_id in range(acs_object.number_of_vanes):
+        optimised_vane_torque = final_torques[current_vane_id, :]
+
+        # determine the required vane angles for this
+        vaneAngleProblem = tap.vane_angle_problem_objects_list[current_vane_id]
+
+        vane_angle_allocation_results = vaneAngleAllocationScaling(1, optimised_vane_torque / tap.scaling_list[current_vane_id],
+                                                                   sunlight_vector_body_frame,
+                                                                   vaneAngleProblem,
+                                                                   vane_angles_bounds,
+                                                                   tol_vane_angle_determination_global_search,
+                                                                   tol_vane_angle_determination_start_golden_section)[1]
+        if (vane_angle_allocation_results.fun > tol_vane_angle_determination_start_golden_section):
+            f_golden = lambda t, Td=optimised_vane_torque / tap.scaling_list[current_vane_id], \
+                              n_s=sunlight_vector_body_frame, vaneAngProb=vaneAngleProblem, \
+                              vane_bounds=vane_angles_bounds, \
+                              tol_global=tol_vane_angle_determination_global_search, \
+                              tol_golden=tol_vane_angle_determination_start_golden_section: \
+                vaneAngleAllocationScaling(t, Td, n_s, vaneAngProb, vane_bounds, tol_global, tol_golden)[0]
+            minimizer = golden(f_golden, brack=(0, 1), tol=tol_vane_angle_determination_golden_section)
+            vane_angle_allocation_results = vaneAngleAllocationScaling(minimizer, optimised_vane_torque / tap.scaling_list[current_vane_id],
+                                                                       sunlight_vector_body_frame,
+                                                                       vaneAngleProblem,
+                                                                       vane_angles_bounds,
+                                                                       tol_vane_angle_determination_global_search,
+                                                                       tol_vane_angle_determination_start_golden_section)[1]
+        torque_from_vane_angles = vaneAngleProblem.single_vane_torque([vane_angle_allocation_results.x[0], vane_angle_allocation_results.x[1]]) * tap.scaling_list[current_vane_id]
+        torque_from_vane_angles_list[current_vane_id, :] = torque_from_vane_angles
+        vane_angles_rad[current_vane_id, :] = vane_angle_allocation_results.x[:2]
+
+    resulting_torque_from_angles = torque_from_vane_angles_list.sum(axis=0)
+    torque_from_vane_angles_direction = resulting_torque_from_angles / np.linalg.norm(resulting_torque_from_angles)
+    desired_torque_direction = desired_torque / np.linalg.norm(desired_torque)
+    if (np.linalg.norm(torque_from_vane_angles_direction-desired_torque_direction)/3>1e-2):
+        print("---WARNING, the torque direction is not preserved---")
+        #print(torque_from_vane_angles_direction)
+        #print(desired_torque_direction)
+        #print(np.linalg.norm(torque_from_vane_angles_direction-desired_torque_direction))
+        #print(f'resulting torque from angles: {resulting_torque_from_angles}')
+        #print("WARNING, the torque direction is not preserved")
+        #print("---------------------------------------------------")
+
+    return vane_angles_rad, torque_from_vane_angles_list
 
 class constrainedEllipseCoefficientsProblem:
     def __init__(self, convex_hull_points):
@@ -713,6 +795,7 @@ class constrainedEllipseCoefficientsProblem:
             [[inf_point[0] ** 2, inf_point[0] * inf_point[1], inf_point[1] ** 2, inf_point[0], inf_point[1], 1]])
         return np.dot(D_inf, current_weights)[0] > 0  # return True if infinity is outside, False if it is inside
 
+
 def generate_AMS_data(vane_id, vaneAngleProblem, current_sun_angle_alpha_deg, current_sun_angle_beta_deg,
                           alpha_1_range, alpha_2_range, optical_model_str="Ideal_model", savefig=True, savedat=False,
                           shadow_computation=0):
@@ -747,8 +830,7 @@ def generate_AMS_data(vane_id, vaneAngleProblem, current_sun_angle_alpha_deg, cu
                     np.sin(alpha_s_rad) * np.sin(beta_s_rad),
                     -np.cos(alpha_s_rad)])   # In the body reference frame
 
-    vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0, 0, 0]), n_s,
-                                                               vane_variable_optical_properties=False)  # False at the next call
+    vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0, 0, 0]), n_s)  # False at the next call
     print(f'vane_id={vane_id}, alpha_s_deg={round(np.rad2deg(alpha_s_rad), 1)}, beta_s_deg={round(np.rad2deg(beta_s_rad), 1)}')
     if (savefig): current_figs = [plt.figure(1), plt.figure(2), plt.figure(3)]
     if (shadow_computation==2):
@@ -794,7 +876,7 @@ def generate_AMS_data(vane_id, vaneAngleProblem, current_sun_angle_alpha_deg, cu
         returned_arrays.append(array_to_save)
         if (savedat):
             np.savetxt(
-                f"./AMS/Datasets/{optical_model_str}/vane_{vane_id}/AMS_alpha_{round(np.rad2deg(alpha_s_rad), 1)}_beta_{round(np.rad2deg(beta_s_rad), 1)}_shadow_{str(SHADOW_BOOL)}.csv",
+                f"{AMS_directory}/Datasets/{optical_model_str}/vane_{vane_id}/AMS_alpha_{round(np.rad2deg(alpha_s_rad), 1)}_beta_{round(np.rad2deg(beta_s_rad), 1)}_shadow_{str(SHADOW_BOOL)}.csv",
                 array_to_save, delimiter=",",
                 header='alpha_1, alpha_2, alpha_sun, beta_sun, Shadow_bool, Tx, Ty, Tz')
 
@@ -814,7 +896,7 @@ def generate_AMS_data(vane_id, vaneAngleProblem, current_sun_angle_alpha_deg, cu
             plt.xlabel(xlabels[i-1])
             plt.ylabel(ylabels[i-1])
             plt.legend(loc='lower left')
-            plt.savefig(f'./AMS/Plots/{optical_model_str}/vane_{vane_id}/plot_{i}/AMS_{i}_alpha_{round(np.rad2deg(alpha_s_rad), 1)}_beta_{round(np.rad2deg(beta_s_rad), 1)}.png')
+            plt.savefig(f'{AMS_directory}/Plots/{optical_model_str}/vane_{vane_id}/plot_{i}/AMS_{i}_alpha_{round(np.rad2deg(alpha_s_rad), 1)}_beta_{round(np.rad2deg(beta_s_rad), 1)}.png')
             plt.close(current_figs[i-1])
     return returned_arrays, shadow_l    # shadow_l returned to indicate the shadow condition used in the calculation
 

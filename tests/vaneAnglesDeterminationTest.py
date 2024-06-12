@@ -22,8 +22,16 @@ n_s = n_s/np.linalg.norm(n_s)
 
 # Define solar sail - see constants file
 acs_object = sail_attitude_control_systems("vanes", boom_list)
-acs_object.set_vane_characteristics(vanes_coordinates_list, vanes_origin_list, vanes_rotation_matrices_list, 0,
-                                    np.array([0, 0, 0]), 0.0045, vanes_rotational_dof)
+acs_object.set_vane_characteristics(vanes_coordinates_list,
+                                    vanes_origin_list,
+                                    vanes_rotation_matrices_list,
+                                    0,
+                                    np.array([0, 0, 0]),
+                                    0.0045,
+                                    vanes_rotational_dof,
+                                    vane_has_ideal_model,
+                                    wings_coordinates_list,
+                                    vane_mechanical_rotation_limits)
 
 sail = sail_craft("ACS3",
                   len(wings_coordinates_list),
@@ -43,14 +51,11 @@ sail = sail_craft("ACS3",
 vaneAngleProblem = vaneAnglesAllocationProblem(1,
                                                ([-np.pi, -np.pi], [np.pi, np.pi]),
                                                10,
-                                               sail,
+                                               wings_coordinates_list,
                                                acs_object,
                                                include_shadow=True)
 
-vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0, 0.4, 0.3]), n_s, vane_variable_optical_properties=True)   # and the next time you can put False
-#res = vaneAngleProblem.fitness([np.deg2rad(23), np.deg2rad(67), 1])
-#print(res)
-
+vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0, 0.4, 0.3]), n_s, vane_variable_optical_properties=True, vane_optical_properties_list=vanes_optical_properties)   # and the next time you can put False
 
 fit_func = lambda x:  vaneAngleProblem.fitness(x)[0]
 boundss = [(vaneAngleProblem.get_bounds()[0][i], vaneAngleProblem.get_bounds()[1][i]) for i in
@@ -59,7 +64,7 @@ print(boundss)
 def vaneAngleAllocationScaling(t, desired_torque):
     scaled_desired_torque = desired_torque * t
     vaneAngleProblem.update_vane_angle_determination_algorithm(scaled_desired_torque, n_s,
-                                                               vane_variable_optical_properties=True)  # and the next time you can put False
+                                                               vane_variable_optical_properties=True, vane_optical_properties_list=vanes_optical_properties)  # and the next time you can put False
     optRes = direct(fit_func, bounds=boundss, len_tol=(1e-4))
     obtainedFitness = vaneAngleProblem.fitness([optRes.x[0], optRes.x[1]])[0]
     if (obtainedFitness < 1e-4):
@@ -68,7 +73,6 @@ def vaneAngleAllocationScaling(t, desired_torque):
         return -1
 
 f = lambda t, Td=np.array([0, 0.4*3, 0.3*3]): vaneAngleAllocationScaling(t, Td)
-
 
 t0 = time()
 minimizer = golden(f, brack=(0, 1), tol=1e-1)

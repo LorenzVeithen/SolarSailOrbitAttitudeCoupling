@@ -34,7 +34,7 @@ class sail_craft:
         self.attitude_control_system_mass = attitude_control_object.get_attitude_system_mass()
         self.sail_mass = sail_mass_without_ACS + self.attitude_control_system_mass   # Without mass-based attitude control system,
         self.sail_center_of_mass_body_fixed_position_without_ACS = sail_CoM_without_ACS
-        self.desired_sail_state = None
+        self.desired_sail_body_frame_inertial_rotational_velocity = None
         self.sail_material_areal_density = sail_material_areal_density
         self.vane_material_areal_density = vane_material_areal_density
 
@@ -128,7 +128,7 @@ class sail_craft:
             body_position = np.array([None, None, None])
 
         if ((self.current_body_position != body_position).all() or (self.current_body_position == None).all()):  # Second condition for initialisation
-            panels_coordinates, panels_optical_properties, ACS_CoM, moving_masses_positions = self.attitude_control_system.attitude_control(self.bodies, self.desired_sail_state)    # Find way to include the current state and the desired one
+            panels_coordinates, panels_optical_properties, ACS_CoM, moving_masses_positions = self.attitude_control_system.attitude_control(self.bodies, self.desired_sail_body_frame_inertial_rotational_velocity)    # Find way to include the current state and the desired one
             self.sail_wings_coordinates = panels_coordinates["wings"] if (len(panels_coordinates["wings"]) != 0) else self.sail_wings_coordinates
             self.sail_vanes_coordinates = panels_coordinates["vanes"] if (len(panels_coordinates["vanes"]) != 0) else self.sail_vanes_coordinates
             self.sail_wings_optical_properties = panels_optical_properties["wings"] if (len(panels_optical_properties["wings"]) != 0) else self.sail_wings_optical_properties
@@ -149,8 +149,8 @@ class sail_craft:
         return 0
 
     # Pass the desired state to the class
-    def setDesiredState(self, desired_state):
-        self.desired_sail_state = desired_state
+    def set_desired_sail_body_frame_inertial_rotational_velocity(self, desired_state):
+        self.desired_sail_body_frame_inertial_rotational_velocity = desired_state
         return 0
 
     # Get rigid body properties

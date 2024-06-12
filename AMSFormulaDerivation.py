@@ -22,23 +22,23 @@ from vaneControllerMethods import combinedFourierFitDesignMatrix
 #import h5py
 
 PLOT = True
-COMPUTE_DATA = True
-COMPUTE_ELLIPSES = True
-COMPUTE_ELLIPSE_FOURIER_FORMULA = False
+COMPUTE_DATA = False
+COMPUTE_ELLIPSES = False
+COMPUTE_ELLIPSE_FOURIER_FORMULA = True
 SAVE_DATA = False
 ALL_HULLS = False
 FOURIER_ELLIPSE_AVAILABLE = True
 
 # Define solar sail - see constants file
-sh_comp = 0  # Define whether to work with or without shadow effects
+sh_comp = 1  # Define whether to work with or without shadow effects
 vane_id = 1
-cdir = f"./AMS/Datasets/Ideal_model/vane_{vane_id}"
+cdir = f"{AMS_directory}/Datasets/Ideal_model/vane_{vane_id}"
 target_hull = "TyTz"
 
 if (FOURIER_ELLIPSE_AVAILABLE):
     ellipse_coefficient_functions_list = []
     for i in range(6):
-        filename = f'./AMS/Datasets/Ideal_model/vane_1/dominantFitTerms/{["A", "B", "C", "D", "E", "F"][i]}_shadow_{bool(sh_comp)}.txt'
+        filename = f'{AMS_directory}/Datasets/Ideal_model/vane_1/dominantFitTerms/{["A", "B", "C", "D", "E", "F"][i]}_shadow_{bool(sh_comp)}.txt'
         built_function = buildEllipseCoefficientFunctions(filename)
         ellipse_coefficient_functions_list.append(lambda aps, bes, f=built_function: ellipseCoefficientFunction(aps,bes, f))
 
@@ -49,8 +49,16 @@ if (COMPUTE_DATA):
             "Do one after the other")
 
     acs_object = sail_attitude_control_systems("vanes", boom_list)
-    acs_object.set_vane_characteristics(vanes_coordinates_list, vanes_origin_list, vanes_rotation_matrices_list, 0,
-                                        np.array([0, 0, 0]), 0.0045, vanes_rotational_dof)
+    acs_object.set_vane_characteristics(vanes_coordinates_list,
+                                    vanes_origin_list,
+                                    vanes_rotation_matrices_list,
+                                    0,
+                                    np.array([0, 0, 0]),
+                                    0.0045,
+                                    vanes_rotational_dof,
+                                    vane_has_ideal_model,
+                                    wings_coordinates_list,
+                                    vane_mechanical_rotation_limits)
 
     current_optical_model_str = "Ideal_model"
     sail = sail_craft("ACS3",
@@ -71,11 +79,11 @@ if (COMPUTE_DATA):
     vaneAngleProblem = vaneAnglesAllocationProblem(vane_id,
                                                    ([-np.pi, -np.pi], [np.pi, np.pi]),
                                                    10,
-                                                   sail,
+                                                   wings_coordinates_list,
                                                    acs_object,
                                                    include_shadow=True)
     vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0, 0, 0]), np.array([0, 0, -1]),
-                                                               vane_variable_optical_properties=True)  # and the next time you can put False
+                                                               vane_variable_optical_properties=True, vane_optical_properties_list=vanes_optical_properties)  # and the next time you can put False
 
     sun_angles_num, vane_angles_num = 37, 100
     sun_angle_alpha_list = [60]#np.linspace(-180, 180, sun_angles_num)
@@ -249,15 +257,15 @@ if (COMPUTE_ELLIPSES):
             plt.legend()
             if (not FOURIER_ELLIPSE_AVAILABLE):
                 if (not COMPUTE_DATA):
-                    plt.savefig(f"./AMS/Plots/Ideal_model/vane_{vane_id}/Fitted_Ellipses/{input[:-4]}_hull_{target_hull}.png")
+                    plt.savefig(f"{AMS_directory}/Plots/Ideal_model/vane_{vane_id}/Fitted_Ellipses/{input[:-4]}_hull_{target_hull}.png")
                 else:
-                    plt.savefig(f"./AMS/Plots/Ideal_model/vane_{vane_id}/Fitted_Ellipses/AMS_alpha_{round(alpha_sun_deg, 1)}_beta_{round(beta_sun_deg, 1)}_shadow_{str(bool(sh_comp))}_hull_{target_hull}.png")
+                    plt.savefig(f"{AMS_directory}/Plots/Ideal_model/vane_{vane_id}/Fitted_Ellipses/AMS_alpha_{round(alpha_sun_deg, 1)}_beta_{round(beta_sun_deg, 1)}_shadow_{str(bool(sh_comp))}_hull_{target_hull}.png")
             else:
                 if (not COMPUTE_DATA):
-                    plt.savefig(f"./AMS/Plots/Ideal_model/vane_{vane_id}/Fourier_Ellipses/{input[:-4]}_hull_{target_hull}.png")
+                    plt.savefig(f"{AMS_directory}/Plots/Ideal_model/vane_{vane_id}/Fourier_Ellipses/{input[:-4]}_hull_{target_hull}.png")
                 else:
                     plt.savefig(
-                        f"./AMS/Plots/Ideal_model/vane_{vane_id}/Fourier_Ellipses/AMS_alpha_{round(alpha_sun_deg, 1)}_beta_{round(beta_sun_deg, 1)}_shadow_{str(bool(sh_comp))}_hull_{target_hull}.png")
+                        f"{AMS_directory}/Plots/Ideal_model/vane_{vane_id}/Fourier_Ellipses/AMS_alpha_{round(alpha_sun_deg, 1)}_beta_{round(beta_sun_deg, 1)}_shadow_{str(bool(sh_comp))}_hull_{target_hull}.png")
             plt.show()
             #plt.close()
 
@@ -295,14 +303,10 @@ if (COMPUTE_ELLIPSE_FOURIER_FORMULA):
     Y = ellipse_coefficients_data[:, 2:]  # Take all the ellipse coefficients
 
     current_fit_coefficients = []
-    order_i = 11
-    # num_coefficients = (order_i*2-1)**2
-    # fourierSumFunc = lambda x, *b, ordi=order_i: fourierSumFunction(x, *b, order=ordi)
+    order_i = 8
 
-    order_m = 10
-    order_n = 10
-    # num_coefficients = order_n * order_m * 4 + 1
-    # fourierSeriesFunc = lambda x, *b, ord_n=order_m, ord_m=order_m: fourierSeriesFunction(x, *b, order_n=ord_n, order_m=ord_m)
+    order_m = 6
+    order_n = 6
 
     num_coefficients = (order_i * 2 - 1) ** 2 - (order_i - 2) * 2 + (
                 ((order_n) * (order_m) - 1) * 4 * (order_n > 1 or order_m > 1))
@@ -318,8 +322,6 @@ if (COMPUTE_ELLIPSE_FOURIER_FORMULA):
     for i in range(np.shape(Y)[1]):
         # popt, pcov = curve_fit(fourierSeriesFunc, xdata=sun_angles, ydata=Y[:, i], p0=[1] * (num_coefficients))
         coefficients, residuals, rank, singular_values = lstsq(M, ellipse_coefficients_data[:, i + 2], rcond=1e-10)
-        print(np.shape(M), rank)
-        print(singular_values)
         current_fit_coefficients.append(coefficients)
 
     # Evaluate the fit quality - start with A
@@ -337,13 +339,16 @@ if (COMPUTE_ELLIPSE_FOURIER_FORMULA):
         new_stacked_terms = np.vstack((current_fit_coefficients[i], new_stacked_terms), dtype=object)
         new_stacked_terms[1, :] = new_stacked_terms[1, :] * current_fit_coefficients[i]
 
-        fourier_ellipse_coefficients[:, 2 + i] = np.dot(M, current_fit_coefficients[i])
+
+        fourier_ellipse_coefficients[:, 2 + i] = np.dot(M[:, abs(new_stacked_terms[1, :])>1e-10],
+                                                        current_fit_coefficients[i][abs(new_stacked_terms[1, :])>1e-10])
+        new_stacked_terms = new_stacked_terms[:, abs(new_stacked_terms[1, :]) > 1e-10]
         #  combinedFourierFitFunction(sun_angles, *current_fit_coefficients[i], order=order_i, order_n=order_n, order_m=order_m)[0]
         list_dominance_fit_terms.append(new_stacked_terms[:, (-abs(new_stacked_terms[1])).argsort()])
 
     for i, dominance_terms in enumerate(list_dominance_fit_terms):
         np.savetxt(
-            f"./AMS/Datasets/Ideal_model/vane_1/dominantFitTerms/{['A', 'B', 'C', 'D', 'E', 'F'][i]}_shadow_{bool(sh_comp)}.txt",
+            f"{AMS_directory}/Datasets/Ideal_model/vane_1/dominantFitTerms/{['A', 'B', 'C', 'D', 'E', 'F'][i]}_shadow_{bool(sh_comp)}.txt",
             dominance_terms.T, delimiter=',', fmt='%s')
 
     # Sort the indices by alpha and beta to ensure a fair comparison

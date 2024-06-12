@@ -29,8 +29,16 @@ n_s = n_s/np.linalg.norm(n_s)
 
 # Define solar sail - see constants file
 acs_object = sail_attitude_control_systems("vanes", boom_list)
-acs_object.set_vane_characteristics(vanes_coordinates_list, vanes_origin_list, vanes_rotation_matrices_list, 0,
-                                    np.array([0, 0, 0]), 0.0045, vanes_rotational_dof)
+acs_object.set_vane_characteristics(vanes_coordinates_list,
+                                    vanes_origin_list,
+                                    vanes_rotation_matrices_list,
+                                    0,
+                                    np.array([0, 0, 0]),
+                                    0.0045,
+                                    vanes_rotational_dof,
+                                    vane_has_ideal_model,
+                                    wings_coordinates_list,
+                                    vane_mechanical_rotation_limits)
 
 sail = sail_craft("ACS3",
                   len(wings_coordinates_list),
@@ -50,11 +58,11 @@ sail = sail_craft("ACS3",
 vaneAngleProblem = vaneAnglesAllocationProblem(1,
                                                ([-np.pi, -np.pi], [np.pi, np.pi]),
                                                10,
-                                               sail,
+                                               wings_coordinates_list,
                                                acs_object,
                                                include_shadow=False)
 
-vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([-5e-6, 0, -3e-6]), n_s, vane_variable_optical_properties=True)   # and the next time you can put False
+vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([-5e-6, 0, -3e-6]), n_s, vane_variable_optical_properties=True, vane_optical_properties_list=vanes_optical_properties)   # and the next time you can put False
 #res = vaneAngleProblem.fitness([np.deg2rad(23), np.deg2rad(67), 1])
 
 #t0 = time()
@@ -142,7 +150,7 @@ if (RUN):
             n_s = n_s / np.linalg.norm(n_s)
 
             vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([-5e-6, 0, -3e-6]), n_s,
-                                                                       vane_variable_optical_properties=False)  # and the next time you can put False
+                                                                       vane_variable_optical_properties=False)
             for case in range(2):
                 t0 = time()
                 start_point = -np.pi

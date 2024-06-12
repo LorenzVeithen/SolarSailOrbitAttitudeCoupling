@@ -7,7 +7,7 @@ from sailCraftClass import sail_craft
 from constants import sail_mass, sail_I, boom_length
 from scipy.spatial.transform import Rotation as R
 from MiscFunctions import compute_panel_geometrical_properties
-
+from constants import *
 boom_attachment_point = 0.64
 
 VANES_BOOL = True
@@ -100,12 +100,16 @@ if (SHIFTED_PANELS_BOOL):
 
 if (VANES_BOOL):
     acs_object = sail_attitude_control_systems("vanes", boom_list)
-    acs_object.set_vane_characteristics(vane_coordinates_list, vanes_origin_list,
-                                        vanes_rotation_matrices_list,
-                                        0,
-                                        np.array([0, 0, 0]),
-                                        0.0045,
-                                        vanes_rotational_dof)
+    acs_object.set_vane_characteristics(vanes_coordinates_list,
+                                    vanes_origin_list,
+                                    vanes_rotation_matrices_list,
+                                    0,
+                                    np.array([0, 0, 0]),
+                                    0.0045,
+                                    vanes_rotational_dof,
+                                    vane_has_ideal_model,
+                                    wings_coordinates_list,
+                                    vane_mechanical_rotation_limits)
 
 elif(SHIFTED_PANELS_BOOL):
     acs_object = sail_attitude_control_systems("shifted_wings", boom_list)

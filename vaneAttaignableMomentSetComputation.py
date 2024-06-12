@@ -16,8 +16,16 @@ if __name__ == "__main__":
     if (COMPUTE_DATA):
         # Define solar sail - see constants file
         acs_object = sail_attitude_control_systems("vanes", boom_list)
-        acs_object.set_vane_characteristics(vanes_coordinates_list, vanes_origin_list, vanes_rotation_matrices_list, 0,
-                                            np.array([0, 0, 0]), 0.0045, vanes_rotational_dof)
+        acs_object.set_vane_characteristics(vanes_coordinates_list,
+                                            vanes_origin_list,
+                                            vanes_rotation_matrices_list,
+                                            0,
+                                            np.array([0, 0, 0]),
+                                            0.0045,
+                                            vanes_rotational_dof,
+                                            vane_has_ideal_model,
+                                            wings_coordinates_list,
+                                            vane_mechanical_rotation_limits)
 
         current_optical_model_str = "Ideal_model"
         sail = sail_craft("ACS3",
@@ -39,11 +47,11 @@ if __name__ == "__main__":
         vaneAngleProblem = vaneAnglesAllocationProblem(vane_id,
                                                        ([-np.pi, -np.pi], [np.pi, np.pi]),
                                                        10,
-                                                       sail,
+                                                       wings_coordinates_list,
                                                        acs_object,
                                                        include_shadow=True)
         vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([1e-6, 1e-6, 1e-6]), np.array([0, 0, -1]),
-                                                                   vane_variable_optical_properties=True)  # and the next time you can put False
+                                                                   vane_variable_optical_properties=True, vane_optical_properties_list=vanes_optical_properties)  # and the next time you can put False
 
         if (COMPUTE_MULTIPLE_VANES):    # and over a large range of sun angles
             sun_angles_num, vane_angles_num = 37, 100

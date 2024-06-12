@@ -4,17 +4,23 @@ import numpy as np
 from MiscFunctions import all_equal, closest_point_on_a_segment_to_a_third_point, compute_panel_geometrical_properties
 from  ACS_dynamicalModels import vane_dynamical_model, shifted_panel_dynamical_model, sliding_mass_dynamical_model
 from numba import jit
+from vaneControllerMethods import buildEllipseCoefficientFunctions, ellipseCoefficientFunction, vaneTorqueAllocationProblem, vane_system_angles_from_desired_torque
+from constants import AMS_directory, sail_I
+from constants import c_sol, W
 
 class sail_attitude_control_systems:
 
-    def __init__(self, ACS_system, booms_coordinates_list):
+    def __init__(self, ACS_system, booms_coordinates_list, spacecraft_inertia_tensor=sail_I, include_shadow=False, sail_craft_name="ACS3"):
         # General
         self.sail_attitude_control_system = ACS_system          # String defining the ACS to be used
         self.bool_mass_based_controller = None                  # Boolean indicating if the ACS concept is mass-based. TODO: should this be depracated?
         self.ACS_mass = 0                                       # [kg] Total mass of the ACS. Initialised to zero and each instance of set_... adds to this sum
         self.ACS_CoM = None                                     # [m] Body-fixed center of mass of the total ACS. Initialised to the center of the spacecraft.
+        self.include_shadow = include_shadow
+        self.sail_craft_name = sail_craft_name
+        self.spacecraft_inertia_tensor = spacecraft_inertia_tensor
 
-        # Booms characteristics. TODO: this could be made more general because it is used in most systems considered
+        # Booms characteristics
         self.number_of_booms = len(booms_coordinates_list)      # [] Number of booms in the sail.
         self.booms_coordinates_list = booms_coordinates_list    # [m] List of 2x3 arrays (first row is boom origin, second row is boom tip). Assuming straight booms.
 
@@ -26,6 +32,8 @@ class sail_attitude_control_systems:
         self.vane_material_areal_density = None
         self.vanes_rotational_dof_booleans = None               # num_of_vanes long list of lists of booleans [True, True] stating the rotational degree of freedom of each vane. 0: x and 1:y in vane coordinate frames
         self.vanes_areas_list = None
+        self.previous_vane_torque = [None]
+        self.vane_mechanical_rotation_limits = None
 
         # Shifted wings (will also include tilted wings later)
         self.number_of_wings = 0                                # Number of wings in the sail.
@@ -68,14 +76,14 @@ class sail_attitude_control_systems:
         self.actuator_states["wings_reflectivity_devices_values"] = self.actuator_states["wings_reflectivity_devices_values_default"]
         self.actuator_states["wings_positions"] = self.actuator_states["wings_positions_default"]
 
-    def computeBodyFrameTorqueForDetumbling(self, bodies, sailCraft, tau_max, desired_rotational_velocity_vector=np.array([0, 0, 0]), rotational_velocity_tolerance= 1e-6, timeToPassivateACS=0):
+    def computeBodyFrameTorqueForDetumbling(self, bodies, tau_max, desired_rotational_velocity_vector=np.array([0, 0, 0]), rotational_velocity_tolerance= 1e-6, timeToPassivateACS=0):
         """
         Function computing the required torque for detumbling the spacecraft to rest. For a time-independent attitude
         control system, this function can be evaluated a single time.
 
         :param bodies:  tudatpy.kernel.numerical_simulation.environment.SystemOfBodies object containing the information
         on the bodies present in the TUDAT simulation.
-        :param sailCraft: sail_craft class object.
+        :param sailCraft: sail_craft class object. TODO: update
         :param tau_max: Maximum input torque of the ACS at a given time.
         :param desired_rotational_velocity_vector=np.array([0, 0, 0]): desired final rotational velocity vector.
         :param rotational_velocity_tolerance=1e-6: tolerance on the magnitude of the rotational velocity vector,
@@ -88,7 +96,7 @@ class sail_attitude_control_systems:
         Aghili, F. (2009). Time-optimal detumbling control of spacecraft. Journal of guidance, control, and dynamics,
         32(5), 1671-1675.
         """
-        body_fixed_angular_velocity_vector = bodies.get_body(sailCraft.sail_name).body_fixed_angular_velocity
+        body_fixed_angular_velocity_vector = bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity
         if (np.linalg.norm(desired_rotational_velocity_vector - np.array([0, 0, 0]))>1e-15):
             if (len(desired_rotational_velocity_vector[desired_rotational_velocity_vector > 0]) > 1):
                 raise Exception("The desired final rotational velocity vector in " +
@@ -96,7 +104,7 @@ class sail_attitude_control_systems:
                                 "has more than one non-zero element. Spin-stabilised spacecraft should be about an " +
                                 "Eigen-axis.")
             elif (np.count_nonzero(
-                    sailCraft.sail_inertia_tensor - np.diag(np.diagonal(sailCraft.sail_inertia_tensor))) != 0):
+                    self.spacecraft_inertia_tensor - np.diag(np.diagonal(self.spacecraft_inertia_tensor))) != 0):
                 raise Exception("computeBodyFrameTorqueForDetumblingToNonZeroFinalVelocity is only valid for " +
                                 " axisymmetric spacecrafts.")
         omega_tilted = body_fixed_angular_velocity_vector - desired_rotational_velocity_vector
@@ -104,7 +112,7 @@ class sail_attitude_control_systems:
         if (np.linalg.norm(omega_tilted) < rotational_velocity_tolerance):
             return np.array([0, 0, 0])
 
-        sail_craft_inertia_tensor = sailCraft.sail_inertia_tensor
+        sail_craft_inertia_tensor = self.spacecraft_inertia_tensor
 
         inertiaTensorTimesAngularVelocity = np.dot(sail_craft_inertia_tensor, omega_tilted)
         predictedTimeToRest = np.linalg.norm(inertiaTensorTimesAngularVelocity)/tau_max
@@ -116,7 +124,7 @@ class sail_attitude_control_systems:
         tau_star = - (inertiaTensorTimesAngularVelocity/np.linalg.norm(inertiaTensorTimesAngularVelocity)) * tau_target
         return tau_star.reshape(-1, 1)
 
-    def attitude_control(self, bodies, desired_sail_state):
+    def attitude_control(self, bodies, desired_sail_body_frame_inertial_rotational_velocity):
         # Returns an empty array if nothing has changed
         wings_coordinates = []
         wings_optical_properties = []
@@ -131,37 +139,57 @@ class sail_attitude_control_systems:
         self.actuator_states["gimballed_masses_body_frame_positions"] = self.actuator_states["gimballed_masses_body_frame_positions_default"]
         self.actuator_states["wings_reflectivity_devices_values"] = self.actuator_states["wings_reflectivity_devices_values_default"]
         self.actuator_states["wings_positions"] = self.actuator_states["wings_positions_default"]
-        match self.sail_attitude_control_system:
-            case "gimball_mass":
-                self.__pure_gimball_mass(bodies, desired_sail_state)
-                moving_masses_CoM_components = np.zeros([0, 0, 0])
-                moving_masses_positions["gimball_mass"] = np.array([0, 0, 0], dtype="float64")
-            case "vanes":
-                # Here comes the controller of the vanes, which will give the rotations around the x and y axis in the
-                # vane coordinate frame
-                vane_x_rotation_degrees, vane_y_rotation_degrees = np.array([0., 0., 0., 0., 0.]),  np.array([-180., -180., -180., -180., -180])
-                self.actuator_states["vane_rotation_x"] = np.deg2rad(vane_x_rotation_degrees.reshape(-1, 1))
-                self.actuator_states["vane_rotation_y"] = np.deg2rad(vane_y_rotation_degrees.reshape(-1, 1))
-                vanes_coordinates = self.__vane_dynamics(vane_x_rotation_degrees, vane_y_rotation_degrees)
-            case "shifted_wings":
-                wing_shifts_list = [[-0.4, -0.4, -0.4, -0.4],
-                                    [0, 0, 0, 0],
-                                    [0, 0, 0, 0],
-                                    [0, 0, 0, 0]]
-                wings_coordinates = self.__shifted_panel_dynamics(wing_shifts_list)
-            case "sliding_masses":
+        if (bodies != None):
+            match self.sail_attitude_control_system:
+                case "gimball_mass":
+                    self.__pure_gimball_mass(bodies, desired_sail_body_frame_inertial_rotational_velocity)
+                    moving_masses_CoM_components = np.zeros([0, 0, 0])
+                    moving_masses_positions["gimball_mass"] = np.array([0, 0, 0], dtype="float64")
+                case "vanes":
+                    # Here comes the controller of the vanes, which will give the rotations around the x and y axis in the
+                    # vane coordinate frame
+                    current_solar_irradiance = W     #TODO: extract solar irradiance from the body object
+                    sunlight_vector_inertial_frame = (bodies.get_body(self.sail_craft_name).position - bodies.get_body("Sun").position)/np.linalg.norm(bodies.get_body(self.sail_craft_name).position - bodies.get_body("Sun").position)
+                    R_IB = bodies.get_body(self.sail_craft_name).inertial_to_body_fixed_frame
+                    sunlight_vector_body_frame = np.dot(R_IB, sunlight_vector_inertial_frame)
+                    required_body_torque = self.computeBodyFrameTorqueForDetumbling(bodies,
+                                                             1e-4,
+                                                             desired_rotational_velocity_vector=desired_sail_body_frame_inertial_rotational_velocity,
+                                                             rotational_velocity_tolerance=1e-6,
+                                                             timeToPassivateACS=0)
+                    required_body_torque = required_body_torque.reshape(-1)/(current_solar_irradiance/c_sol)
+                    controller_vane_angles, vane_torques = vane_system_angles_from_desired_torque(self,
+                                                                                                self.vane_mechanical_rotation_limits,
+                                                                                                required_body_torque,
+                                                                                                [None],
+                                                                                                sunlight_vector_body_frame)
+                    vane_torques = vane_torques * current_solar_irradiance/c_sol
+                    print(controller_vane_angles)
+                    print(np.linalg.norm(bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity))
+                    self.previous_vane_torque = vane_torques.reshape(-1)
+                    vane_x_rotation_degrees, vane_y_rotation_degrees = np.rad2deg(controller_vane_angles[:, 0]),  np.rad2deg(controller_vane_angles[:, 1])
+                    self.actuator_states["vane_rotation_x"] = np.deg2rad(vane_x_rotation_degrees.reshape(-1, 1))
+                    self.actuator_states["vane_rotation_y"] = np.deg2rad(vane_y_rotation_degrees.reshape(-1, 1))
+                    vanes_coordinates = self.__vane_dynamics(vane_x_rotation_degrees, vane_y_rotation_degrees)
+                case "shifted_wings":
+                    wing_shifts_list = [[-0.4, -0.4, -0.4, -0.4],
+                                        [0, 0, 0, 0],
+                                        [0, 0, 0, 0],
+                                        [0, 0, 0, 0]]
+                    wings_coordinates = self.__shifted_panel_dynamics(wing_shifts_list)
+                case "sliding_masses":
 
-                sliding_masses_CoM, sliding_masses_positions_body_fixed_frame_list = self.__sliding_mass_dynamics([-3.5, -4])
-                moving_masses_CoM_components = sliding_masses_CoM * sum(self.sliding_masses_list)
+                    sliding_masses_CoM, sliding_masses_positions_body_fixed_frame_list = self.__sliding_mass_dynamics([-3.5, -4])
+                    moving_masses_CoM_components = sliding_masses_CoM * sum(self.sliding_masses_list)
 
-                moving_masses_positions["sliding_masses"] = sliding_masses_positions_body_fixed_frame_list
-            case "None":
-                # No attitude control system - the spacecraft remains inert
-                pass
-            case "test":
-                pass
-            case _:
-                raise Exception("Selected ACS not available yet.")
+                    moving_masses_positions["sliding_masses"] = sliding_masses_positions_body_fixed_frame_list
+                case "None":
+                    # No attitude control system - the spacecraft remains inert
+                    pass
+                case "test":
+                    pass
+                case _:
+                    raise Exception("Selected ACS not available yet.")
 
         self.compute_attitude_system_center_of_mass(vanes_coordinates, moving_masses_CoM_components)
         # the attitude-control algorithm should give the output
@@ -199,7 +227,12 @@ class sail_attitude_control_systems:
                                  stationary_system_components_mass,
                                  stationary_system_system_CoM,
                                  vanes_material_areal_density,
-                                 vanes_rotational_dof_booleans):
+                                 vanes_rotational_dof_booleans,
+                                 vane_has_ideal_model,
+                                 wings_coordinates_list,
+                                 vane_mechanical_rotation_bounds,
+                                 torque_allocation_problem_objective_function_weights=[1, 0],
+                                 directory_feasibility_ellipse_coefficients=f'{AMS_directory}/Datasets/Ideal_model/vane_1/dominantFitTerms'):
         """
         Function setting the characteristics of the ACS vanes actuator.
         Should be called a single time.
@@ -220,6 +253,8 @@ class sail_attitude_control_systems:
         self.vanes_rotational_dof_booleans = vanes_rotational_dof_booleans
         self.actuator_states["vane_rotation_x_default"] = np.zeros((self.number_of_vanes, 1))
         self.actuator_states["vane_rotation_y_default"] = np.zeros((self.number_of_vanes, 1))
+        self.vane_mechanical_rotation_limits = [(vane_mechanical_rotation_bounds[0][i], vane_mechanical_rotation_bounds[1][i]) for i in
+                                       range(len(vane_mechanical_rotation_bounds[0]))]
 
         # Determine vane component of the ACS mass
         vanes_areas = []
@@ -238,21 +273,32 @@ class sail_attitude_control_systems:
                 self.vane_is_aligned_on_body_axis[vane_id] = True
         self.vane_is_aligned_on_body_axis = np.array(self.vane_is_aligned_on_body_axis)
 
-        # Determine which vanes can do what type of torque
-        for i, vane_origin_body_frame in enumerate(self.vane_reference_frame_origin_list):
-            x_moment_arm_body_frame = np.sqrt(vane_origin_body_frame[1] ** 2 + vane_origin_body_frame[2] ** 2)
-            y_moment_arm_body_frame = np.sqrt(vane_origin_body_frame[0] ** 2 + vane_origin_body_frame[2] ** 2)
-            z_moment_arm_body_frame = np.sqrt(vane_origin_body_frame[0] ** 2 + vane_origin_body_frame[1] ** 2)
-            # The two largest moment arms will considered for which moments can be induced
-            # Afterwards there needs to be a check on whether all moments doable, such that three axis works
-            # TODO: Finish this
+        # feasible torque ellipse coefficients
+        ellipse_coefficient_functions_list = []
+        for i in range(6):
+            filename = f'{directory_feasibility_ellipse_coefficients}/{["A", "B", "C", "D", "E", "F"][i]}_shadow_{str(self.include_shadow)}.txt'
+            built_function = buildEllipseCoefficientFunctions(filename)
+            ellipse_coefficient_functions_list.append(
+                lambda aps, bes, f=built_function: ellipseCoefficientFunction(aps, bes, f))
+
+        # vane torque allocation problem
+        self.vane_torque_allocation_problem_object = vaneTorqueAllocationProblem(self,
+                                                                  wings_coordinates_list,
+                                                                  vane_has_ideal_model,
+                                                                  self.include_shadow,
+                                                                  ellipse_coefficient_functions_list,
+                                                                  w1=torque_allocation_problem_objective_function_weights[0],
+                                                                  w2=torque_allocation_problem_objective_function_weights[1])
 
         return True
 
     def __vane_dynamics(self, rotation_x_deg, rotation_y_deg):
         # Get the vane panel coordinates as a result of the rotation
         # Based on the initial vane position and orientation in the body frame
-        if (not all(-180 <= angle <= 180 for angle in rotation_x_deg) or not all(-180 <= angle <= 180 for angle in rotation_y_deg)):
+        if (not all(np.rad2deg(self.vane_mechanical_rotation_limits[0][0]) <= angle <= np.rad2deg(self.vane_mechanical_rotation_limits[0][1]) for angle in rotation_x_deg)
+                or not all(np.rad2deg(self.vane_mechanical_rotation_limits[1][0]) <= angle <= np.rad2deg(self.vane_mechanical_rotation_limits[1][1]) for angle in rotation_y_deg)):
+            print(all(np.rad2deg(self.vane_mechanical_rotation_limits[0][0]) <= angle <= np.rad2deg(self.vane_mechanical_rotation_limits[0][1]) for angle in rotation_x_deg))
+            print(all(np.rad2deg(self.vane_mechanical_rotation_limits[1][1]) <= angle <= np.rad2deg(self.vane_mechanical_rotation_limits[1][1]) for angle in rotation_y_deg))
             raise Exception("Requested vane deflection is not permitted:" + f"x-rotation={rotation_x_deg} degrees and y-rotation={rotation_y_deg} degrees.")
 
         if (self.vane_reference_frame_origin_list == None
@@ -267,7 +313,6 @@ class sail_attitude_control_systems:
                                                     self.vane_reference_frame_origin_list,
                                                     self.vane_panels_coordinates_list,
                                                     self.vane_reference_frame_rotation_matrix_list)
-
         return new_vane_coordinates
 
     def __vane_actuation_rotation_range(self, sun_light_direction_body_frame):  # Shadowing
