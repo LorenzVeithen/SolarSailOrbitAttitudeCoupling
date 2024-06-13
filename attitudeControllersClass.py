@@ -7,7 +7,8 @@ from numba import jit
 from vaneControllerMethods import buildEllipseCoefficientFunctions, ellipseCoefficientFunction, vaneTorqueAllocationProblem, vane_system_angles_from_desired_torque
 from constants import AMS_directory, sail_I
 from constants import c_sol, W
-
+from constants import tol_rotational_velocity_orientation_change_update_vane_angles_degrees, tol_relative_change_in_rotational_velocity_magnitude
+from constants import tol_sunlight_vector_body_frame_orientation_change_update_vane_angles_degrees
 class sail_attitude_control_systems:
 
     def __init__(self, ACS_system, booms_coordinates_list, spacecraft_inertia_tensor=sail_I, include_shadow=False, sail_craft_name="ACS3"):
@@ -32,8 +33,12 @@ class sail_attitude_control_systems:
         self.vane_material_areal_density = None
         self.vanes_rotational_dof_booleans = None               # num_of_vanes long list of lists of booleans [True, True] stating the rotational degree of freedom of each vane. 0: x and 1:y in vane coordinate frames
         self.vanes_areas_list = None
-        self.previous_vane_torque = [None]
+        self.latest_updated_vane_torques = [None]
+        self.latest_updated_optimal_torque_allocation = [None]
         self.vane_mechanical_rotation_limits = None
+        self.latest_updated_vane_angles = [[None]]
+        self.body_fixed_rotational_velocity_at_last_vane_angle_update = [None]
+        self.body_fixed_sunlight_vector_at_last_angle_update = None
 
         # Shifted wings (will also include tilted wings later)
         self.number_of_wings = 0                                # Number of wings in the sail.
@@ -76,18 +81,17 @@ class sail_attitude_control_systems:
         self.actuator_states["wings_reflectivity_devices_values"] = self.actuator_states["wings_reflectivity_devices_values_default"]
         self.actuator_states["wings_positions"] = self.actuator_states["wings_positions_default"]
 
-    def computeBodyFrameTorqueForDetumbling(self, bodies, tau_max, desired_rotational_velocity_vector=np.array([0, 0, 0]), rotational_velocity_tolerance= 1e-6, timeToPassivateACS=0):
+    def computeBodyFrameTorqueForDetumbling(self, bodies, tau_max, desired_rotational_velocity_vector=np.array([0, 0, 0]), rotational_velocity_tolerance_rotations_per_hour=0.1, timeToPassivateACS=0):
         """
         Function computing the required torque for detumbling the spacecraft to rest. For a time-independent attitude
         control system, this function can be evaluated a single time.
 
         :param bodies:  tudatpy.kernel.numerical_simulation.environment.SystemOfBodies object containing the information
         on the bodies present in the TUDAT simulation.
-        :param sailCraft: sail_craft class object. TODO: update
         :param tau_max: Maximum input torque of the ACS at a given time.
         :param desired_rotational_velocity_vector=np.array([0, 0, 0]): desired final rotational velocity vector.
-        :param rotational_velocity_tolerance=1e-6: tolerance on the magnitude of the rotational velocity vector,
-        under which no detumbling torque is induced.
+        :param rotational_velocity_tolerance=0.1: tolerance on the magnitude of the largest absolute  value of
+        the components of the rotational velocity vector. Detumbling torque then becomes zero.
         :param timeToPassivateACS=0: Estimated time to passivate the attitude control system, to avoid a discontinuous
         actuator control.
         :return tau_star: the optimal control torque.
@@ -109,7 +113,7 @@ class sail_attitude_control_systems:
                                 " axisymmetric spacecrafts.")
         omega_tilted = body_fixed_angular_velocity_vector - desired_rotational_velocity_vector
 
-        if (np.linalg.norm(omega_tilted) < rotational_velocity_tolerance):
+        if (max(abs(omega_tilted)) * 3600 / (2 * np.pi) < rotational_velocity_tolerance_rotations_per_hour):
             return np.array([0, 0, 0])
 
         sail_craft_inertia_tensor = self.spacecraft_inertia_tensor
@@ -148,26 +152,82 @@ class sail_attitude_control_systems:
                 case "vanes":
                     # Here comes the controller of the vanes, which will give the rotations around the x and y axis in the
                     # vane coordinate frame
-                    current_solar_irradiance = W     #TODO: extract solar irradiance from the body object
-                    sunlight_vector_inertial_frame = (bodies.get_body(self.sail_craft_name).position - bodies.get_body("Sun").position)/np.linalg.norm(bodies.get_body(self.sail_craft_name).position - bodies.get_body("Sun").position)
+                    sunlight_vector_inertial_frame = (bodies.get_body(self.sail_craft_name).position - bodies.get_body(
+                        "Sun").position) / np.linalg.norm(
+                        bodies.get_body(self.sail_craft_name).position - bodies.get_body("Sun").position)
                     R_IB = bodies.get_body(self.sail_craft_name).inertial_to_body_fixed_frame
                     sunlight_vector_body_frame = np.dot(R_IB, sunlight_vector_inertial_frame)
-                    required_body_torque = self.computeBodyFrameTorqueForDetumbling(bodies,
-                                                             1e-4,
-                                                             desired_rotational_velocity_vector=desired_sail_body_frame_inertial_rotational_velocity,
-                                                             rotational_velocity_tolerance=1e-6,
-                                                             timeToPassivateACS=0)
-                    required_body_torque = required_body_torque.reshape(-1)/(current_solar_irradiance/c_sol)
-                    controller_vane_angles, vane_torques = vane_system_angles_from_desired_torque(self,
-                                                                                                self.vane_mechanical_rotation_limits,
-                                                                                                required_body_torque,
-                                                                                                [None],
-                                                                                                sunlight_vector_body_frame)
-                    vane_torques = vane_torques * current_solar_irradiance/c_sol
-                    print(controller_vane_angles)
-                    print(np.linalg.norm(bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity))
-                    self.previous_vane_torque = vane_torques.reshape(-1)
-                    vane_x_rotation_degrees, vane_y_rotation_degrees = np.rad2deg(controller_vane_angles[:, 0]),  np.rad2deg(controller_vane_angles[:, 1])
+
+                    if (self.body_fixed_rotational_velocity_at_last_vane_angle_update[0] != None):
+                        # Check how much the rotational velocity vector orientation has changed
+                        change_in_rotational_velocity_orientation_rad = np.arccos(np.dot(bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity,
+                                                                           self.body_fixed_rotational_velocity_at_last_vane_angle_update)/
+                                                                     (np.linalg.norm(bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity)
+                                                                      * np.linalg.norm(self.body_fixed_rotational_velocity_at_last_vane_angle_update)))
+
+                        # Check how much the rotational velocity vector magnitude has changed
+                        relative_change_in_rotational_velocity_magnitude = ((np.linalg.norm(bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity)
+                                                                            -np.linalg.norm(self.body_fixed_rotational_velocity_at_last_vane_angle_update))/
+                                                                            np.linalg.norm(self.body_fixed_rotational_velocity_at_last_vane_angle_update))
+
+                        # Check how much the sunlight vector in the body frame has changed
+                        change_in_body_fixed_sunlight_vector_orientation_rad = np.arccos(np.dot(sunlight_vector_body_frame,
+                                                                           self.body_fixed_sunlight_vector_at_last_angle_update)/
+                                                                     (np.linalg.norm(sunlight_vector_body_frame)
+                                                                      * np.linalg.norm(self.body_fixed_sunlight_vector_at_last_angle_update)))
+                    else:
+                        # dummy values to force update
+                        change_in_rotational_velocity_orientation_rad = 10
+                        relative_change_in_rotational_velocity_magnitude = 2
+                        change_in_body_fixed_sunlight_vector_orientation_rad = -1
+
+                    if (np.rad2deg(change_in_rotational_velocity_orientation_rad) > tol_rotational_velocity_orientation_change_update_vane_angles_degrees
+                        or np.rad2deg(change_in_rotational_velocity_orientation_rad) < 0
+                        or np.rad2deg(change_in_body_fixed_sunlight_vector_orientation_rad) > tol_sunlight_vector_body_frame_orientation_change_update_vane_angles_degrees
+                        or np.rad2deg(change_in_body_fixed_sunlight_vector_orientation_rad) < 0
+                        or relative_change_in_rotational_velocity_magnitude > tol_relative_change_in_rotational_velocity_magnitude):
+                        current_solar_irradiance = W     #TODO: extract solar irradiance from the body object
+                        required_body_torque = self.computeBodyFrameTorqueForDetumbling(bodies,
+                                                                                        5e-5,
+                                                                                        desired_rotational_velocity_vector=desired_sail_body_frame_inertial_rotational_velocity,
+                                                                                        rotational_velocity_tolerance_rotations_per_hour=0.1,
+                                                                                        timeToPassivateACS=0)
+                        required_body_torque = required_body_torque.reshape(-1)/(current_solar_irradiance/c_sol)
+
+                        if (np.linalg.norm(required_body_torque) > 1e-15):
+                            previous_optimal_torque = self.latest_updated_optimal_torque_allocation if (self.latest_updated_optimal_torque_allocation[0]==None) else self.latest_updated_optimal_torque_allocation
+
+                            controller_vane_angles, vane_torques, optimal_torque_allocation = vane_system_angles_from_desired_torque(self,
+                                                                                                            self.vane_mechanical_rotation_limits,
+                                                                                                            required_body_torque,
+                                                                                                            previous_optimal_torque,
+                                                                                                            sunlight_vector_body_frame,
+                                                                                                            initial_vane_angles_guess_rad=self.latest_updated_vane_angles)
+
+                        else:
+                            controller_vane_angles = np.zeros((self.number_of_vanes, 2))
+                            vane_torques = np.zeros((self.number_of_vanes, 3))
+                            optimal_torque_allocation = np.zeros((self.number_of_vanes, 3))
+                            previous_optimal_torque = self.latest_updated_vane_torques
+
+                        #if (previous_optimal_torque[0] != None):
+                        #    print("Difference between previous and new torque")
+                        #    print(vane_torques.reshape(-1)-previous_optimal_torque)
+                        vane_torques = vane_torques * current_solar_irradiance / c_sol
+                        #print(optimal_torque_allocation)
+                        print(f"required torque:{required_body_torque}")
+                        print(f"optimal torque:{optimal_torque_allocation.sum(axis=0)}")
+                        print(f"vane torque: {vane_torques.sum(axis=0) * (current_solar_irradiance / c_sol)**-1}")
+                        print(f"rotations per hour {bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity * 3600 / (2 * np.pi)}")
+
+                        self.latest_updated_vane_torques = vane_torques.reshape(-1)
+                        self.latest_updated_vane_angles = controller_vane_angles
+                        self.latest_updated_optimal_torque_allocation = optimal_torque_allocation.reshape(-1)
+                        self.body_fixed_rotational_velocity_at_last_vane_angle_update = bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity
+                        self.body_fixed_sunlight_vector_at_last_angle_update = sunlight_vector_body_frame
+
+                    #print( self.latest_updated_vane_angles)
+                    vane_x_rotation_degrees, vane_y_rotation_degrees = np.rad2deg(self.latest_updated_vane_angles[:, 0]),  np.rad2deg(self.latest_updated_vane_angles[:, 1])
                     self.actuator_states["vane_rotation_x"] = np.deg2rad(vane_x_rotation_degrees.reshape(-1, 1))
                     self.actuator_states["vane_rotation_y"] = np.deg2rad(vane_y_rotation_degrees.reshape(-1, 1))
                     vanes_coordinates = self.__vane_dynamics(vane_x_rotation_degrees, vane_y_rotation_degrees)
@@ -315,14 +375,6 @@ class sail_attitude_control_systems:
                                                     self.vane_reference_frame_rotation_matrix_list)
         return new_vane_coordinates
 
-    def __vane_actuation_rotation_range(self, sun_light_direction_body_frame):  # Shadowing
-        return False
-
-    def __pure_vane_controller(self, desired_total_torque, double_sided_reflective=False):
-        # First allocate the torque to each vane
-
-        # Then determine the vane angles for a given torque
-        return False
     def set_shifted_panel_characteristics(self, wings_coordinates_list, wings_areas_list, wings_reference_frame_rotation_matrix_list, keep_constant_area, stationary_system_components_mass, stationary_system_system_CoM):
         """
         Function setting the characteristics of the shifted panels actuator.

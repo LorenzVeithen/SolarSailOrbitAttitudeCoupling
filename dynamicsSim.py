@@ -160,11 +160,16 @@ class sailCoupledDynamicsProblem:
                                                                              terminate_exactly_on_final_condition=True)
 
         # Create numerical integrator settings
-        integrator_settings = propagation_setup.integrator.runge_kutta_variable_step(
-            initial_time_step=self.initial_step_size,
-            coefficient_set=propagation_setup.integrator.rkf_78,
-            step_size_control_settings=self.control_settings,
-            step_size_validation_settings=self.validation_settings)
+        #integrator_settings = propagation_setup.integrator.runge_kutta_variable_step(
+        #    initial_time_step=self.initial_step_size,
+        #    coefficient_set=propagation_setup.integrator.rkf_45,
+        #    step_size_control_settings=self.control_settings,
+        #    step_size_validation_settings=self.validation_settings)
+
+        integrator_settings = propagation_setup.integrator.runge_kutta_fixed_step(
+            time_step=0.5,
+            coefficient_set=propagation_setup.integrator.euler_forward)
+
         return termination_settings, integrator_settings
 
     def define_dynamical_environment(self, bodies, attitude_control_system_object, vehicle_target_settings):

@@ -14,8 +14,8 @@ from attitudeControllersClass import sail_attitude_control_systems
 from vaneControllerMethods import vaneAnglesAllocationProblem
 from scipy.optimize import shgo, golden
 
-sun_angle_alpha = np.deg2rad(50)
-sun_angle_beta = np.deg2rad(-50)
+sun_angle_alpha = np.deg2rad(34)
+sun_angle_beta = np.deg2rad(-123)
 n_s = np.array([np.sin(sun_angle_alpha) * np.cos(sun_angle_beta), np.sin(sun_angle_alpha) * np.sin(sun_angle_beta), -np.cos(sun_angle_alpha)])   # In the body reference frame
 n_s = n_s/np.linalg.norm(n_s)
 
@@ -53,14 +53,21 @@ vaneAngleProblem = vaneAnglesAllocationProblem(1,
                                                10,
                                                wings_coordinates_list,
                                                acs_object,
-                                               include_shadow=True)
+                                               include_shadow=False)
 
-vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0, 0.4, 0.3]), n_s, vane_variable_optical_properties=True, vane_optical_properties_list=vanes_optical_properties)   # and the next time you can put False
+
+
+
+
+print(vaneAngleProblem.single_vane_torque([0, 0]))
+
+
+vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0., 0.70973164, -0.4875445]), n_s, vane_variable_optical_properties=True, vane_optical_properties_list=vanes_optical_properties)   # and the next time you can put False
 
 fit_func = lambda x:  vaneAngleProblem.fitness(x)[0]
 boundss = [(vaneAngleProblem.get_bounds()[0][i], vaneAngleProblem.get_bounds()[1][i]) for i in
            range(len(vaneAngleProblem.get_bounds()[0]))]
-print(boundss)
+
 def vaneAngleAllocationScaling(t, desired_torque):
     scaled_desired_torque = desired_torque * t
     vaneAngleProblem.update_vane_angle_determination_algorithm(scaled_desired_torque, n_s,
@@ -74,40 +81,42 @@ def vaneAngleAllocationScaling(t, desired_torque):
 
 f = lambda t, Td=np.array([0, 0.4*3, 0.3*3]): vaneAngleAllocationScaling(t, Td)
 
-t0 = time()
 minimizer = golden(f, brack=(0, 1), tol=1e-1)
-print(time()-t0)
-print(minimizer)
 
 
-SELECTED_ALG = False
+
+SELECTED_ALG = True
 if (SELECTED_ALG):
+    print("DIRECT selected algorithm")
     t0 = time()
     res_2 = direct(fit_func, bounds=[(-np.pi, np.pi), (-np.pi, np.pi)], len_tol=(1e-4))
     t1 = time()
     print(np.rad2deg(res_2.x[:2]), res_2.fun, res_2.nfev)
     print(vaneAngleProblem.single_vane_torque([res_2.x[0], res_2.x[1]]))
-    print(vaneAngleProblem.fitness([res_2.x[0], res_2.x[1]])[0])
-    print(t1-t0)
+    #print(vaneAngleProblem.fitness([res_2.x[0], res_2.x[1]])[0])
+    print(f'time: {t1-t0}')
 
 
-TEST_OPTIMISATION_ALGORITHMS = False
+TEST_OPTIMISATION_ALGORITHMS = True
 if (TEST_OPTIMISATION_ALGORITHMS):
+    print("Nelder-Mead")
+    initial_guess = tuple(np.deg2rad([156.1042524, 50.86419753]))
     t0 = time()
-    print(vaneAngleProblem.fitness([0, 0])[0])
-    res = minimize(vaneAngleProblem.fitness, (-1.5, -1.5), method='Nelder-Mead', bounds=[(-np.pi, np.pi), (-np.pi, np.pi), (0, 1)], tol=1e-4)
+    res = minimize(vaneAngleProblem.fitness, initial_guess, method='Nelder-Mead', bounds=[(-np.pi, np.pi), (-np.pi, np.pi)], tol=1e-4)
     t1 = time()
     print(np.rad2deg(np.array(res.x)), res.nfev)
     print(vaneAngleProblem.single_vane_torque([res.x[0], res.x[1]]))
     print(t1-t0)
 
+    print("DIRECT")
     t0 = time()
-    res_2 = direct(vaneAngleProblem.fitness, bounds=[(-np.pi, np.pi), (-np.pi, np.pi), (0, 1)], len_tol=(1e-4))
+    res_2 = direct(vaneAngleProblem.fitness, bounds=[(-np.pi, np.pi), (-np.pi, np.pi)], len_tol=(1e-4))
     t1 = time()
     print(np.rad2deg(res_2.x), res_2.fun, res_2.nfev)
     print(vaneAngleProblem.single_vane_torque([res_2.x[0], res_2.x[1]]))
     print(t1-t0)
 
+    """
     probVA = pg.problem(vaneAngleProblem)
     #print(probVA)
     pop = pg.population(probVA, size = 15)
@@ -124,6 +133,7 @@ if (TEST_OPTIMISATION_ALGORITHMS):
     print(vaneAngleProblem.single_vane_torque(best_individual))
     print(pop.problem.get_fevals())
     print(t1-t0)
+    """
 
     # Direct seems to be the best, always converges, is deterministic and not too expensive either, such a great pic
     # Direct is generally good for low dimensionality (here only 2 so we should be good

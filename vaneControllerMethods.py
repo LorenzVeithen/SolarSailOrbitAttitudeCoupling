@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib
 from numba import jit
 from scipy.spatial import Delaunay
-from scipy.optimize import golden, direct
+from scipy.optimize import golden, direct, minimize
 from scipy.interpolate import make_interp_spline, PPoly
 import matplotlib.pyplot as plt
 import pygmo as pg
@@ -27,10 +27,10 @@ class vaneAnglesAllocationProblem:
         self.include_shadow = include_shadow
         self.hull = None
 
-        self.R_BV = np.linalg.inv(acs_object.vane_reference_frame_rotation_matrix_list[vane_id])
+        self.R_BV = np.linalg.inv(acs_object.vane_reference_frame_rotation_matrix_list[self.vane_id])
 
-        self.vane_origin = acs_object.vane_reference_frame_origin_list[vane_id]
-        self.vane_nominal_coordinates = acs_object.vane_panels_coordinates_list[vane_id]
+        self.vane_origin = acs_object.vane_reference_frame_origin_list[self.vane_id]
+        self.vane_nominal_coordinates = acs_object.vane_panels_coordinates_list[self.vane_id]
 
         # Vane optical properties
         self.alpha_front = None
@@ -129,7 +129,7 @@ class vaneAnglesAllocationProblem:
                 result = np.array([1e23, 1e23, 1e23])  # Penalty if in shadow
         return result   # Non-dimensional, physical torque is given when multiplicating by norm(r_arm) * W * vane_area/c_sol
 
-    def update_vane_angle_determination_algorithm(self, Td, n_s, vane_variable_optical_properties=False, vane_optical_properties_list=[np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])]* len(vanes_origin_list)):
+    def update_vane_angle_determination_algorithm(self, Td, n_s, vane_variable_optical_properties=False, vane_optical_properties_list=[np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)):
         """
         Function permitting to update the properties of the class object at each iteration of the propagation to target
         different target torques under different sunlight conditions or vane optical properties.
@@ -141,7 +141,6 @@ class vaneAnglesAllocationProblem:
         """
         # Target torque
         self.vane_target_torque = Td
-        self.unit_direction_vane_target_torque = self.vane_target_torque / np.linalg.norm(self.vane_target_torque)
 
         # Sun direction in the body frame
         self.sun_direction_body_frame = n_s
@@ -291,7 +290,7 @@ class vaneTorqueAllocationProblem:
         # x is 3 * self.acs_object.number_of_vanes long array with the x-y-z body torques for each vane in the same
         # order as the rest of the vane lists
         self.current_torque = x.reshape((self.acs_object.number_of_vanes, 3)).sum(axis=0)
-        obj = self.w_1 * np.linalg.norm(self.current_torque - self.desired_torque) ** 2 + self.w_2 * np.linalg.norm(x - self.previous_x) ** 2
+        obj = self.w_1 * (np.linalg.norm(self.current_torque - self.desired_torque) ** 2) + self.w_2 * (np.linalg.norm(x - self.previous_x) ** 2)
 
         eq_constraint_list = []
         # The total torque needs to be the desired torque - became an objective
@@ -337,7 +336,6 @@ class vaneTorqueAllocationProblem:
 
             elif (self.acs_object.vanes_rotational_dof_booleans[vane_id][0]==False and self.acs_object.vanes_rotational_dof_booleans[vane_id][1]==False):
                 Tdefault = self.default_vane_torque_body_frame[vane_id]
-                diff_to_default = T_current_vane - Tdefault
                 eq_constraint_list.append((Tx - Tdefault[0]))   # = 0
                 eq_constraint_list.append((Ty - Tdefault[1]))   # = 0
                 eq_constraint_list.append((Tz - Tdefault[2]))   # = 0
@@ -518,10 +516,12 @@ class vaneTorqueAllocationProblem:
                         self.vanes_AMS_coefficients_x[vane_id])
                     min_Tx, min_Tz1, max_Tx, max_Tz1 = get_ellipse_bb(x0_TxTz, y0_TxTz, ap_TxTz, bp_TxTz,
                                                                       np.rad2deg(phi_TxTz))
-                    new_bounds[0][vane_id * 3 + 0] = min_Tx
-                    new_bounds[1][vane_id * 3 + 0] = max_Tx
-                    new_bounds[0][vane_id * 3 + 2] = min_Tz1
-                    new_bounds[1][vane_id * 3 + 2] = max_Tz1
+                    dx = max_Tx-min_Tx
+                    dz = max_Tz1 - min_Tz1
+                    new_bounds[0][vane_id * 3 + 0] = min_Tx - dx * ellipse_bounding_box_margin
+                    new_bounds[1][vane_id * 3 + 0] = max_Tx + dx * ellipse_bounding_box_margin
+                    new_bounds[0][vane_id * 3 + 2] = min_Tz1 - dz * ellipse_bounding_box_margin
+                    new_bounds[1][vane_id * 3 + 2] = max_Tz1 + dz * ellipse_bounding_box_margin
                 else:
                     new_bounds[0][vane_id * 3 + 0] = 0
                     new_bounds[1][vane_id * 3 + 0] = 0
@@ -531,10 +531,12 @@ class vaneTorqueAllocationProblem:
                         self.vanes_AMS_coefficients_y[vane_id])
                     min_Ty, min_Tz2, max_Ty, max_Tz2 = get_ellipse_bb(x0_TyTz, y0_TyTz, ap_TyTz, bp_TyTz,
                                                                       np.rad2deg(phi_TyTz))
-                    new_bounds[0][vane_id * 3 + 1] = min_Ty
-                    new_bounds[1][vane_id * 3 + 1] = max_Ty
-                    new_bounds[0][vane_id * 3 + 2] = min_Tz2
-                    new_bounds[1][vane_id * 3 + 2] = max_Tz2
+                    dy = max_Ty-min_Ty
+                    dz = max_Tz2 - min_Tz2
+                    new_bounds[0][vane_id * 3 + 1] = min_Ty - dy * ellipse_bounding_box_margin
+                    new_bounds[1][vane_id * 3 + 1] = max_Ty + dy * ellipse_bounding_box_margin
+                    new_bounds[0][vane_id * 3 + 2] = min_Tz2 - dz * ellipse_bounding_box_margin
+                    new_bounds[1][vane_id * 3 + 2] = max_Tz2 + dz * ellipse_bounding_box_margin
                 else:
                     new_bounds[0][vane_id * 3 + 1] = 0
                     new_bounds[1][vane_id * 3 + 1] = 0
@@ -668,11 +670,11 @@ class vaneTorqueAllocationProblem:
         self.default_vane_torque_body_frame = np.array([None] * self.acs_object.number_of_vanes)
         for vane_id in range(self.acs_object.number_of_vanes):
             vaneAngleProblem_obj = self.vane_angle_problem_objects_list[vane_id]
-            vaneAngleProblem_obj.update_vane_angle_determination_algorithm(np.array([0, 1, 0]), n_s)
+            vaneAngleProblem_obj.update_vane_angle_determination_algorithm(np.array([0, 1, 0]), n_s)    # give random target torque to compute the default
             self.default_vane_torque_body_frame[vane_id] = self.scaling_list[vane_id] * vaneAngleProblem_obj.single_vane_torque([np.deg2rad(default_alpha_1_deg), np.deg2rad(default_alpha_2_deg)])
         return True
 
-def vane_system_angles_from_desired_torque(acs_object, vane_angles_bounds, desired_torque, previous_vanes_torque, sunlight_vector_body_frame):
+def vane_system_angles_from_desired_torque(acs_object, vane_angles_bounds, desired_torque, previous_vanes_torque, sunlight_vector_body_frame, initial_vane_angles_guess_rad=[[None]]):
     # vane torque allocation problem
     tap = acs_object.vane_torque_allocation_problem_object
     tap.set_desired_torque(desired_torque, (previous_vanes_torque if (previous_vanes_torque[0] !=None) else np.array([0] * 3 * acs_object.number_of_vanes)))
@@ -687,59 +689,97 @@ def vane_system_angles_from_desired_torque(acs_object, vane_angles_bounds, desir
     if (previous_vanes_torque[0] == None):
         pop = pg.population(prob, size=1, seed=42)
     else:
-        pop = pg.population(prob, size=1)
-        pop.push_back(x=previous_vanes_torque)
+        current_bounds = tap.get_bounds()
+        if ([0 < previous_vanes_torque[bi] - current_bounds[0][bi] < current_bounds[1][bi] - current_bounds[0][bi] for bi in range(3*acs_object.number_of_vanes)]):
+            pop = pg.population(prob)
+            pop.push_back(x=previous_vanes_torque)
+        else:
+            pop = pg.population(prob, size=1, seed=42)
     pop.problem.c_tol = tol_torque_allocation_problem_constraint
     pop = algo.evolve(pop)          # Evolve population
     x_final = pop.champion_x
-    final_torques = x_final.reshape((acs_object.number_of_vanes, 3))
-    resulting_sail_torque = final_torques.sum(axis=0)
+    optimal_torque_allocation = x_final.reshape((acs_object.number_of_vanes, 3))
+    resulting_sail_torque = optimal_torque_allocation.sum(axis=0)
     # Determine associated angles
     torque_from_vane_angles_list = np.zeros((acs_object.number_of_vanes, 3))
     vane_angles_rad = np.zeros((acs_object.number_of_vanes, 2))
     for current_vane_id in range(acs_object.number_of_vanes):
-        optimised_vane_torque = final_torques[current_vane_id, :]
-
+        optimised_vane_torque = optimal_torque_allocation[current_vane_id, :]
+        requested_vane_torque = optimised_vane_torque / tap.scaling_list[current_vane_id]
         # determine the required vane angles for this
         vaneAngleProblem = tap.vane_angle_problem_objects_list[current_vane_id]
 
-        vane_angle_allocation_results = vaneAngleAllocationScaling(1, optimised_vane_torque / tap.scaling_list[current_vane_id],
-                                                                   sunlight_vector_body_frame,
-                                                                   vaneAngleProblem,
-                                                                   vane_angles_bounds,
-                                                                   tol_vane_angle_determination_global_search,
-                                                                   tol_vane_angle_determination_start_golden_section)[1]
-        if (vane_angle_allocation_results.fun > tol_vane_angle_determination_start_golden_section):
-            f_golden = lambda t, Td=optimised_vane_torque / tap.scaling_list[current_vane_id], \
-                              n_s=sunlight_vector_body_frame, vaneAngProb=vaneAngleProblem, \
-                              vane_bounds=vane_angles_bounds, \
-                              tol_global=tol_vane_angle_determination_global_search, \
-                              tol_golden=tol_vane_angle_determination_start_golden_section: \
-                vaneAngleAllocationScaling(t, Td, n_s, vaneAngProb, vane_bounds, tol_global, tol_golden)[0]
-            minimizer = golden(f_golden, brack=(0, 1), tol=tol_vane_angle_determination_golden_section)
-            vane_angle_allocation_results = vaneAngleAllocationScaling(minimizer, optimised_vane_torque / tap.scaling_list[current_vane_id],
+        run_robust_global_optimisation = True
+        if (initial_vane_angles_guess_rad[0][0] != None):
+            # try a local optimisation algorithm
+            vaneAngleProblem.update_vane_angle_determination_algorithm(requested_vane_torque, sunlight_vector_body_frame)
+            vane_angle_allocation_results = minimize(vaneAngleProblem.fitness,
+                                                        initial_vane_angles_guess_rad[current_vane_id, :],
+                                                        method='Nelder-Mead',
+                                                        bounds=vane_angles_bounds,
+                                                        tol=tol_vane_angle_determination_global_search)
+
+            vane_torque = vaneAngleProblem.single_vane_torque([vane_angle_allocation_results.x[0], vane_angle_allocation_results.x[1]])
+            orientation_angle_difference_vane_torque = np.rad2deg(np.arccos(np.dot(requested_vane_torque, vane_torque)/(np.linalg.norm(requested_vane_torque) * np.linalg.norm(vane_torque))))
+            relative_magnitude_difference_vane_torque = abs((np.linalg.norm(vane_torque) - np.linalg.norm(requested_vane_torque))/np.linalg.norm(requested_vane_torque))
+            if (relative_magnitude_difference_vane_torque > 0.1 or orientation_angle_difference_vane_torque > 5.
+                    or orientation_angle_difference_vane_torque < 0):   # TODO: make global variable
+                print("Local optimisation failed, starting DIRECT algorithm")
+                if (previous_vanes_torque[0] != None):
+                    print(x_final-previous_vanes_torque)
+                print(sunlight_vector_body_frame)
+                print(vane_angle_allocation_results.fun)
+                print(vaneAngleProblem.single_vane_torque([vane_angle_allocation_results.x[0], vane_angle_allocation_results.x[1]]))
+                print(optimised_vane_torque / tap.scaling_list[current_vane_id])
+            else:
+                run_robust_global_optimisation = False
+
+
+        if (run_robust_global_optimisation):
+            vane_angle_allocation_results = vaneAngleAllocationScaling(1, requested_vane_torque,
                                                                        sunlight_vector_body_frame,
                                                                        vaneAngleProblem,
                                                                        vane_angles_bounds,
                                                                        tol_vane_angle_determination_global_search,
                                                                        tol_vane_angle_determination_start_golden_section)[1]
-        torque_from_vane_angles = vaneAngleProblem.single_vane_torque([vane_angle_allocation_results.x[0], vane_angle_allocation_results.x[1]]) * tap.scaling_list[current_vane_id]
+            if (vane_angle_allocation_results.fun > tol_vane_angle_determination_start_golden_section):
+                print("Scaling the desired torque as it is too large")
+                f_golden = lambda t, Td=requested_vane_torque, \
+                                  n_s=sunlight_vector_body_frame, vaneAngProb=vaneAngleProblem, \
+                                  vane_bounds=vane_angles_bounds, \
+                                  tol_global=tol_vane_angle_determination_global_search, \
+                                  tol_golden=tol_vane_angle_determination_start_golden_section: \
+                    vaneAngleAllocationScaling(t, Td, n_s, vaneAngProb, vane_bounds, tol_global, tol_golden)[0]
+
+                # golden section search on scaling factor
+                minimizer = golden(f_golden, brack=(0, 1), tol=tol_vane_angle_determination_golden_section)
+                vane_angle_allocation_results = vaneAngleAllocationScaling(minimizer, optimised_vane_torque / tap.scaling_list[current_vane_id],
+                                                                           sunlight_vector_body_frame,
+                                                                           vaneAngleProblem,
+                                                                           vane_angles_bounds,
+                                                                           tol_vane_angle_determination_global_search,
+                                                                           tol_vane_angle_determination_start_golden_section)[1]
+
+        torque_from_vane_angles = vaneAngleProblem.single_vane_torque([vane_angle_allocation_results.x[0],
+                                                                       vane_angle_allocation_results.x[1]]) * tap.scaling_list[current_vane_id]
         torque_from_vane_angles_list[current_vane_id, :] = torque_from_vane_angles
         vane_angles_rad[current_vane_id, :] = vane_angle_allocation_results.x[:2]
 
     resulting_torque_from_angles = torque_from_vane_angles_list.sum(axis=0)
     torque_from_vane_angles_direction = resulting_torque_from_angles / np.linalg.norm(resulting_torque_from_angles)
     desired_torque_direction = desired_torque / np.linalg.norm(desired_torque)
-    if (np.linalg.norm(torque_from_vane_angles_direction-desired_torque_direction)/3>1e-2):
+    orientation_difference_degrees = np.rad2deg(np.arccos(np.dot(torque_from_vane_angles_direction, desired_torque_direction)))
+
+    if (abs((orientation_difference_degrees)) > 5):
         print("---WARNING, the torque direction is not preserved---")
-        #print(torque_from_vane_angles_direction)
-        #print(desired_torque_direction)
+        print(torque_from_vane_angles_direction)
+        print(desired_torque_direction)
         #print(np.linalg.norm(torque_from_vane_angles_direction-desired_torque_direction))
         #print(f'resulting torque from angles: {resulting_torque_from_angles}')
         #print("WARNING, the torque direction is not preserved")
-        #print("---------------------------------------------------")
+        print("---------------------------------------------------")
 
-    return vane_angles_rad, torque_from_vane_angles_list
+    return vane_angles_rad, torque_from_vane_angles_list, optimal_torque_allocation
 
 class constrainedEllipseCoefficientsProblem:
     def __init__(self, convex_hull_points):
@@ -830,7 +870,7 @@ def generate_AMS_data(vane_id, vaneAngleProblem, current_sun_angle_alpha_deg, cu
                     np.sin(alpha_s_rad) * np.sin(beta_s_rad),
                     -np.cos(alpha_s_rad)])   # In the body reference frame
 
-    vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0, 0, 0]), n_s)  # False at the next call
+    vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0, 1, 0]), n_s)  # False at the next call
     print(f'vane_id={vane_id}, alpha_s_deg={round(np.rad2deg(alpha_s_rad), 1)}, beta_s_deg={round(np.rad2deg(beta_s_rad), 1)}')
     if (savefig): current_figs = [plt.figure(1), plt.figure(2), plt.figure(3)]
     if (shadow_computation==2):

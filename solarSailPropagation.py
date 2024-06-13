@@ -18,7 +18,7 @@ from tudatpy.astro.time_conversion import DateTime
 
 
 # Define solar sail - see constants file
-acs_object = sail_attitude_control_systems("vanes", boom_list)
+acs_object = sail_attitude_control_systems("vanes", boom_list, include_shadow=False)
 acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     vanes_origin_list,
                                     vanes_rotation_matrices_list,
@@ -28,7 +28,8 @@ acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     vanes_rotational_dof,
                                     vane_has_ideal_model,
                                     wings_coordinates_list,
-                                    vane_mechanical_rotation_limits)
+                                    vane_mechanical_rotation_limits,
+                                    torque_allocation_problem_objective_function_weights=[2./3., 1./3.])
 
 sail = sail_craft("ACS3",
                   len(wings_coordinates_list),
@@ -48,7 +49,7 @@ sail.set_desired_sail_body_frame_inertial_rotational_velocity(np.array([0., 0., 
 
 # Set simulation start and end epochs
 simulation_start_epoch = DateTime(2024, 6, 1, 0).epoch()
-simulation_end_epoch = DateTime(2024, 6, 1, 20).epoch()
+simulation_end_epoch = DateTime(2024, 6, 2, 0).epoch()
 
 # Initial states
 initial_translational_state = element_conversion.keplerian_to_cartesian_elementwise(
@@ -62,7 +63,9 @@ initial_translational_state = element_conversion.keplerian_to_cartesian_elementw
 
 # Random initial orientation just to try
 inertial_to_body_initial = np.eye(3)    # np.dot(np.dot(R.from_euler('y', 23, degrees=True).as_matrix(), R.from_euler('x', 45, degrees=True).as_matrix()), R.from_euler('z', 85, degrees=True).as_matrix())
-initial_rotational_state = np.concatenate((rotation_matrix_to_quaternion_entries(inertial_to_body_initial), np.array([2 * np.pi / 3600., 2 * np.pi / 3600, 2 * np.pi / 3600])))
+initial_quaternions = rotation_matrix_to_quaternion_entries(inertial_to_body_initial)
+initial_rotational_velocity = np.array([0 * 2 * np.pi / 3600., 0 * 2 * np.pi / 3600, 10 * 2 * np.pi / 3600])
+initial_rotational_state = np.concatenate((initial_quaternions, initial_rotational_velocity))
 
 sailProp = sailCoupledDynamicsProblem(sail,
                initial_translational_state,
@@ -79,10 +82,12 @@ combined_propagator_settings = sailProp.define_propagators(integrator_settings, 
 t0 = time.time()
 state_history, states_array, dependent_variable_history, dependent_variable_array = sailProp.run_sim(bodies, combined_propagator_settings)
 t1 = time.time()
+
+rotations_per_hour = initial_rotational_velocity * 3600/(2*np.pi)
 sailProp.write_results_to_file(state_history,
-                               'PropagationData/vaneDetumblingTest/state_history.dat',
+                               f'PropagationData/vaneDetumblingTest/state_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}.dat',
                                dependent_variable_history,
-                               'PropagationData/vaneDetumblingTest/dependent_variable_history.dat')
+                               f'PropagationData/vaneDetumblingTest/dependent_variable_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}.dat')
 
 print(t1-t0)
 

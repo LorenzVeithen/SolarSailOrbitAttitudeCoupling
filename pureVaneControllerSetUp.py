@@ -2,12 +2,13 @@ from constants import *
 from MiscFunctions import *
 from attitudeControllersClass import sail_attitude_control_systems
 from vaneControllerMethods import vane_system_angles_from_desired_torque
+from time import time
 
 # these should be moved to global constants
 include_shadow = False
 solar_irradiance = 1400
-alpha_s_deg = -139
-beta_s_deg = 98
+alpha_s_deg = 34
+beta_s_deg = -123
 
 torque_allocation_problem_objective_function_weights = [1, 0]
 
@@ -31,12 +32,23 @@ acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     vane_mechanical_rotation_limits)
 
 vane_angles_bounds = [(-np.pi, np.pi), (-np.pi, np.pi)]
-previous_vanes_torque = None
+previous_vanes_torque = [None]
 target_torque = np.array([10., 0., 0.])
 solar_irradiance_W = 1400
-v_angles, vane_torques = vane_system_angles_from_desired_torque(acs_object, vane_angles_bounds, target_torque, previous_vanes_torque, sunlight_vector_body_frame)
+t0 = time()
+
+initial_guess = np.array([[-75.29949703, -106.63008688], [156.1042524, 50.86419753], [-167.40740741, 18.03383631], [140.173754, -159.74394147]])
+
+v_angles, vane_torques, optimal_torque = vane_system_angles_from_desired_torque(acs_object,
+                                                                vane_angles_bounds,
+                                                                target_torque,
+                                                                previous_vanes_torque,
+                                                                sunlight_vector_body_frame,
+                                                                np.deg2rad(initial_guess))
+print(time()-t0)
 print(np.rad2deg(v_angles))
-print(vane_torques.sum(axis=0))
+print(optimal_torque)
+print(vane_torques)
 
 print("torque directions")
 print(target_torque/np.linalg.norm(target_torque))

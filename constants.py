@@ -27,6 +27,7 @@ sail_material_areal_density = 0.00425   # kg/m^2
 vane_angles_allocation_scaling_factor = 1e-6        # Scaling of the objective function for the vane angles allocation algorithm
 number_shadow_mesh_nodes = 10
 vane_mechanical_rotation_limits = ([-np.pi, -np.pi], [np.pi, np.pi])
+
 # Sail shape
 boom_length = 7.     # m
 boom_attachment_point = 0.64    # m
@@ -134,4 +135,10 @@ tol_vane_angle_determination_global_search = 1e-4
 
 tol_torque_allocation_problem_constraint = 1e-7
 tol_torque_allocation_problem_objective = 0#1e-7
-tol_torque_allocation_problem_x = 0#1e-4
+tol_torque_allocation_problem_x = 1e-4
+
+tol_rotational_velocity_orientation_change_update_vane_angles_degrees = 1  # deg
+tol_sunlight_vector_body_frame_orientation_change_update_vane_angles_degrees = 5 # deg
+tol_relative_change_in_rotational_velocity_magnitude = 0.1  # [-]
+
+ellipse_bounding_box_margin = 0.1

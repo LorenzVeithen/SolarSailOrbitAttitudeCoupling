@@ -82,7 +82,7 @@ if (COMPUTE_DATA):
                                                    wings_coordinates_list,
                                                    acs_object,
                                                    include_shadow=True)
-    vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0, 0, 0]), np.array([0, 0, -1]),
+    vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0, 1, 0]), np.array([0, 0, -1]),
                                                                vane_variable_optical_properties=True, vane_optical_properties_list=vanes_optical_properties)  # and the next time you can put False
 
     sun_angles_num, vane_angles_num = 37, 100
