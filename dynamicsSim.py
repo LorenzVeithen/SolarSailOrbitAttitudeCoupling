@@ -3,14 +3,9 @@ sys.path.insert(0, r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy")
 
 # Load standard modules
 import matplotlib
-import numpy as np
 matplotlib.use('TkAgg')
-from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
-from constants import *
 from attitudeControllersClass import *
-from MiscFunctions import set_axes_equal
 
 
 # Load tudatpy modules
@@ -48,10 +43,7 @@ class sailCoupledDynamicsProblem:
         self.occulting_bodies_dict = dict()
         self.occulting_bodies_dict["Sun"] = ["Earth"]
 
-        # integrator settings
-        self.initial_step_size = 1.0
-        self.control_settings = propagation_setup.integrator.step_size_control_elementwise_scalar_tolerance(1.0E-8, 1.0E-8)
-        self.validation_settings = propagation_setup.integrator.step_size_validation(1E-5, 1E2)
+        # initial states
         self.initial_translational_state = initial_translational_state
         self.initial_rotational_state = initial_rotational_state
 
@@ -154,21 +146,27 @@ class sailCoupledDynamicsProblem:
                     np.shape(first_attitude_control_dependent_variable_array)[0]),       # Vane deflections
                 ]
 
-    def define_numerical_environment(self):
+    def define_numerical_environment(self,
+                                     initial_time_step=1.0,
+                                     control_settings=propagation_setup.integrator.step_size_control_elementwise_scalar_tolerance(1.0E-12, 1.0E-12),
+                                     validation_settings=propagation_setup.integrator.step_size_validation(1E-5, 1E2),
+                                     benchmark_bool=False):
         # Create termination settings
         termination_settings = propagation_setup.propagator.time_termination(self.simulation_end_epoch,
                                                                              terminate_exactly_on_final_condition=True)
-
+        # TODO: finish when rotational velocity is zero
         # Create numerical integrator settings
-        #integrator_settings = propagation_setup.integrator.runge_kutta_variable_step(
-        #    initial_time_step=self.initial_step_size,
-        #    coefficient_set=propagation_setup.integrator.rkf_45,
-        #    step_size_control_settings=self.control_settings,
-        #    step_size_validation_settings=self.validation_settings)
-
-        integrator_settings = propagation_setup.integrator.runge_kutta_fixed_step(
-            time_step=0.5,
-            coefficient_set=propagation_setup.integrator.euler_forward)
+        if (benchmark_bool):
+            integrator_settings = propagation_setup.integrator.runge_kutta_fixed_step(
+                time_step=initial_time_step,
+                coefficient_set=propagation_setup.integrator.rkf_78,
+                order_to_use=propagation_setup.integrator.OrderToIntegrate.lower)
+        else:
+            integrator_settings = propagation_setup.integrator.runge_kutta_variable_step(
+                initial_time_step=initial_time_step,
+                coefficient_set=propagation_setup.integrator.rkf_78,
+                step_size_control_settings=control_settings,
+                step_size_validation_settings=validation_settings)
 
         return termination_settings, integrator_settings
 

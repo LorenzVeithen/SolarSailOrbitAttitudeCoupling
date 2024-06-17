@@ -28,7 +28,7 @@ n_s = n_s/np.linalg.norm(n_s)
 
 
 # Define solar sail - see constants file
-acs_object = sail_attitude_control_systems("vanes", boom_list)
+acs_object = sail_attitude_control_systems("vanes", boom_list, sail_I, algorithm_constants)
 acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     vanes_origin_list,
                                     vanes_rotation_matrices_list,
@@ -38,7 +38,8 @@ acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     vanes_rotational_dof,
                                     vane_has_ideal_model,
                                     wings_coordinates_list,
-                                    vane_mechanical_rotation_limits)
+                                    vane_mechanical_rotation_limits,
+                                    vanes_optical_properties)
 
 sail = sail_craft("ACS3",
                   len(wings_coordinates_list),

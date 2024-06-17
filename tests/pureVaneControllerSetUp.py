@@ -1,7 +1,6 @@
 from constants import *
 from MiscFunctions import *
 from attitudeControllersClass import sail_attitude_control_systems
-from vaneControllerMethods import vane_system_angles_from_desired_torque
 from time import time
 
 # these should be moved to global constants
@@ -19,7 +18,7 @@ sunlight_vector_body_frame = np.array([np.sin(np.deg2rad(alpha_s_deg)) * np.cos(
 sunlight_vector_body_frame = sunlight_vector_body_frame/np.linalg.norm(sunlight_vector_body_frame)
 
 # attitude control system object
-acs_object = sail_attitude_control_systems("vanes", boom_list, include_shadow=include_shadow)
+acs_object = sail_attitude_control_systems("vanes", boom_list, sail_I, algorithm_constants, include_shadow=include_shadow)
 acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     vanes_origin_list,
                                     vanes_rotation_matrices_list,
@@ -29,7 +28,8 @@ acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     vanes_rotational_dof,
                                     vane_has_ideal_model,
                                     wings_coordinates_list,
-                                    vane_mechanical_rotation_limits)
+                                    vane_mechanical_rotation_limits,
+                                    vanes_optical_properties)
 
 vane_angles_bounds = [(-np.pi, np.pi), (-np.pi, np.pi)]
 previous_vanes_torque = [None]
@@ -39,7 +39,7 @@ t0 = time()
 
 initial_guess = np.array([[-75.29949703, -106.63008688], [156.1042524, 50.86419753], [-167.40740741, 18.03383631], [140.173754, -159.74394147]])
 
-v_angles, vane_torques, optimal_torque = vane_system_angles_from_desired_torque(acs_object,
+v_angles, vane_torques, optimal_torque = acs_object.vane_system_angles_from_desired_torque(acs_object,
                                                                 vane_angles_bounds,
                                                                 target_torque,
                                                                 previous_vanes_torque,

@@ -1,6 +1,6 @@
 from constants import sail_mass, sail_I, sail_nominal_CoM
 import numpy as np
-from MiscFunctions import all_equal, closest_point_on_a_segment_to_a_third_point, compute_panel_geometrical_properties
+from MiscFunctions import compute_panel_geometrical_properties
 
 
 
@@ -24,6 +24,7 @@ class sail_craft:
         # Link to other classes
         self.bodies = None
         self.attitude_control_system = attitude_control_object                          # The ACS class object to obtain all control mechanisms
+        self.current_time = None
 
         # Non-varying sail characteristics
         self.sail_name = sail_name
@@ -128,7 +129,7 @@ class sail_craft:
             body_position = np.array([None, None, None])
 
         if ((self.current_body_position != body_position).all() or (self.current_body_position == None).all()):  # Second condition for initialisation
-            panels_coordinates, panels_optical_properties, ACS_CoM, moving_masses_positions = self.attitude_control_system.attitude_control(self.bodies, self.desired_sail_body_frame_inertial_rotational_velocity)    # Find way to include the current state and the desired one
+            panels_coordinates, panels_optical_properties, ACS_CoM, moving_masses_positions = self.attitude_control_system.attitude_control(self.bodies, self.desired_sail_body_frame_inertial_rotational_velocity, self.current_time)    # Find way to include the current state and the desired one
             self.sail_wings_coordinates = panels_coordinates["wings"] if (len(panels_coordinates["wings"]) != 0) else self.sail_wings_coordinates
             self.sail_vanes_coordinates = panels_coordinates["vanes"] if (len(panels_coordinates["vanes"]) != 0) else self.sail_vanes_coordinates
             self.sail_wings_optical_properties = panels_optical_properties["wings"] if (len(panels_optical_properties["wings"]) != 0) else self.sail_wings_optical_properties
@@ -155,14 +156,17 @@ class sail_craft:
 
     # Get rigid body properties
     def get_sail_mass(self, t):
+        self.current_time = t
         self.sail_attitude_control_system()
         return self.sail_mass
 
     def get_sail_center_of_mass(self, t):
+        self.current_time = t
         #self.sail_attitude_control_system()
         return self.sail_center_of_mass_position
 
     def get_sail_inertia_tensor(self, t):
+        self.current_time = t
         #self.sail_attitude_control_system()
         return self.sail_inertia_tensor
 

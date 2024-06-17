@@ -88,27 +88,7 @@ for i in range(len(vanes_origin_list)):
     current_vane_coords_body_frame_coords = np.vstack((current_vane_coords_body_frame_coords, second_point_body_frame, third_point_body_frame))
     vanes_coordinates_list.append(current_vane_coords_body_frame_coords)
 
-vanes_optical_properties = [np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)
 vane_has_ideal_model = True
-#vanes_optical_properties = [np.array([0.2, 0.3, 0.5, 0.6, 0.3, 0.1, 2/3, 2/3, 1., 1.])] * 4
+vanes_optical_properties = [np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)
 
 vanes_rotational_dof = np.array([[True, True], [True, True], [True, True], [True, True]])   #
-
-algorithm_constants = {}
-algorithm_constants["vane_angle_determination_start_golden_section"] = 1e-3
-algorithm_constants["vane_angle_determination_golden_section"] = 1e-3
-algorithm_constants["vane_angle_determination_global_search"] = 1e-4
-
-algorithm_constants["torque_allocation_problem_constraint"] = 1e-7
-algorithm_constants["torque_allocation_problem_objective"] = 0#1e-7
-algorithm_constants["torque_allocation_problem_x"] = 1e-4
-
-algorithm_constants["max_rotational_velocity_orientation_change_update_vane_angles_degrees"] = 5  # [deg]
-algorithm_constants["max_sunlight_vector_body_frame_orientation_change_update_vane_angles_degrees"] = 5  # [deg]
-algorithm_constants["max_relative_change_in_rotational_velocity_magnitude"] = 0.1  # [-]
-
-algorithm_constants["max_vane_torque_orientation_error"] = 15.  # [deg]
-algorithm_constants["max_vane_torque_relative_magnitude_error"] = 0.25  # [-]
-
-algorithm_constants["sigmoid_scaling_parameter"] = 3        # [-] but is related to the rate of change of the vane angles
-algorithm_constants["sigmoid_time_shift_parameter"] = 4     # [s]

@@ -19,6 +19,15 @@ torque_allocation_problem_objective_function_weights = [1, 0]
 target_torque = np.array([0.0, 0., 5.])
 previous_torque_allocation_solution = np.array([0] * 12)
 
+# tolerances
+tol_vane_angle_determination_start_golden_section = algorithm_constants["vane_angle_determination_start_golden_section"]
+tol_vane_angle_determination_golden_section = algorithm_constants["vane_angle_determination_golden_section"]
+tol_vane_angle_determination_global_search = algorithm_constants["vane_angle_determination_global_search"]
+
+tol_torque_allocation_problem_constraint = algorithm_constants["torque_allocation_problem_constraint"]
+tol_torque_allocation_problem_objective = algorithm_constants["torque_allocation_problem_objective"]
+tol_torque_allocation_problem_x = algorithm_constants["torque_allocation_problem_x"]
+
 # sunlight vector
 sunlight_vector_body_frame = np.array([np.sin(np.deg2rad(alpha_s_deg)) * np.cos(np.deg2rad(beta_s_deg)),
                             np.sin(np.deg2rad(alpha_s_deg)) * np.sin(np.deg2rad(beta_s_deg)),
@@ -26,7 +35,7 @@ sunlight_vector_body_frame = np.array([np.sin(np.deg2rad(alpha_s_deg)) * np.cos(
 sunlight_vector_body_frame = sunlight_vector_body_frame/np.linalg.norm(sunlight_vector_body_frame)
 
 # attitude control system object
-acs_object = sail_attitude_control_systems("vanes", boom_list)
+acs_object = sail_attitude_control_systems("vanes", boom_list, sail_I, algorithm_constants)
 acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     vanes_origin_list,
                                     vanes_rotation_matrices_list,
@@ -36,7 +45,8 @@ acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     vanes_rotational_dof,
                                     vane_has_ideal_model,
                                     wings_coordinates_list,
-                                    vane_mechanical_rotation_limits)
+                                    vane_mechanical_rotation_limits,
+                                    vanes_optical_properties)
 
 # sail object
 sail = sail_craft("ACS3",
@@ -68,8 +78,10 @@ tap = vaneTorqueAllocationProblem(acs_object,
                                   True,
                                   include_shadow,
                                   ellipse_coefficient_functions_list,
+                                  vanes_optical_properties,
                                   w1=torque_allocation_problem_objective_function_weights[0],
-                                  w2=torque_allocation_problem_objective_function_weights[1])
+                                  w2=torque_allocation_problem_objective_function_weights[1],
+                                  num_shadow_mesh_nodes=10)
 
 tap.set_desired_torque(target_torque, previous_torque_allocation_solution)
 t0 = time()

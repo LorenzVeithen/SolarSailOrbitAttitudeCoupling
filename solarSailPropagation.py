@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 from constants import *
+from generalConstants import AMS_directory
 
 from MiscFunctions import set_axes_equal
 from attitudeControllersClass import sail_attitude_control_systems
@@ -18,7 +19,7 @@ from tudatpy.astro.time_conversion import DateTime
 
 
 # Define solar sail - see constants file
-acs_object = sail_attitude_control_systems("vanes", boom_list, include_shadow=False)
+acs_object = sail_attitude_control_systems("vanes", boom_list, sail_I, algorithm_constants, include_shadow=False)
 acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     vanes_origin_list,
                                     vanes_rotation_matrices_list,
@@ -29,6 +30,7 @@ acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     vane_has_ideal_model,
                                     wings_coordinates_list,
                                     vane_mechanical_rotation_limits,
+                                    vanes_optical_properties,
                                     torque_allocation_problem_objective_function_weights=[2./3., 1./3.])
 
 sail = sail_craft("ACS3",
@@ -62,9 +64,9 @@ initial_translational_state = element_conversion.keplerian_to_cartesian_elementw
     true_anomaly=theta_0)
 
 # Random initial orientation just to try
-inertial_to_body_initial = np.eye(3)    # np.dot(np.dot(R.from_euler('y', 23, degrees=True).as_matrix(), R.from_euler('x', 45, degrees=True).as_matrix()), R.from_euler('z', 85, degrees=True).as_matrix())
+inertial_to_body_initial = np.dot(np.dot(R.from_euler('y', 0, degrees=True).as_matrix(), R.from_euler('x', 0, degrees=True).as_matrix()), R.from_euler('z', 0, degrees=True).as_matrix())
 initial_quaternions = rotation_matrix_to_quaternion_entries(inertial_to_body_initial)
-initial_rotational_velocity = np.array([0 * 2 * np.pi / 3600., 0 * 2 * np.pi / 3600, 10 * 2 * np.pi / 3600])
+initial_rotational_velocity = np.array([5 * 2 * np.pi / 3600., 5 * 2 * np.pi / 3600, 5 * 2 * np.pi / 3600])
 initial_rotational_state = np.concatenate((initial_quaternions, initial_rotational_velocity))
 
 sailProp = sailCoupledDynamicsProblem(sail,

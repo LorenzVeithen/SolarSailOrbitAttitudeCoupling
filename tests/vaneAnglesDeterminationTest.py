@@ -14,14 +14,14 @@ from attitudeControllersClass import sail_attitude_control_systems
 from vaneControllerMethods import vaneAnglesAllocationProblem
 from scipy.optimize import shgo, golden
 
-sun_angle_alpha = np.deg2rad(34)
-sun_angle_beta = np.deg2rad(-123)
+sun_angle_alpha = np.deg2rad(0)
+sun_angle_beta = np.deg2rad(0)
 n_s = np.array([np.sin(sun_angle_alpha) * np.cos(sun_angle_beta), np.sin(sun_angle_alpha) * np.sin(sun_angle_beta), -np.cos(sun_angle_alpha)])   # In the body reference frame
 n_s = n_s/np.linalg.norm(n_s)
 
 
 # Define solar sail - see constants file
-acs_object = sail_attitude_control_systems("vanes", boom_list)
+acs_object = sail_attitude_control_systems("vanes", boom_list, sail_I, algorithm_constants)
 acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     vanes_origin_list,
                                     vanes_rotation_matrices_list,
@@ -31,7 +31,8 @@ acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     vanes_rotational_dof,
                                     vane_has_ideal_model,
                                     wings_coordinates_list,
-                                    vane_mechanical_rotation_limits)
+                                    vane_mechanical_rotation_limits,
+                                    vanes_optical_properties)
 
 sail = sail_craft("ACS3",
                   len(wings_coordinates_list),
@@ -48,7 +49,7 @@ sail = sail_craft("ACS3",
                   sail_material_areal_density,
                   acs_object)
 
-vaneAngleProblem = vaneAnglesAllocationProblem(1,
+vaneAngleProblem = vaneAnglesAllocationProblem(2,
                                                ([-np.pi, -np.pi], [np.pi, np.pi]),
                                                10,
                                                wings_coordinates_list,
@@ -57,12 +58,9 @@ vaneAngleProblem = vaneAnglesAllocationProblem(1,
 
 
 
-
-
-print(vaneAngleProblem.single_vane_torque([0, 0]))
-
-
 vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0., 0.70973164, -0.4875445]), n_s, vane_variable_optical_properties=True, vane_optical_properties_list=vanes_optical_properties)   # and the next time you can put False
+print(vaneAngleProblem.single_vane_torque([np.deg2rad(0), np.deg2rad(0)]))
+
 
 fit_func = lambda x:  vaneAngleProblem.fitness(x)[0]
 boundss = [(vaneAngleProblem.get_bounds()[0][i], vaneAngleProblem.get_bounds()[1][i]) for i in

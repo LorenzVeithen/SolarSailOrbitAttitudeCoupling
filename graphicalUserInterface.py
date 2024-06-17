@@ -4,6 +4,7 @@ sys.path.insert(0, r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy")
 import matplotlib.pyplot as plt
 import numpy as np
 from constants import *
+from generalConstants import AMS_directory
 from MiscFunctions import quiver_data_to_segments, set_axes_equal
 from ACS_dynamicalModels import vane_dynamical_model
 import matplotlib.animation as animation
@@ -30,10 +31,9 @@ thr_previous_spacecraft_positions_fade_down = 1
 thr_sun_rays = 1 * 24 * 3600
 
 # Load data
-
-state_history_array = np.loadtxt("PropagationData/vaneDetumblingTest/state_history_omega_x_0.0_omega_y_0.0_omega_z_10.0.dat")
+state_history_array = np.loadtxt("PropagationData/vaneDetumblingTest/state_history_omega_x_5.0_omega_y_5.0_omega_z_5.0.dat")
 dependent_variable_history_array = np.loadtxt(
-    "PropagationData/vaneDetumblingTest/dependent_variable_history_omega_x_0.0_omega_y_0.0_omega_z_10.0.dat")
+    "PropagationData/vaneDetumblingTest/dependent_variable_history_omega_x_5.0_omega_y_5.0_omega_z_5.0.dat")
 
 # Extract state history
 #state_history_array = state_history_array[::25]
@@ -61,6 +61,8 @@ earth_sun_relative_position = dependent_variable_history_array[:, 17:20]
 spacecraft_total_torque_norm = dependent_variable_history_array[:, 20]
 vanes_x_rotations = np.rad2deg(dependent_variable_history_array[:, 21:25])  # Note: this might need to be changed; is there a way to make this automatic?
 vanes_y_rotations = np.rad2deg(dependent_variable_history_array[:, 25:29])  # Note: this might need to be changed; is there a way to make this automatic?
+optimal_torques= dependent_variable_history_array[:, 29:32]
+vane_torques = dependent_variable_history_array[:, 32:35]
 
 spacecraft_sun_relative_position_in_body_fixed_frame = np.zeros(np.shape(spacecraft_sun_relative_position))
 for i in range(np.shape(t_dependent_variables_hours)[0]):
@@ -352,7 +354,7 @@ if (ANIMATION):
                                                              vstack_centroid_surface_normal_in_inertial_frame[:, 5],
                                                              color='r', arrow_length_ratio=0.1, zorder=20, length=1)
 
-        for boom_plot in boom_plots_list:
+        for boom_plot, boom in zip(boom_plots_list, boom_list):
             boom_point_1_inertial = np.dot(R_IB, boom[0, :])
             boom_point_2_inertial = np.dot(R_IB, boom[1, :])
             boom_plot.set_xdata([boom_point_1_inertial[0], boom_point_2_inertial[0]])
@@ -380,13 +382,14 @@ if (PLOTS):
         plt.plot(t_dependent_variables_hours, vanes_x_rotations[:, i], label=f"vane {i}")
     plt.xlabel("Time [hours]")
     plt.ylabel("Vane x-axis rotation [deg]")
-
+    plt.legend()
 
     plt.figure()
     for i in range(4):
         plt.plot(t_dependent_variables_hours, vanes_y_rotations[:, i], label=f"vane {i}")
     plt.xlabel("Time [hours]")
     plt.ylabel("Vane y-axis rotation [deg]")
+    plt.legend()
 
 
     plt.figure()
@@ -401,8 +404,28 @@ if (PLOTS):
     plt.xlabel("Time [hours]")
     plt.ylabel("Rotational velocity vector components [deg/s]")
 
+    plt.figure()
+    plt.plot(t_hours, spacecraft_srp_torque_vector[:, 0], label='Tx')
+    plt.plot(t_hours, spacecraft_srp_torque_vector[:, 1], label='Ty')
+    plt.plot(t_hours, spacecraft_srp_torque_vector[:, 2], label='Tz')
+    plt.legend()
 
+    plt.figure()
+    #plt.plot(t_hours, np.rad2deg(omega_x)/max(abs(np.rad2deg(omega_x))), label="omega_x non-dim")
+    plt.plot(t_hours, spacecraft_srp_torque_vector[:, 0] , label='Tx non-dim')
+    plt.plot(t_hours, vane_torques[:, 0], label="expected vane Tx")
+    plt.plot(t_hours, optimal_torques[:, 0], label="optimal vane Tx")
+    plt.legend()
+
+    plt.figure()
+    #plt.plot(t_hours, np.rad2deg(omega_y) / max(abs(np.rad2deg(omega_y))), label="omega_y non-dim")
+    plt.plot(t_hours, spacecraft_srp_torque_vector[:, 1], label='Ty non-dim')
+    plt.plot(t_hours, vane_torques[:, 1], label="expected vane Ty")
+    plt.plot(t_hours, optimal_torques[:, 1], label="optimal vane Ty")
+    plt.legend()
     plt.show()
+
+
 
 
 

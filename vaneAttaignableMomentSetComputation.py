@@ -15,7 +15,7 @@ if __name__ == "__main__":
     COMPUTE_MULTIPLE_VANES = True
     if (COMPUTE_DATA):
         # Define solar sail - see constants file
-        acs_object = sail_attitude_control_systems("vanes", boom_list)
+        acs_object = sail_attitude_control_systems("vanes", boom_list, sail_I, algorithm_constants)
         acs_object.set_vane_characteristics(vanes_coordinates_list,
                                             vanes_origin_list,
                                             vanes_rotation_matrices_list,
@@ -25,7 +25,8 @@ if __name__ == "__main__":
                                             vanes_rotational_dof,
                                             vane_has_ideal_model,
                                             wings_coordinates_list,
-                                            vane_mechanical_rotation_limits)
+                                            vane_mechanical_rotation_limits,
+                                            vanes_optical_properties)
 
         current_optical_model_str = "Ideal_model"
         sail = sail_craft("ACS3",

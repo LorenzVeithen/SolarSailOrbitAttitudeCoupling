@@ -4,8 +4,6 @@ from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from attitudeControllersClass import sail_attitude_control_systems
 from sailCraftClass import sail_craft
-from constants import sail_mass, sail_I, boom_length
-from scipy.spatial.transform import Rotation as R
 from MiscFunctions import compute_panel_geometrical_properties
 from constants import *
 boom_attachment_point = 0.64
@@ -53,13 +51,13 @@ vanes_rotation_matrices_list = [R.from_euler('z', 90., degrees=True).as_matrix()
                                 R.from_euler('z', 0., degrees=True).as_matrix(),
                                 R.from_euler('z', 270., degrees=True).as_matrix(),
                                 R.from_euler('z', 180., degrees=True).as_matrix(),
-                                R.from_euler('z', 45., degrees=True).as_matrix()]
+                                ]#R.from_euler('z', 45., degrees=True).as_matrix()
 
 vanes_origin_list = [np.array([0., boom_length, 0.]),
                      np.array([boom_length, 0., 0.]),
                      np.array([0, -boom_length, 0.]),
                      np.array([-boom_length, 0., 0.]),
-                     np.array([np.cos(np.pi/4) * boom_length/np.sqrt(2), np.sin(np.pi/4) * boom_length/np.sqrt(2), 0.])]
+                     ]#np.array([np.cos(np.pi/4) * boom_length/np.sqrt(2), np.sin(np.pi/4) * boom_length/np.sqrt(2), 0.])
 
 vane_coordinates_list = []
 for i in range(len(vanes_origin_list)):
@@ -79,7 +77,7 @@ for i in range(len(vanes_origin_list)):
     vane_coordinates_list.append(current_vane_coords_body_frame_coords)
 
 vanes_optical_properties = [np.array([0, 0, 1, 1, 0, 0, 0, 0, 0, 0])] * 4
-vanes_rotational_dof = [['x'], ['y'], ['x', 'y'], ['x', 'y']]
+#vanes_rotational_dof = [['x'], ['y'], ['x', 'y'], ['x', 'y']]
 
 wings_rotation_matrices_list = [R.from_euler('z', -45, degrees=True).as_matrix(),
                                 R.from_euler('z', -135, degrees=True).as_matrix(),
@@ -99,7 +97,7 @@ if (SHIFTED_PANELS_BOOL):
             wings_coordinates_list[i] = new_points
 
 if (VANES_BOOL):
-    acs_object = sail_attitude_control_systems("vanes", boom_list)
+    acs_object = sail_attitude_control_systems("vanes", boom_list, sail_I, algorithm_constants)
     acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     vanes_origin_list,
                                     vanes_rotation_matrices_list,
@@ -109,10 +107,11 @@ if (VANES_BOOL):
                                     vanes_rotational_dof,
                                     vane_has_ideal_model,
                                     wings_coordinates_list,
-                                    vane_mechanical_rotation_limits)
+                                    vane_mechanical_rotation_limits,
+                                    vanes_optical_properties)
 
 elif(SHIFTED_PANELS_BOOL):
-    acs_object = sail_attitude_control_systems("shifted_wings", boom_list)
+    acs_object = sail_attitude_control_systems("shifted_wings", boom_list, sail_I, algorithm_constants)
     wing_area_list = []
     for i in range(len(wings_coordinates_list)):
         _, wing_area, _ = compute_panel_geometrical_properties(wings_coordinates_list[i])
@@ -120,14 +119,14 @@ elif(SHIFTED_PANELS_BOOL):
     acs_object.set_shifted_panel_characteristics(wings_coordinates_list, wing_area_list, wings_rotation_matrices_list,
                                                  keep_area, 0, np.array([0, 0, 0]))
 elif(SLIDING_MASS_BOOL):
-    acs_object = sail_attitude_control_systems("sliding_masses", boom_list)
+    acs_object = sail_attitude_control_systems("sliding_masses", boom_list, sail_I, algorithm_constants)
     acs_object.set_sliding_masses_characteristics([10, 10], 0, np.array([0, 0, 0]), 1)
 
 else:
-    acs_object = sail_attitude_control_systems("None", boom_list)
+    acs_object = sail_attitude_control_systems("None", boom_list, sail_I, algorithm_constants)
 
 if (VANES_BOOL):
-    sail = sail_craft("ACS3", 4, 5, wings_coordinates_list, vane_coordinates_list, panels_optical_properties, vanes_optical_properties,
+    sail = sail_craft("ACS3", 4, 4, wings_coordinates_list, vane_coordinates_list, panels_optical_properties, vanes_optical_properties,
                       sail_I, 16, 15.66, np.array([0, 0, 0.05]), 0.00425, 0.00425, acs_object)
 elif(SHIFTED_PANELS_BOOL):
     sail = sail_craft("ACS3", 4, 0, wings_coordinates_list, [], [], vanes_optical_properties,
@@ -144,7 +143,7 @@ CoM = sail.get_sail_center_of_mass(0)
 moving_masses_positions = sail.get_sail_moving_masses_positions(0)
 
 wings_coordinates_list = [sail.get_ith_panel_coordinates(i, "Sail") for i in range(4)]
-if VANES_BOOL: vane_coordinates_list = [sail.get_ith_panel_coordinates( i, "Vane") for i in range(5)]
+if VANES_BOOL: vane_coordinates_list = [sail.get_ith_panel_coordinates( i, "Vane") for i in range(4)]
 
 # Plot booms
 fig = plt.figure()
@@ -162,7 +161,7 @@ else: j_max = 1
 for j in range(j_max):
     if (j > 0):
         tp = "Vane"
-        r = 5
+        r = 4
     else:
         tp = "Sail"
         r = 4

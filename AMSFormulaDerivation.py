@@ -10,6 +10,7 @@ from time import time
 from matplotlib import cm
 
 from constants import *
+from generalConstants import AMS_directory
 from MiscFunctions import compute_panel_geometrical_properties, find_linearly_independent_rows, sun_angles_from_sunlight_vector
 from vaneControllerMethods import constrainedEllipseCoefficientsProblem, rotated_ellipse_coefficients_wrt_vane_1
 from vaneControllerMethods import fourierSumFunction, fourierSeriesFunction, combinedFourierFitFunction, cart_to_pol, fit_2d_ellipse, get_ellipse_pts
@@ -22,18 +23,18 @@ from vaneControllerMethods import combinedFourierFitDesignMatrix
 #import h5py
 
 PLOT = True
-COMPUTE_DATA = False
-COMPUTE_ELLIPSES = False
-COMPUTE_ELLIPSE_FOURIER_FORMULA = True
+COMPUTE_DATA = True
+COMPUTE_ELLIPSES = True
+COMPUTE_ELLIPSE_FOURIER_FORMULA = False
 SAVE_DATA = False
 ALL_HULLS = False
 FOURIER_ELLIPSE_AVAILABLE = True
 
 # Define solar sail - see constants file
-sh_comp = 1  # Define whether to work with or without shadow effects
-vane_id = 1
+sh_comp = 0  # Define whether to work with or without shadow effects
+vane_id = 0
 cdir = f"{AMS_directory}/Datasets/Ideal_model/vane_{vane_id}"
-target_hull = "TyTz"
+target_hull = "TxTz"
 
 if (FOURIER_ELLIPSE_AVAILABLE):
     ellipse_coefficient_functions_list = []
@@ -48,7 +49,7 @@ if (COMPUTE_DATA):
             "Error.AMS generation for both shadow TRUE and FALSE is not supported in AMSFormulaDerivation." +
             "Do one after the other")
 
-    acs_object = sail_attitude_control_systems("vanes", boom_list)
+    acs_object = sail_attitude_control_systems("vanes", boom_list, sail_I, algorithm_constants)
     acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     vanes_origin_list,
                                     vanes_rotation_matrices_list,
@@ -58,7 +59,8 @@ if (COMPUTE_DATA):
                                     vanes_rotational_dof,
                                     vane_has_ideal_model,
                                     wings_coordinates_list,
-                                    vane_mechanical_rotation_limits)
+                                    vane_mechanical_rotation_limits,
+                                    vanes_optical_properties)
 
     current_optical_model_str = "Ideal_model"
     sail = sail_craft("ACS3",
@@ -131,8 +133,6 @@ if (COMPUTE_ELLIPSES):
                         -np.cos(alpha_s_rad)])  # In the body reference frame
         point_in_shadow = ams_data[:, 4]    # watch out, for now this is only the torque magnitude
 
-        centroid_body_frame, vane_area, surface_normal_body_frame = compute_panel_geometrical_properties(vanes_coordinates_list[1])
-        moment_arm = np.linalg.norm(vanes_origin_list[1])
         Tx, Ty, Tz = ams_data[:, 5].T, ams_data[:, 6].T, ams_data[:, 7].T
         Tx, Ty, Tz = Tx[point_in_shadow == 0], Ty[point_in_shadow == 0], Tz[point_in_shadow == 0]   # Only select points which are not in the shadow
         Tx, Ty, Tz = Tx[..., None], Ty[..., None], Tz[..., None]
