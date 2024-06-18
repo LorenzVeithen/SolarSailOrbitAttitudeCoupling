@@ -161,18 +161,13 @@ class sail_craft:
         return self.sail_mass
 
     def get_sail_center_of_mass(self, t):
-        self.current_time = t
-        #self.sail_attitude_control_system()
         return self.sail_center_of_mass_position
 
     def get_sail_inertia_tensor(self, t):
-        self.current_time = t
-        #self.sail_attitude_control_system()
         return self.sail_inertia_tensor
 
     # Get moving masses positions
     def get_sail_moving_masses_positions(self, t):
-        #self.sail_attitude_control_system()
         return self.moving_masses_positions_dict
 
     def get_number_of_wings(self):

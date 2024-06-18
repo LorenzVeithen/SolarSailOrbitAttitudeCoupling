@@ -19,22 +19,36 @@ from attitudeControllersClass import sail_attitude_control_systems
 from sailCraftClass import sail_craft
 from numpy.linalg import lstsq
 from vaneControllerMethods import combinedFourierFitDesignMatrix
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import cross_val_score, KFold
+from sklearn.metrics import make_scorer, roc_auc_score
 
 #import h5py
 
-PLOT = True
-COMPUTE_DATA = True
-COMPUTE_ELLIPSES = True
-COMPUTE_ELLIPSE_FOURIER_FORMULA = False
-SAVE_DATA = False
+PLOT = False
+COMPUTE_DATA = False
+COMPUTE_ELLIPSES = False
+COMPUTE_ELLIPSE_FOURIER_FORMULA = True
+order_i = 15     # 8
+order_m = 15     # 6
+order_n = 15     # 6
+cut_off = 0
+
+SAVE_DATA = True
 ALL_HULLS = False
-FOURIER_ELLIPSE_AVAILABLE = True
+FOURIER_ELLIPSE_AVAILABLE = False
+GENERATE_FOURIER_TEST_DATA = False
+
+if (GENERATE_FOURIER_TEST_DATA):
+    coefficients_file_differentiator = '_test_data'
+else:
+    coefficients_file_differentiator = ''
 
 # Define solar sail - see constants file
-sh_comp = 0  # Define whether to work with or without shadow effects
-vane_id = 0
+sh_comp = 1  # Define whether to work with or without shadow effects
+vane_id = 1
 cdir = f"{AMS_directory}/Datasets/Ideal_model/vane_{vane_id}"
-target_hull = "TxTz"
+target_hull = "TyTz"
 
 if (FOURIER_ELLIPSE_AVAILABLE):
     ellipse_coefficient_functions_list = []
@@ -87,9 +101,15 @@ if (COMPUTE_DATA):
     vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0, 1, 0]), np.array([0, 0, -1]),
                                                                vane_variable_optical_properties=True, vane_optical_properties_list=vanes_optical_properties)  # and the next time you can put False
 
-    sun_angles_num, vane_angles_num = 37, 100
-    sun_angle_alpha_list = [60]#np.linspace(-180, 180, sun_angles_num)
-    sun_angle_beta_list = [-40]#np.linspace(-180, 180, sun_angles_num)
+    sun_angles_num, vane_angles_num = 181, 100
+
+    if (not GENERATE_FOURIER_TEST_DATA):
+        sun_angle_alpha_list = np.linspace(-180, 180, sun_angles_num)
+        sun_angle_beta_list = np.linspace(-180, 180, sun_angles_num)
+    else:    # shift the grid and generate the same data
+        sun_angle_alpha_list = np.linspace(-180+1, 180+1, sun_angles_num)[:-1]
+        sun_angle_beta_list = np.linspace(-180+1, 180+1, sun_angles_num)[:-1]
+
     alpha_1_range = np.linspace(-np.pi, np.pi, vane_angles_num)
     alpha_2_range = np.linspace(-np.pi, np.pi, vane_angles_num)
 
@@ -266,8 +286,8 @@ if (COMPUTE_ELLIPSES):
                 else:
                     plt.savefig(
                         f"{AMS_directory}/Plots/Ideal_model/vane_{vane_id}/Fourier_Ellipses/AMS_alpha_{round(alpha_sun_deg, 1)}_beta_{round(beta_sun_deg, 1)}_shadow_{str(bool(sh_comp))}_hull_{target_hull}.png")
-            plt.show()
-            #plt.close()
+            #plt.show()
+            plt.close()
 
     if (len(np.shape(optimised_ellipse_coefficients_stack_with_shadow)) == 1):
         optimised_ellipse_coefficients_stack_with_shadow = optimised_ellipse_coefficients_stack_with_shadow[..., None]
@@ -279,13 +299,13 @@ if (COMPUTE_ELLIPSES):
     if (SAVE_DATA):
         if (np.shape(optimised_ellipse_coefficients_stack_with_shadow)[0] > 1e2):
             np.savetxt(
-                cdir + f"/ellipseCoefficients/" + f"AMS_ellipse_coefficients_shadow_True_hull_{target_hull}.csv",
+                cdir + f"/ellipseCoefficients/" + f"AMS_ellipse_coefficients_shadow_True_hull_{target_hull}{coefficients_file_differentiator}.csv",
                 optimised_ellipse_coefficients_stack_with_shadow, delimiter=",",
                 header='alpha_sun, beta_sun, A, B, C, D, E, F')
 
         if (np.shape(optimised_ellipse_coefficients_stack_without_shadow)[0] > 1e2):
             np.savetxt(
-                cdir + f"/ellipseCoefficients/" + f"AMS_ellipse_coefficients_shadow_False_hull_{target_hull}.csv",
+                cdir + f"/ellipseCoefficients/" + f"AMS_ellipse_coefficients_shadow_False_hull_{target_hull}{coefficients_file_differentiator}.csv",
                 optimised_ellipse_coefficients_stack_without_shadow, delimiter=",",
                 header='alpha_sun, beta_sun, A, B, C, D, E, F')
 
@@ -303,10 +323,6 @@ if (COMPUTE_ELLIPSE_FOURIER_FORMULA):
     Y = ellipse_coefficients_data[:, 2:]  # Take all the ellipse coefficients
 
     current_fit_coefficients = []
-    order_i = 8
-
-    order_m = 6
-    order_n = 6
 
     num_coefficients = (order_i * 2 - 1) ** 2 - (order_i - 2) * 2 + (
                 ((order_n) * (order_m) - 1) * 4 * (order_n > 1 or order_m > 1))
@@ -322,6 +338,20 @@ if (COMPUTE_ELLIPSE_FOURIER_FORMULA):
     for i in range(np.shape(Y)[1]):
         # popt, pcov = curve_fit(fourierSeriesFunc, xdata=sun_angles, ydata=Y[:, i], p0=[1] * (num_coefficients))
         coefficients, residuals, rank, singular_values = lstsq(M, ellipse_coefficients_data[:, i + 2], rcond=1e-10)
+        # Ridge regression with cross-validation
+        ridge = Ridge(alpha=1.0)  # alpha is the regularization strength
+
+        # KFold cross-validator with shuffling
+        kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+        scores = cross_val_score(ridge, M, ellipse_coefficients_data[:, i + 2], cv=kf, scoring='neg_mean_squared_error')  # 5-fold cross-validation
+        ridge.fit(M, ellipse_coefficients_data[:, i + 2])
+        coefficients = ridge.coef_
+        coefficients[0] = ridge.intercept_
+
+        print(f"Cross-validated scores: {scores}")
+        print(f"Mean score: {np.mean(scores)}")
+        print(f"STD score: {np.std(scores)}")
         current_fit_coefficients.append(coefficients)
 
     # Evaluate the fit quality - start with A
@@ -340,9 +370,9 @@ if (COMPUTE_ELLIPSE_FOURIER_FORMULA):
         new_stacked_terms[1, :] = new_stacked_terms[1, :] * current_fit_coefficients[i]
 
 
-        fourier_ellipse_coefficients[:, 2 + i] = np.dot(M[:, abs(new_stacked_terms[1, :])>1e-10],
-                                                        current_fit_coefficients[i][abs(new_stacked_terms[1, :])>1e-10])
-        new_stacked_terms = new_stacked_terms[:, abs(new_stacked_terms[1, :]) > 1e-10]
+        fourier_ellipse_coefficients[:, 2 + i] = np.dot(M[:, abs(new_stacked_terms[1, :])>cut_off],
+                                                        current_fit_coefficients[i][abs(new_stacked_terms[1, :]) > cut_off])
+        new_stacked_terms = new_stacked_terms[:, abs(new_stacked_terms[1, :]) > cut_off]
         #  combinedFourierFitFunction(sun_angles, *current_fit_coefficients[i], order=order_i, order_n=order_n, order_m=order_m)[0]
         list_dominance_fit_terms.append(new_stacked_terms[:, (-abs(new_stacked_terms[1])).argsort()])
 
@@ -402,12 +432,14 @@ if (COMPUTE_ELLIPSE_FOURIER_FORMULA):
     for i in range(6):
         fig = plt.figure()
         ax = fig.add_subplot(projection='3d')
+
+
         z = (fourier_ellipse_coefficients[:, i + 2] - ellipse_coefficients_data[:, i + 2])
         id = z.argmax(axis=0)
-        # print(z[id])
-        # print(fourier_ellipse_coefficients[id, i+2], ellipse_coefficients_data[id, i+2])
         ax.scatter(np.rad2deg(alpha_sun_deg), np.rad2deg(beta_sun_deg), z,
                    c=z, cmap=my_cmap, alpha=0.5, label="Data")
+        ax.set_zlabel(f'{["A", "B", "C", "D", "E", "F"][i]} absolute error')
+        ax.set_title(f'{np.mean(abs(ellipse_coefficients_data[:, i + 2]))}')
 
     plt.show()
     #plt.close()

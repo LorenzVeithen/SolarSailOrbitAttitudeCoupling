@@ -154,7 +154,6 @@ class sailCoupledDynamicsProblem:
         # Create termination settings
         termination_settings = propagation_setup.propagator.time_termination(self.simulation_end_epoch,
                                                                              terminate_exactly_on_final_condition=True)
-        # TODO: finish when rotational velocity is zero
         # Create numerical integrator settings
         if (benchmark_bool):
             integrator_settings = propagation_setup.integrator.runge_kutta_fixed_step(
@@ -194,8 +193,13 @@ class sailCoupledDynamicsProblem:
         torque_models = propagation_setup.create_torque_models(bodies, torque_settings, self.bodies_to_propagate)
         return acceleration_models, torque_models
 
-    def define_propagators(self, integrator_settings, termination_settings, acceleration_models, torque_models, dependent_variables):
+    def define_propagators(self, integrator_settings, termination_settings, acceleration_models, torque_models, dependent_variables, benchmark_bool=False):
         # Create propagation settings
+        if (benchmark_bool):
+            selected_propagator = propagation_setup.propagator.cowell
+        else:
+            selected_propagator = propagation_setup.propagator.gauss_modified_equinoctial
+
         translational_propagator_settings = propagation_setup.propagator.translational(
             self.central_bodies,
             acceleration_models,
@@ -204,7 +208,7 @@ class sailCoupledDynamicsProblem:
             self.simulation_start_epoch,
             integrator_settings,
             termination_settings,
-            propagation_setup.propagator.gauss_modified_equinoctial)
+            selected_propagator)
 
         rotational_propagator_settings = propagation_setup.propagator.rotational(torque_models,
                                                                                  self.bodies_to_propagate,

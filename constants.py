@@ -112,3 +112,4 @@ algorithm_constants["max_vane_torque_relative_magnitude_error"] = 0.25  # [-]
 
 algorithm_constants["sigmoid_scaling_parameter"] = 3        # [-] but is related to the rate of change of the vane angles
 algorithm_constants["sigmoid_time_shift_parameter"] = 4     # [s]
+algorithm_constants["vane_controller_shut_down_rotational_velocity_tolerance"] = 0.1

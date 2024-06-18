@@ -472,6 +472,7 @@ class vaneTorqueAllocationProblem:
         :param n_s_body_frame:
         :return:
         """
+
         # Compute default torque values
         self.default_vane_config_torque_body_frame(n_s_body_frame,
                                                    default_alpha_1_deg=default_x_rotation_deg,
@@ -485,8 +486,10 @@ class vaneTorqueAllocationProblem:
                 R_VBi , n_s_body_frame)
             fourier_ellipse_coefficient = []
 
+
             for func in self.vanes_AMS_coefficient_functions:
                 fourier_ellipse_coefficient.append(func(alpha_s_rad_vane_reference_frame, beta_s_rad_vane_reference_frame))
+
             Tx_tuple, Ty_tuple = rotated_ellipse_coefficients_wrt_vane_1(R_VBi, tuple(fourier_ellipse_coefficient))
             scaling = self.scaling_list[vane_id]
             self.vanes_AMS_coefficients_x.append(ellipse_stretching(scaling, scaling, Tx_tuple))
@@ -1118,10 +1121,13 @@ def combinedFourierFitDesignMatrix(x, *bargs, order=4, order_n=4, order_m=4):
                 res_array[:, b_ind] = np.cos(i * alpha_s) * np.cos(j * beta_s); b_ind += 1
                 terms_list.append(f'(np.cos({i} * alpha_s) * np.cos({j} * beta_s))')
     return res_array, terms_list
-def buildEllipseCoefficientFunctions(filename):
+def buildEllipseCoefficientFunctions(filename, number_of_terms=-1):
     with open(filename, 'r') as f:
         lines = f.readlines()
         functions = []
+
+        if (number_of_terms != -1 and number_of_terms>0):
+            lines = lines[:number_of_terms+1]
 
         for line in lines:
             parts = line.strip().split(',')
@@ -1137,9 +1143,9 @@ def buildEllipseCoefficientFunctions(filename):
             functions.append(make_function(coeff, expr))
     return functions
 
-def ellipseCoefficientFunction(alpha_s, beta_s, built_functions_A):
+def ellipseCoefficientFunction(alpha_s, beta_s, built_functions):
     res = np.zeros_like(alpha_s)
-    for func in built_functions_A:
+    for func in built_functions:
         res += func(alpha_s, beta_s)
     return res
 
@@ -1201,5 +1207,6 @@ def sigmoid_transition(current_time, new_value, previous_time_update, previous_v
     previous_time_update = shift_time_parameter + previous_time_update
     value_change = new_value-previous_value
     exp_term = np.exp(-scaling_parameter * (current_time-previous_time_update))
-    return (value_change/(1+exp_term)) + previous_value
+    res = (value_change/(1+exp_term)) + previous_value
+    return res
 

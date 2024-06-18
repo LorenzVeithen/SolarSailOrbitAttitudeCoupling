@@ -8,6 +8,7 @@ from vaneControllerMethods import sigmoid_transition, vaneAngleAllocationScaling
 from generalConstants import AMS_directory, c_sol, W
 import pygmo as pg
 from scipy.optimize import minimize, golden
+from time import time
 
 class sail_attitude_control_systems:
     def __init__(self, ACS_system, booms_coordinates_list, spacecraft_inertia_tensor, algorithm_constants, include_shadow=False, sail_craft_name="ACS3"):
@@ -81,6 +82,7 @@ class sail_attitude_control_systems:
         self.maximum_vane_torque_orientation_error = algorithm_constants["max_vane_torque_orientation_error"]
         self.maximum_vane_torque_relative_magnitude_error = algorithm_constants["max_vane_torque_relative_magnitude_error"]
 
+        self.vane_controller_shut_down_rotational_velocity_tolerance = algorithm_constants["vane_controller_shut_down_rotational_velocity_tolerance"]
 
         self.sigmoid_scaling_parameter = algorithm_constants["sigmoid_scaling_parameter"]
         self.sigmoid_time_shift_parameter = algorithm_constants["sigmoid_time_shift_parameter"]
@@ -186,10 +188,10 @@ class sail_attitude_control_systems:
 
                     if (self.body_fixed_rotational_velocity_at_last_vane_angle_update[0] != None):
                         # Check how much the rotational velocity vector orientation has changed
-                        change_in_rotational_velocity_orientation_rad = np.arccos(np.dot(bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity,
-                                                                           self.body_fixed_rotational_velocity_at_last_vane_angle_update)/
-                                                                     (np.linalg.norm(bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity)
-                                                                      * np.linalg.norm(self.body_fixed_rotational_velocity_at_last_vane_angle_update)))
+                        c_rotational_velocity_vector_orientation_change = np.dot(bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity, self.body_fixed_rotational_velocity_at_last_vane_angle_update) / (np.linalg.norm(bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity) * np.linalg.norm(self.body_fixed_rotational_velocity_at_last_vane_angle_update))
+                        if (abs(c_rotational_velocity_vector_orientation_change-1) < 1e-15):
+                            c_rotational_velocity_vector_orientation_change = 1.
+                        change_in_rotational_velocity_orientation_rad = np.arccos(c_rotational_velocity_vector_orientation_change)
 
                         # Check how much the rotational velocity vector magnitude has changed
                         relative_change_in_rotational_velocity_magnitude = ((np.linalg.norm(bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity)
@@ -197,10 +199,11 @@ class sail_attitude_control_systems:
                                                                             np.linalg.norm(self.body_fixed_rotational_velocity_at_last_vane_angle_update))
 
                         # Check how much the sunlight vector in the body frame has changed
-                        change_in_body_fixed_sunlight_vector_orientation_rad = np.arccos(np.dot(sunlight_vector_body_frame,
-                                                                           self.body_fixed_sunlight_vector_at_last_angle_update)/
-                                                                     (np.linalg.norm(sunlight_vector_body_frame)
-                                                                      * np.linalg.norm(self.body_fixed_sunlight_vector_at_last_angle_update)))
+                        cos_sunlight_vector_orientation_change = np.dot(sunlight_vector_body_frame, self.body_fixed_sunlight_vector_at_last_angle_update) / (np.linalg.norm(sunlight_vector_body_frame) * np.linalg.norm(self.body_fixed_sunlight_vector_at_last_angle_update))
+                        if (abs(cos_sunlight_vector_orientation_change-1) < 1e-15):
+                            cos_sunlight_vector_orientation_change = 1.
+                        change_in_body_fixed_sunlight_vector_orientation_rad = np.arccos(cos_sunlight_vector_orientation_change)
+
                     else:
                         # dummy values to force update
                         change_in_rotational_velocity_orientation_rad = 10
@@ -217,7 +220,7 @@ class sail_attitude_control_systems:
                         required_body_torque = self.computeBodyFrameTorqueForDetumbling(bodies,
                                                                                         5e-5,
                                                                                         desired_rotational_velocity_vector=desired_sail_body_frame_inertial_rotational_velocity,
-                                                                                        rotational_velocity_tolerance_rotations_per_hour=0.1,
+                                                                                        rotational_velocity_tolerance_rotations_per_hour=self.vane_controller_shut_down_rotational_velocity_tolerance,
                                                                                         timeToPassivateACS=0)
                         required_body_torque = required_body_torque.reshape(-1)/(current_solar_irradiance/c_sol)
 
@@ -417,14 +420,14 @@ class sail_attitude_control_systems:
         tap.set_desired_torque(desired_torque, (
             previous_vanes_torque if (previous_vanes_torque[0] != None) else np.array(
                 [0] * 3 * acs_object.number_of_vanes)))
-
         tap.set_attaignable_moment_set_ellipses(sunlight_vector_body_frame)
+
+
         prob = pg.problem(tap)
         nl = pg.nlopt('cobyla')
         nl.xtol_rel = self.tol_torque_allocation_problem_x
         nl.ftol_rel = self.tol_torque_allocation_problem_objective
         algo = pg.algorithm(uda=nl)
-        # algo.set_verbosity(10000)
         if (previous_vanes_torque[0] == None):
             pop = pg.population(prob, size=1, seed=42)
         else:
@@ -440,7 +443,8 @@ class sail_attitude_control_systems:
         pop = algo.evolve(pop)  # Evolve population
         x_final = pop.champion_x
         optimal_torque_allocation = x_final.reshape((acs_object.number_of_vanes, 3))
-        resulting_sail_torque = optimal_torque_allocation.sum(axis=0)
+
+        t0 = time()
         # Determine associated angles
         torque_from_vane_angles_list = np.zeros((acs_object.number_of_vanes, 3))
         vane_angles_rad = np.zeros((acs_object.number_of_vanes, 2))
@@ -473,10 +477,6 @@ class sail_attitude_control_systems:
                         or orientation_angle_difference_vane_torque > self.maximum_vane_torque_orientation_error
                         or orientation_angle_difference_vane_torque < 0):
                     print("Local optimisation failed, starting DIRECT algorithm")
-                    if (previous_vanes_torque[0] != None):
-                        print(x_final - previous_vanes_torque)
-                    print(sunlight_vector_body_frame)
-                    print(vane_angle_allocation_results.fun)
                     print(vaneAngleProblem.single_vane_torque(
                         [vane_angle_allocation_results.x[0], vane_angle_allocation_results.x[1]]))
                     print(optimised_vane_torque / tap.scaling_list[current_vane_id])
@@ -522,15 +522,12 @@ class sail_attitude_control_systems:
         orientation_difference_degrees = np.rad2deg(
             np.arccos(np.dot(torque_from_vane_angles_direction, desired_torque_direction)))
 
+        print(f"Time vane controller: {time() - t0}")
         if (abs((orientation_difference_degrees)) > 5):
             print("---WARNING, the torque direction is not preserved---")
             print(torque_from_vane_angles_direction)
             print(desired_torque_direction)
-            # print(np.linalg.norm(torque_from_vane_angles_direction-desired_torque_direction))
-            # print(f'resulting torque from angles: {resulting_torque_from_angles}')
-            # print("WARNING, the torque direction is not preserved")
             print("---------------------------------------------------")
-
         return vane_angles_rad, torque_from_vane_angles_list, optimal_torque_allocation
 
     def set_shifted_panel_characteristics(self, wings_coordinates_list, wings_areas_list, wings_reference_frame_rotation_matrix_list, keep_constant_area, stationary_system_components_mass, stationary_system_system_CoM):

@@ -25,17 +25,18 @@ algorithm_constants["torque_allocation_problem_constraint"] = 1e-7
 algorithm_constants["torque_allocation_problem_objective"] = 0#1e-7
 algorithm_constants["torque_allocation_problem_x"] = 1e-4
 
-algorithm_constants["max_rotational_velocity_orientation_change_update_vane_angles_degrees"] = 5  # [deg]
-algorithm_constants["max_sunlight_vector_body_frame_orientation_change_update_vane_angles_degrees"] = 5  # [deg]
-algorithm_constants["max_relative_change_in_rotational_velocity_magnitude"] = 0.1  # [-]
+algorithm_constants["max_rotational_velocity_orientation_change_update_vane_angles_degrees"] = 1  # [deg]
+algorithm_constants["max_sunlight_vector_body_frame_orientation_change_update_vane_angles_degrees"] = 1  # [deg]
+algorithm_constants["max_relative_change_in_rotational_velocity_magnitude"] = 0.05  # [-]
 
 algorithm_constants["max_vane_torque_orientation_error"] = 15.  # [deg]
 algorithm_constants["max_vane_torque_relative_magnitude_error"] = 0.25  # [-]
 
 algorithm_constants["sigmoid_scaling_parameter"] = 3        # [-] but is related to the rate of change of the vane angles
 algorithm_constants["sigmoid_time_shift_parameter"] = 4     # [s]
+algorithm_constants["vane_controller_shut_down_rotational_velocity_tolerance"] = 0.1
 
-benchmark_time_steps = [2**2, 2**1, 2**0, 2**(-1), 2**(-2), 2**(-3), 2**(-4)]   # 2**7, 2**6, 2**5, 2**4, 2**3,
+benchmark_time_steps = [2**(-7), 2**(-8), 2**(-9), 2**(-10), 2**(-11)]   # 2**7, 2**6, 2**5, 2**4, 2**3, 2**2, 2**1, 2**0, 2**(-1), 2**(-2), 2**(-3), 2**(-4), 2**(-5), 2**(-6)
 # Note that a faster propagation would probably require smaller time steps, but the benchmark is only used on a single
 # propagation to make the choices
 for dt in benchmark_time_steps:
@@ -103,16 +104,16 @@ for dt in benchmark_time_steps:
     sail.setBodies(bodies)
     termination_settings, integrator_settings = sailProp.define_numerical_environment(initial_time_step=dt, benchmark_bool=True)
     acceleration_models, torque_models = sailProp.define_dynamical_environment(bodies, acs_object, vehicle_target_settings)
-    combined_propagator_settings = sailProp.define_propagators(integrator_settings, termination_settings, acceleration_models, torque_models, dependent_variables)
+    combined_propagator_settings = sailProp.define_propagators(integrator_settings, termination_settings, acceleration_models, torque_models, dependent_variables, benchmark_bool=True)
     t0 = time.time()
     state_history, states_array, dependent_variable_history, dependent_variable_array = sailProp.run_sim(bodies, combined_propagator_settings)
     t1 = time.time()
 
     rotations_per_hour = initial_rotational_velocity * 3600/(2*np.pi)
     sailProp.write_results_to_file(state_history,
-                                   f'/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/IntegratorSelection/BenchmarkSelection/state_history_benchmark_dt_{dt}.dat',
+                                   f'/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/IntegratorSelection/BenchmarkSelection/Cowell/state_history_benchmark_dt_{dt}.dat',
                                    dependent_variable_history,
-                                   f'/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/IntegratorSelection/BenchmarkSelection/dependent_variable_history_benchmark_dt_{dt}.dat')
+                                   f'/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/IntegratorSelection/BenchmarkSelection/Cowell/dependent_variable_history_benchmark_dt_{dt}.dat')
 
     print(t1-t0)
 
