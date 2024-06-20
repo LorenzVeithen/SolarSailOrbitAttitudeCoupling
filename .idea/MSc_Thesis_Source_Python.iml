@@ -5,6 +5,8 @@
       <excludeFolder url="file://$MODULE_DIR$/AMS" />
       <excludeFolder url="file://$MODULE_DIR$/PropagationData" />
       <excludeFolder url="file://$MODULE_DIR$/IntegratorSelection/BenchmarkSelection" />
+      <excludeFolder url="file://$MODULE_DIR$/IntegratorSelection/BenchmarkSelection_with_optimisation" />
+      <excludeFolder url="file://$MODULE_DIR$/IntegratorSelection/IntegratorSelection" />
     </content>
     <orderEntry type="jdk" jdkName="tudat-bundle" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

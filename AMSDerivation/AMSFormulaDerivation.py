@@ -326,10 +326,6 @@ if (COMPUTE_ELLIPSE_FOURIER_FORMULA):
 
     num_coefficients = (order_i * 2 - 1) ** 2 - (order_i - 2) * 2 + (
                 ((order_n) * (order_m) - 1) * 4 * (order_n > 1 or order_m > 1))
-    fourierSeriesFunc = lambda x, *b, ordi=order_i, ord_n=order_m, ord_m=order_m: combinedFourierFitFunction(x, *b,
-                                                                                                             order=ordi,
-                                                                                                             order_n=ord_n,
-                                                                                                             order_m=ord_m)[0]
 
     M = combinedFourierFitDesignMatrix(sun_angles, *[1] * (num_coefficients), order=order_i, order_n=order_n,
                                        order_m=order_m)[0]
@@ -359,8 +355,9 @@ if (COMPUTE_ELLIPSE_FOURIER_FORMULA):
     fourier_ellipse_coefficients[:, 0] = alpha_sun_deg
     fourier_ellipse_coefficients[:, 1] = beta_sun_deg
 
-    avg_term_magnitude, terms_list = combinedFourierFitFunction(sun_angles, *([1] * (num_coefficients)), order=order_i,
+    avg_term_magnitude, terms_list = combinedFourierFitFunction(sun_angles, *([1] * num_coefficients), order=order_i,
                                                                 order_n=order_n, order_m=order_m)[1:3]
+
     stacked_terms = np.vstack((avg_term_magnitude, np.array(terms_list)), dtype=object)
     list_dominance_fit_terms = []
     for i in range(6):
@@ -368,7 +365,6 @@ if (COMPUTE_ELLIPSE_FOURIER_FORMULA):
         new_stacked_terms = np.copy(stacked_terms)
         new_stacked_terms = np.vstack((current_fit_coefficients[i], new_stacked_terms), dtype=object)
         new_stacked_terms[1, :] = new_stacked_terms[1, :] * current_fit_coefficients[i]
-
 
         fourier_ellipse_coefficients[:, 2 + i] = np.dot(M[:, abs(new_stacked_terms[1, :])>cut_off],
                                                         current_fit_coefficients[i][abs(new_stacked_terms[1, :]) > cut_off])

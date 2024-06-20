@@ -1010,59 +1010,12 @@ def fourierSeriesFunction(x, *bargs, order_n=4, order_m=4):
     return res
 
 def combinedFourierFitFunction(x, *bargs, order=4, order_n=4, order_m=4):
-    comb_range = int(order)
-    lst = list(range(comb_range))
-    combinations = []
-    for it in itertools.product(lst, repeat=2):
-        combinations.append(list(it))
-    combinations = combinations[1:]
+    coefficients_matrix = np.ones((len(x[:, 0]), len(bargs)))
+    for i, b in enumerate(bargs):
+        coefficients_matrix[:, i] *= b
 
-    alpha_s = x[:, 0]
-    beta_s = x[:, 1]
-
-    res_array = np.zeros((len(alpha_s), len(bargs)))
-    terms_list = []
-    b_ind = 0
-    res_array[:, b_ind] = np.ones_like(alpha_s) * bargs[b_ind]; b_ind += 1
-    terms_list.append('1')
-    for c in combinations:
-        if (c[0] == 0):     # Note, this favourises sines, not sure of the implication of that
-            res_array[:, b_ind] = (np.sin(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
-            terms_list.append(f'(np.sin(beta_s) ** {c[1]})')
-            if (c[1]<2):
-                res_array[:, b_ind] = (np.cos(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
-                terms_list.append(f'(np.cos(beta_s) ** {c[1]})')
-
-        elif (c[1] == 0):   # Note, this favourises sines, not sure of the implication of that
-            res_array[:, b_ind] = (np.sin(alpha_s) ** c[0]) * bargs[b_ind]; b_ind += 1
-            terms_list.append(f'(np.sin(alpha_s) ** {c[0]})')
-            if (c[0] < 2):
-                res_array[:, b_ind] = (np.cos(alpha_s) ** c[0]) * bargs[b_ind]; b_ind += 1
-                terms_list.append(f'(np.cos(alpha_s) ** {c[0]})')
-
-        else:
-            res_array[:, b_ind] = (np.sin(alpha_s) ** c[0]) * (np.sin(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
-            terms_list.append(f'(np.sin(alpha_s) ** {c[0]}) * (np.sin(beta_s) ** {c[1]})')
-            res_array[:, b_ind] = (np.cos(alpha_s) ** c[0]) * (np.sin(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
-            terms_list.append(f'(np.cos(alpha_s) ** {c[0]}) * (np.sin(beta_s) ** {c[1]})')
-            res_array[:, b_ind] = (np.sin(alpha_s) ** c[0]) * (np.cos(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
-            terms_list.append(f'(np.sin(alpha_s) ** {c[0]}) * (np.cos(beta_s) ** {c[1]})')
-            res_array[:, b_ind] = (np.cos(alpha_s) ** c[0]) * (np.cos(beta_s) ** c[1]) * bargs[b_ind]; b_ind += 1
-            terms_list.append(f'(np.cos(alpha_s) ** {c[0]}) * (np.cos(beta_s) ** {c[1]})')
-
-    if (order_n > 1 or order_m>1):
-        for i in range(1, order_n + 1):
-            for j in range(1, order_m + 1):
-                if (i==1 and j==1):
-                    continue
-                res_array[:, b_ind] = bargs[b_ind] * np.sin(i * alpha_s) * np.sin(j * beta_s); b_ind += 1
-                terms_list.append(f'(np.sin({i} * alpha_s) * np.sin({j} * beta_s))')
-                res_array[:, b_ind] = bargs[b_ind] * np.sin(i * alpha_s) * np.cos(j * beta_s); b_ind += 1
-                terms_list.append(f'(np.sin({i} * alpha_s) * np.cos({j} * beta_s))')
-                res_array[:, b_ind] = bargs[b_ind] * np.cos(i * alpha_s) * np.sin(j * beta_s); b_ind += 1
-                terms_list.append(f'(np.cos({i} * alpha_s) * np.sin({j} * beta_s))')
-                res_array[:, b_ind] = bargs[b_ind] * np.cos(i * alpha_s) * np.cos(j * beta_s); b_ind += 1
-                terms_list.append(f'(np.cos({i} * alpha_s) * np.cos({j} * beta_s))')
+    res_array, terms_list = combinedFourierFitDesignMatrix(x, *bargs, order=order, order_n=order_n, order_m=order_m)
+    res_array = res_array * coefficients_matrix
 
     return np.sum(res_array, axis=1), np.sum(abs(res_array), axis=0)/np.shape(res_array)[0], terms_list, res_array
 
@@ -1085,27 +1038,27 @@ def combinedFourierFitDesignMatrix(x, *bargs, order=4, order_n=4, order_m=4):
     for c in combinations:
         if (c[0] == 0):     # Note, this favourises sines, not sure of the implication of that
             res_array[:, b_ind] = (np.sin(beta_s) ** c[1]); b_ind += 1
-            terms_list.append(f'(np.sin(beta_s) ** {c[1]})')
+            terms_list.append(f'(s_beta_s ** {c[1]})')
             if (c[1]<2):
                 res_array[:, b_ind] = (np.cos(beta_s) ** c[1]); b_ind += 1
-                terms_list.append(f'(np.cos(beta_s) ** {c[1]})')
+                terms_list.append(f'(c_beta_s ** {c[1]})')
 
         elif (c[1] == 0):   # Note, this favourises sines, not sure of the implication of that
             res_array[:, b_ind] = (np.sin(alpha_s) ** c[0]); b_ind += 1
-            terms_list.append(f'(np.sin(alpha_s) ** {c[0]})')
+            terms_list.append(f'(s_alpha_s ** {c[0]})')
             if (c[0] < 2):
                 res_array[:, b_ind] = (np.cos(alpha_s) ** c[0]); b_ind += 1
-                terms_list.append(f'(np.cos(alpha_s) ** {c[0]})')
+                terms_list.append(f'(c_alpha_s ** {c[0]})')
 
         else:
             res_array[:, b_ind] = (np.sin(alpha_s) ** c[0]) * (np.sin(beta_s) ** c[1]); b_ind += 1
-            terms_list.append(f'(np.sin(alpha_s) ** {c[0]}) * (np.sin(beta_s) ** {c[1]})')
+            terms_list.append(f'(s_alpha_s ** {c[0]}) * (s_beta_s ** {c[1]})')
             res_array[:, b_ind] = (np.cos(alpha_s) ** c[0]) * (np.sin(beta_s) ** c[1]); b_ind += 1
-            terms_list.append(f'(np.cos(alpha_s) ** {c[0]}) * (np.sin(beta_s) ** {c[1]})')
+            terms_list.append(f'(c_alpha_s ** {c[0]}) * (s_beta_s ** {c[1]})')
             res_array[:, b_ind] = (np.sin(alpha_s) ** c[0]) * (np.cos(beta_s) ** c[1]); b_ind += 1
-            terms_list.append(f'(np.sin(alpha_s) ** {c[0]}) * (np.cos(beta_s) ** {c[1]})')
+            terms_list.append(f'(s_alpha_s ** {c[0]}) * (c_beta_s ** {c[1]})')
             res_array[:, b_ind] = (np.cos(alpha_s) ** c[0]) * (np.cos(beta_s) ** c[1]); b_ind += 1
-            terms_list.append(f'(np.cos(alpha_s) ** {c[0]}) * (np.cos(beta_s) ** {c[1]})')
+            terms_list.append(f'(c_alpha_s ** {c[0]}) * (c_beta_s ** {c[1]})')
 
     if (order_n > 1 or order_m>1):
         for i in range(1, order_n + 1):
@@ -1113,14 +1066,15 @@ def combinedFourierFitDesignMatrix(x, *bargs, order=4, order_n=4, order_m=4):
                 if (i==1 and j==1):
                     continue
                 res_array[:, b_ind] = np.sin(i * alpha_s) * np.sin(j * beta_s); b_ind += 1
-                terms_list.append(f'(np.sin({i} * alpha_s) * np.sin({j} * beta_s))')
+                terms_list.append(f'(s_harmonics_alpha[{i}] * s_harmonics_beta[{j}])')
                 res_array[:, b_ind] = np.sin(i * alpha_s) * np.cos(j * beta_s); b_ind += 1
-                terms_list.append(f'(np.sin({i} * alpha_s) * np.cos({j} * beta_s))')
+                terms_list.append(f'(s_harmonics_alpha[{i}] * c_harmonics_beta[{j}])')
                 res_array[:, b_ind] = np.cos(i * alpha_s) * np.sin(j * beta_s); b_ind += 1
-                terms_list.append(f'(np.cos({i} * alpha_s) * np.sin({j} * beta_s))')
+                terms_list.append(f'(c_harmonics_alpha[{i}] * s_harmonics_beta[{j}])')
                 res_array[:, b_ind] = np.cos(i * alpha_s) * np.cos(j * beta_s); b_ind += 1
-                terms_list.append(f'(np.cos({i} * alpha_s) * np.cos({j} * beta_s))')
+                terms_list.append(f'(c_harmonics_alpha[{i}] * c_harmonics_beta[{j}])')
     return res_array, terms_list
+
 def buildEllipseCoefficientFunctions(filename, number_of_terms=-1):
     with open(filename, 'r') as f:
         lines = f.readlines()
@@ -1137,6 +1091,15 @@ def buildEllipseCoefficientFunctions(filename, number_of_terms=-1):
             # Create a function for each line
             def make_function(coeff, expr):
                 def fcn(alpha_s, beta_s):
+                    c_alpha_s = np.cos(alpha_s)
+                    s_alpha_s = np.sin(alpha_s)
+                    c_beta_s = np.cos(beta_s)
+                    s_beta_s = np.sin(beta_s)
+
+                    s_harmonics_alpha = [np.sin(j * alpha_s) for j in range(16)]
+                    c_harmonics_alpha = [np.cos(j * alpha_s) for j in range(16)]
+                    s_harmonics_beta = [np.sin(j * beta_s) for j in range(16)]
+                    c_harmonics_beta = [np.cos(j * beta_s) for j in range(16)]
                     return coeff * eval(expr)
                 return fcn
 

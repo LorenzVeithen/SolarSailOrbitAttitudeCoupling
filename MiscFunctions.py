@@ -347,6 +347,17 @@ def sun_angles_from_sunlight_vector(R_VB, n_s):
 
     return current_alpha_s, current_beta_s
 
+def special_round(vec, decimals=3):
+    """
+    Rounding function for numbers between -1 and 1
+    Reference:
+    https://stackoverflow.com/questions/70377163/python-how-to-round-numbers-smaller-than-1-adaptively-with-specified-precision
+    :param vec: 1D numpy array
+    :return: rounded 1D numpy array
+    """
+    exponents = np.floor(np.log10(np.abs(vec))).astype(int)
+    return np.stack([np.round(v, decimals=-e+decimals) for v, e in zip(vec, exponents)])
+
 
 
 

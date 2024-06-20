@@ -6,7 +6,7 @@ from tudatpy.util import compare_results, result2array
 from tudatpy.astro.element_conversion import quaternion_entries_to_rotation_matrix
 
 directory = '/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python'
-benchmark_time_steps = [2**7, 2**6, 2**5, 2**4, 2**3, 2**2, 2**1, 2**0, 2**(-1), 2**(-2), 2**(-3), 2**(-4), 2**(-5), 2**(-6), 2**(-7)]
+benchmark_time_steps = [2**7, 2**6, 2**5, 2**4, 2**3, 2**2, 2**1, 2**0, 2**(-1), 2**(-2), 2**(-3), 2**(-4), 2**(-5)]    # , , 2**(-6), 2**(-7)
 #benchmark_time_steps = [2**7, 2**6, 2**5, 2**4, 2**3, 2**2, 2**0] #, 2**0, 2**(-1), 2**(-2), 2**(-3)
 state_history_arrays_list, dependent_variable_arrays_list = [], []
 state_history_dicts_list, dependent_variable_dicts_list = [], []
@@ -14,10 +14,10 @@ state_history_dicts_list, dependent_variable_dicts_list = [], []
 for dt in benchmark_time_steps:
     print(f"loading {dt} s benchmark")
 
-    state_history_array = np.loadtxt(directory + f'/IntegratorSelection/BenchmarkSelection/Cowell/state_history_benchmark_dt_{dt}.dat')
+    state_history_array = np.loadtxt(directory + f'/IntegratorSelection/BenchmarkSelection/MEE/state_history_benchmark_dt_{dt}.dat')
     state_history_arrays_list.append(state_history_array)
 
-    dependent_variable_array = np.loadtxt(directory + f'/IntegratorSelection/BenchmarkSelection/Cowell/dependent_variable_history_benchmark_dt_{dt}.dat')
+    dependent_variable_array = np.loadtxt(directory + f'/IntegratorSelection/BenchmarkSelection/MEE/dependent_variable_history_benchmark_dt_{dt}.dat')
     dependent_variable_arrays_list.append(dependent_variable_array)
 
     current_state_history_dict = {}
@@ -43,18 +43,21 @@ for i in range(len(state_history_arrays_list) - 1):
     next_state_history = state_history_arrays_list[i + 1]
     next_state_history_at_current_time_steps = next_state_history[::2, :]
 
+    # remove some data points to avoid issues due to Runge's phenomenon (6 on each side of the interpolated benchmark, for both)
+    current_state_history_time_array = current_state_history_time_array[6:-6]   # coarser one in either case
+
     state_error = compare_results(state_history_dicts_list[i+1], state_history_dicts_list[i], current_state_history_time_array)
     state_error_array = result2array(state_error)
 
-    dependent_array_error = compare_results(state_history_dicts_list[i+1], state_history_dicts_list[i], current_state_history_time_array)
+    dependent_array_error = compare_results(dependent_variable_dicts_list[i+1], dependent_variable_dicts_list[i], current_state_history_time_array)
     dependent_array_error_array = result2array(dependent_array_error)
 
     time_list.append(current_state_history_time_array)
-    position_error_norm = np.sum(state_error_array[:, 1:4]**2, axis=1)
+    position_error_norm = np.sqrt(np.sum(state_error_array[:, 1:4]**2, axis=1))
     position_error_norm_list.append(position_error_norm)
-    velocity_error_norm = np.sum(state_error_array[:, 4:7] ** 2, axis=1)
+    velocity_error_norm = np.sqrt(np.sum(state_error_array[:, 4:7] ** 2, axis=1))
     velocity_error_norm_list.append(velocity_error_norm)
-    rotational_velocity_error_norm = np.rad2deg(np.sum(state_error_array[:, 11:14] ** 2, axis=1))
+    rotational_velocity_error_norm = np.rad2deg(np.sqrt(np.sum(state_error_array[:, 11:14] ** 2, axis=1)))
     omega_error_norm_list.append(rotational_velocity_error_norm)
 
     max_position_error.append(max(position_error_norm))
@@ -140,6 +143,7 @@ for v in range(8):
     plt.ylabel(y_label)
     plt.grid(True)
 
+"""
 for v in range(6):
     if v < 3:
         y_label_add_on = "optimal_torque"
@@ -160,7 +164,7 @@ for v in range(6):
     plt.xlabel("Time [hours]")
     plt.ylabel(y_label)
     plt.grid(True)
-
+"""
 plt.show()
 
 

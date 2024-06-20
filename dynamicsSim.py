@@ -147,6 +147,7 @@ class sailCoupledDynamicsProblem:
                 ]
 
     def define_numerical_environment(self,
+                                     integrator_coefficient_set=propagation_setup.integrator.rkf_78,
                                      initial_time_step=1.0,
                                      control_settings=propagation_setup.integrator.step_size_control_elementwise_scalar_tolerance(1.0E-12, 1.0E-12),
                                      validation_settings=propagation_setup.integrator.step_size_validation(1E-5, 1E2),
@@ -163,7 +164,7 @@ class sailCoupledDynamicsProblem:
         else:
             integrator_settings = propagation_setup.integrator.runge_kutta_variable_step(
                 initial_time_step=initial_time_step,
-                coefficient_set=propagation_setup.integrator.rkf_78,
+                coefficient_set=integrator_coefficient_set,
                 step_size_control_settings=control_settings,
                 step_size_validation_settings=validation_settings)
 
@@ -193,12 +194,11 @@ class sailCoupledDynamicsProblem:
         torque_models = propagation_setup.create_torque_models(bodies, torque_settings, self.bodies_to_propagate)
         return acceleration_models, torque_models
 
-    def define_propagators(self, integrator_settings, termination_settings, acceleration_models, torque_models, dependent_variables, benchmark_bool=False):
+    def define_propagators(self, integrator_settings, termination_settings, acceleration_models, torque_models,
+                           dependent_variables,
+                           selected_propagator_=propagation_setup.propagator.gauss_modified_equinoctial):
         # Create propagation settings
-        if (benchmark_bool):
-            selected_propagator = propagation_setup.propagator.cowell
-        else:
-            selected_propagator = propagation_setup.propagator.gauss_modified_equinoctial
+        selected_propagator = selected_propagator_
 
         translational_propagator_settings = propagation_setup.propagator.translational(
             self.central_bodies,
@@ -230,11 +230,13 @@ class sailCoupledDynamicsProblem:
         simulator = numerical_simulation.create_dynamics_simulator(bodies, combined_propagator_settings)
         state_history = simulator.state_history
         dependent_variable_history = simulator.dependent_variable_history
-
+        function_evaluation_dict = simulator.cumulative_number_of_function_evaluations
+        number_of_function_evaluations = list(function_evaluation_dict.values())[-1]
+        propagation_outcome = simulator.integration_completed_successfully
         # Extract the resulting state history and convert it to a ndarray
         states_array = result2array(state_history)
         dependent_variable_array = result2array(dependent_variable_history)
-        return state_history, states_array, dependent_variable_history, dependent_variable_array
+        return state_history, states_array, dependent_variable_history, dependent_variable_array, number_of_function_evaluations,propagation_outcome
 
     def write_results_to_file(self, state_history, state_history_file_path, dependent_variable_history,
                               dependent_variable_history_file_path):

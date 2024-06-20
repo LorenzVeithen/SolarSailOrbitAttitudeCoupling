@@ -82,7 +82,7 @@ termination_settings, integrator_settings = sailProp.define_numerical_environmen
 acceleration_models, torque_models = sailProp.define_dynamical_environment(bodies, acs_object, vehicle_target_settings)
 combined_propagator_settings = sailProp.define_propagators(integrator_settings, termination_settings, acceleration_models, torque_models, dependent_variables)
 t0 = time.time()
-state_history, states_array, dependent_variable_history, dependent_variable_array = sailProp.run_sim(bodies, combined_propagator_settings)
+state_history, states_array, dependent_variable_history, dependent_variable_array, number_of_function_evaluations, propagation_outcome = sailProp.run_sim(bodies, combined_propagator_settings)
 t1 = time.time()
 
 rotations_per_hour = initial_rotational_velocity * 3600/(2*np.pi)
