@@ -9,11 +9,11 @@ import os
 from pathlib import Path
 directory = '/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/IntegratorSelection'
 selected_benchmark_step = 2**(-3)
-
+lower_than_selected_time_step = 2**(-4)
 markers_list = [".", "o", "v", "^", "<", ">", "1", "2", "3", "4", "8", "s", "p",
                 "P", "*", "h", "H", "+", "x", "X", "D", "d", "|", "_", "o", "v", "^", "<", ">"]
 
-
+PLOT_CHECKS = True
 # load benchmark data
 benchmark_state_history_array = np.loadtxt(
     directory + f'/BenchmarkSelection/Cowell/state_history_benchmark_dt_{selected_benchmark_step}.dat')
@@ -23,6 +23,20 @@ benchmark_state_history_dict, benchmark_dependent_variables_dict = {}, {}
 for j, time in enumerate(benchmark_state_history_array[:, 0]):
     benchmark_state_history_dict[time] = benchmark_state_history_array[j, 1:]
     benchmark_dependent_variables_dict[time] = benchmark_dependent_variable_array[j, 1:]
+
+# load smaller
+benchmark_check_state_history_array = np.loadtxt(
+    directory + f'/BenchmarkSelection/Cowell/state_history_benchmark_dt_{lower_than_selected_time_step}.dat')
+benchmark_check_state_history_dict = {}
+for j, time in enumerate(benchmark_check_state_history_array[:, 0]):
+    benchmark_check_state_history_dict[time] = benchmark_check_state_history_array[j, 1:]
+
+# get benchmark error
+benchmark_state_error = compare_results(benchmark_check_state_history_dict, benchmark_state_history_dict, benchmark_state_history_array[6:-6, 0])
+benchmark_state_error_array = result2array(benchmark_state_error)
+max_position_error_norm = max(np.sqrt(np.sum(benchmark_state_error_array[:, 1:4] ** 2, axis=1)))
+max_velocity_error_norm = max(np.sqrt(np.sum(benchmark_state_error_array[:, 4:7] ** 2, axis=1)))
+max_rotational_velocity_error_norm = max(np.rad2deg(np.sqrt(np.sum(benchmark_state_error_array[:, 11:14] ** 2, axis=1))))
 
 # initialise dictionary to store information
 integrator_dicts = {}
@@ -133,72 +147,83 @@ for int_sub_dir in integrator_sub_directories:
 integrator_list = [str(x).split("/")[-1] for x in integrator_sub_directories]
 
 colors_integrators = pl.cm.jet(np.linspace(0, 1, num_integrators))  # initialise colors for each integrator
+
+req_pos = 1
 plt.figure()
 for i, int in enumerate(integrator_list):
     plt.plot(integrator_dicts[int + "_num_eval_list"], integrator_dicts[int + "_max_pos_error_list"], label=int, marker=markers_list[i], color=colors_integrators[i])
 plt.yscale('log')
 plt.xscale('log')
+plt.axhline(y=req_pos, color='r', linestyle='--', label='Max position error')
+plt.axhline(y=max_position_error_norm, color='b', linestyle='--', label='Benchmark accuracy')
 plt.grid(True, which="both")
 plt.xlabel('Number of functions evaluations, N, [-]', fontsize=14)
 plt.ylabel(r'Maximum position error norm, $\epsilon_r$, [m]', fontsize=14)
 plt.legend(ncol=2)
 
+req_vel = 1e-3
 plt.figure()
 for i, int in enumerate(integrator_list):
     plt.plot(integrator_dicts[int + "_num_eval_list"], integrator_dicts[int + "_max_vel_error_list"], label=int, marker=markers_list[i], color=colors_integrators[i])
 plt.yscale('log')
 plt.xscale('log')
+plt.axhline(y=req_vel, color='r', linestyle='--', label='Max velocity error')
+plt.axhline(y=max_velocity_error_norm, color='b', linestyle='--', label='Benchmark accuracy')
 plt.grid(True, which="both")
 plt.xlabel('Number of functions evaluations, N, [-]', fontsize=14)
 plt.ylabel(r'Maximum velocity error norm, $\epsilon_v$, [m/s]', fontsize=14)
 plt.legend(ncol=2)
 
+req_omega = 1e-2
 plt.figure()
 for i, int in enumerate(integrator_list):
     plt.plot(integrator_dicts[int + "_num_eval_list"], integrator_dicts[int + "_max_omega_error_list"], label=int, marker=markers_list[i], color=colors_integrators[i])
 plt.yscale('log')
 plt.xscale('log')
+plt.axhline(y=req_omega, color='r', linestyle='--', label=r'Max rotational velocity error')
+plt.axhline(y=max_rotational_velocity_error_norm, color='b', linestyle='--', label='Benchmark accuracy')
 plt.grid(True, which="both")
 plt.xlabel('Number of functions evaluations, N, [-]', fontsize=14)
-plt.ylabel(r'Maximum omega error norm, $\epsilon_v$, [deg/s]', fontsize=14)
+plt.ylabel('Maximum rotational velocity error norm,\n' +'$\epsilon_{\omega}$, [deg/s]', fontsize=14)
 plt.legend(ncol=2)
 
-selected_integrator_and_tol = {"rkf_45": [1e-13, 1e-14],
-                               #"rkdp_87": [1e-13, 1e-14],
-                               #"rkf_78": [1e-13, 1e-14],
-                               #"rkf_89": [1e-13, 1e-14]
-                                }
-for v in range(4):
-    plt.figure()
-    for k in selected_integrator_and_tol.keys():
-        for t in selected_integrator_and_tol[k]:
-            idx = integrator_dicts[k + "_tol_list"].index(t)
-            current_state_array = integrator_dicts[k + "_state_hist_list"][idx]
-            plt.plot((current_state_array[:, 0] - current_state_array[0, 0]) / 3600, current_state_array[:, 7 + v],
-                     label=f"{k} tol={t}")
-    plt.plot((benchmark_state_history_array[:, 0] - benchmark_state_history_array[0, 0]) / 3600,
-             benchmark_state_history_array[:, 7 + v], label=f"Benchmark")
-    plt.legend()
-    plt.xlabel("Time [hours]")
-    plt.ylabel(f"Quaternion - {v}")
-    plt.grid(True)
+if (PLOT_CHECKS):
+    selected_integrator_and_tol = {"rkf_45": [1e-13, 1e-14],
+                                   "rkdp_87": [1e-13, 1e-14],
+                                   "rkf_78": [1e-13, 1e-14],
+                                   "rkf_89": [1e-13, 1e-14]
+                                    }
+    for v in range(4):
+        plt.figure()
+        for k in selected_integrator_and_tol.keys():
+            for t in selected_integrator_and_tol[k]:
+                idx = integrator_dicts[k + "_tol_list"].index(t)
+                current_state_array = integrator_dicts[k + "_state_hist_list"][idx]
+                plt.plot((current_state_array[:, 0] - current_state_array[0, 0]) / 3600, current_state_array[:, 7 + v],
+                         label=f"{k} tol={t}")
+        plt.plot((benchmark_state_history_array[:, 0] - benchmark_state_history_array[0, 0]) / 3600,
+                 benchmark_state_history_array[:, 7 + v], label=f"Benchmark")
+        plt.legend()
+        plt.xlabel("Time [hours]")
+        plt.ylabel(f"Quaternion - {v}")
+        plt.grid(True)
 
-for v in range(8):
-    if (v < 4):
-        y_label = f"alpha_1, vane {v}"
-    else:
-        y_label = f"alpha_2, vane {v-4}"
-    plt.figure()
-    for k in selected_integrator_and_tol.keys():
-        for t in selected_integrator_and_tol[k]:
-            idx = integrator_dicts[k + "_tol_list"].index(t)
-            current_dependent_variable_array = integrator_dicts[k + "_dependent_variable_hist_list"][idx]
-            plt.plot((current_dependent_variable_array[:, 0] - current_dependent_variable_array[0, 0]) / 3600,
-                     current_dependent_variable_array[:, 21 + v], label=f"{k} tol={t}")
-    plt.plot((benchmark_dependent_variable_array[:, 0] - benchmark_dependent_variable_array[0, 0]) / 3600,
-             benchmark_dependent_variable_array[:, 21 + v], label=f"Benchmark")
-    plt.legend()
-    plt.xlabel("Time [hours]")
-    plt.ylabel(y_label)
-    plt.grid(True)
+    for v in range(8):
+        if (v < 4):
+            y_label = f"alpha_1, vane {v}"
+        else:
+            y_label = f"alpha_2, vane {v-4}"
+        plt.figure()
+        for k in selected_integrator_and_tol.keys():
+            for t in selected_integrator_and_tol[k]:
+                idx = integrator_dicts[k + "_tol_list"].index(t)
+                current_dependent_variable_array = integrator_dicts[k + "_dependent_variable_hist_list"][idx]
+                plt.plot((current_dependent_variable_array[:, 0] - current_dependent_variable_array[0, 0]) / 3600,
+                         current_dependent_variable_array[:, 21 + v], label=f"{k} tol={t}")
+        plt.plot((benchmark_dependent_variable_array[:, 0] - benchmark_dependent_variable_array[0, 0]) / 3600,
+                 benchmark_dependent_variable_array[:, 21 + v], label=f"Benchmark")
+        plt.legend()
+        plt.xlabel("Time [hours]")
+        plt.ylabel(y_label)
+        plt.grid(True)
 plt.show()

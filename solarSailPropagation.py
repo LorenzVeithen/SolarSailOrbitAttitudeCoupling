@@ -18,8 +18,12 @@ from tudatpy.astro import element_conversion
 from tudatpy.astro.time_conversion import DateTime
 
 
+# Set simulation start and end epochs
+simulation_start_epoch = DateTime(2024, 6, 1, 0).epoch()
+simulation_end_epoch = DateTime(2024, 6, 2, 0).epoch()
+
 # Define solar sail - see constants file
-acs_object = sail_attitude_control_systems("vanes", boom_list, sail_I, algorithm_constants, include_shadow=False)
+acs_object = sail_attitude_control_systems("vane_benchmark_test", boom_list, sail_I, algorithm_constants, include_shadow=False, sim_start_epoch=simulation_start_epoch)
 acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     vanes_origin_list,
                                     vanes_rotation_matrices_list,
@@ -48,10 +52,6 @@ sail = sail_craft("ACS3",
                   sail_material_areal_density,
                   acs_object)
 sail.set_desired_sail_body_frame_inertial_rotational_velocity(np.array([0., 0., 0.]))
-
-# Set simulation start and end epochs
-simulation_start_epoch = DateTime(2024, 6, 1, 0).epoch()
-simulation_end_epoch = DateTime(2024, 6, 2, 0).epoch()
 
 # Initial states
 initial_translational_state = element_conversion.keplerian_to_cartesian_elementwise(
@@ -87,9 +87,9 @@ t1 = time.time()
 
 rotations_per_hour = initial_rotational_velocity * 3600/(2*np.pi)
 sailProp.write_results_to_file(state_history,
-                               f'PropagationData/vaneDetumblingTest/state_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}.dat',
+                               f'PropagationData/vaneDetumblingTest/state_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}_benchmark.dat',
                                dependent_variable_history,
-                               f'PropagationData/vaneDetumblingTest/dependent_variable_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}.dat')
+                               f'PropagationData/vaneDetumblingTest/dependent_variable_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}_benchmark.dat')
 
 print(t1-t0)
 

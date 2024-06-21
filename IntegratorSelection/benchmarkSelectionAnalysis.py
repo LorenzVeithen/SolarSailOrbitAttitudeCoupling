@@ -6,6 +6,7 @@ from tudatpy.util import compare_results, result2array
 from tudatpy.astro.element_conversion import quaternion_entries_to_rotation_matrix
 
 directory = '/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python'
+PLOT_CHECKS = True
 benchmark_time_steps = [2**7, 2**6, 2**5, 2**4, 2**3, 2**2, 2**1, 2**0, 2**(-1), 2**(-2), 2**(-3), 2**(-4), 2**(-5)]    # , , 2**(-6), 2**(-7)
 #benchmark_time_steps = [2**7, 2**6, 2**5, 2**4, 2**3, 2**2, 2**0] #, 2**0, 2**(-1), 2**(-2), 2**(-3)
 state_history_arrays_list, dependent_variable_arrays_list = [], []
@@ -14,10 +15,10 @@ state_history_dicts_list, dependent_variable_dicts_list = [], []
 for dt in benchmark_time_steps:
     print(f"loading {dt} s benchmark")
 
-    state_history_array = np.loadtxt(directory + f'/IntegratorSelection/BenchmarkSelection/MEE/state_history_benchmark_dt_{dt}.dat')
+    state_history_array = np.loadtxt(directory + f'/IntegratorSelection/BenchmarkSelection/Cowell/state_history_benchmark_dt_{dt}.dat')
     state_history_arrays_list.append(state_history_array)
 
-    dependent_variable_array = np.loadtxt(directory + f'/IntegratorSelection/BenchmarkSelection/MEE/dependent_variable_history_benchmark_dt_{dt}.dat')
+    dependent_variable_array = np.loadtxt(directory + f'/IntegratorSelection/BenchmarkSelection/Cowell/dependent_variable_history_benchmark_dt_{dt}.dat')
     dependent_variable_arrays_list.append(dependent_variable_array)
 
     current_state_history_dict = {}
@@ -81,90 +82,69 @@ print(detumbling_time_list)
 plt.figure()
 for i in range(len(benchmark_time_steps)-1):
     plt.semilogy((time_list[i]-time_list[i][0])/3600, position_error_norm_list[i], label=f"dt={benchmark_time_steps[i]} s")
-plt.xlabel("Time [hours]")
-plt.ylabel("Position error [m]")
+plt.xlabel(r"Time, $t$ [hours]", fontsize=14)
+plt.ylabel(r'Position error norm, $||\Delta r||$, [m]', fontsize=14)
 plt.grid(True)
 plt.legend()
 
 plt.figure()
 for i in range(len(benchmark_time_steps)-1):
     plt.semilogy((time_list[i]-time_list[i][0])/3600, velocity_error_norm_list[i], label=f"dt={benchmark_time_steps[i]} s")
-plt.xlabel("Time [hours]")
-plt.ylabel("Velocity error [m/s]")
+plt.xlabel(r"Time, $t$ [hours]", fontsize=14)
+plt.ylabel(r'Velocity error norm, $||\Delta V||$, [m/s]', fontsize=14)
 plt.grid(True)
 plt.legend()
 
 plt.figure()
 for i in range(len(benchmark_time_steps)-1):
     plt.semilogy((time_list[i]-time_list[i][0])/3600, omega_error_norm_list[i], label=f"dt={benchmark_time_steps[i]} s")
-plt.xlabel("Time [hours]")
-plt.ylabel("Omega error [deg/s]")
+plt.xlabel(r"Time, $t$ [hours]", fontsize=14)
+plt.ylabel('Rotational velocity error norm,\n' +'$||\Delta \omega||$, [deg/s]', fontsize=14)
 plt.grid(True)
 plt.legend()
 
 plt.figure()
 plt.loglog(benchmark_time_steps[:-1], max_position_error, marker="o")
-plt.xlabel("Fixed time step size [s]")
-plt.ylabel("Maximum position error [m]")
+plt.xlabel(r"Fixed time step size, $\Delta t$, [s]", fontsize=14)
+plt.ylabel(r'Maximum position error norm, $\epsilon_r$, [m]', fontsize=14)
 plt.grid(True, which='both')
 
 plt.figure()
 plt.loglog(benchmark_time_steps[:-1], max_velocity_error, marker="o")
-plt.xlabel("Fixed time step size [s]")
-plt.ylabel("Maximum velocity error [m/s]")
+plt.xlabel(r"Fixed time step size, $\Delta t$, [s]", fontsize=14)
+plt.ylabel(r'Maximum velocity error norm, $\epsilon_v$, [m/s]', fontsize=14)
 plt.grid(True, which='both')
 
 plt.figure()
 plt.loglog(benchmark_time_steps[:-1], max_omega_error, marker="o")
-plt.xlabel("Fixed time step size [s]")
-plt.ylabel("Maximum rotational velocity error [deg/s]")
+plt.xlabel(r"Fixed time step size, $\Delta t$, [s]", fontsize=14)
+plt.ylabel('Maximum rotational velocity error norm,\n' +'$\epsilon_{\omega}$, [deg/s]', fontsize=14)
 plt.grid(True, which='both')
 
-for v in range(4):
-    plt.figure()
-    for k in range(5, len(benchmark_time_steps)):
-        plt.plot((state_history_arrays_list[k][:, 0]-state_history_arrays_list[k][0, 0])/3600, state_history_arrays_list[k][:, 7+v], label=f"dt={benchmark_time_steps[k]}")
-    plt.legend()
-    plt.xlabel("Time [hours]")
-    plt.ylabel(f"Quaternion - {v}")
-    plt.grid(True)
+if (PLOT_CHECKS):
+    for v in range(4):
+        plt.figure()
+        for k in range(5, len(benchmark_time_steps)):
+            plt.plot((state_history_arrays_list[k][:, 0]-state_history_arrays_list[k][0, 0])/3600, state_history_arrays_list[k][:, 7+v], label=f"dt={benchmark_time_steps[k]}")
+        plt.legend()
+        plt.xlabel("Time [hours]")
+        plt.ylabel(f"Quaternion - {v}")
+        plt.grid(True)
 
 
-for v in range(8):
-    if (v < 4):
-        y_label = f"alpha_1, vane {v}"
-    else:
-        y_label = f"alpha_2, vane {v-4}"
-    plt.figure()
-    for k in range(5, len(benchmark_time_steps)):
-        plt.plot((dependent_variable_arrays_list[k][:, 0]-dependent_variable_arrays_list[k][0, 0])/3600, dependent_variable_arrays_list[k][:, 21+v], label=f"dt={benchmark_time_steps[k]}")
-    plt.legend()
-    plt.xlabel("Time [hours]")
-    plt.ylabel(y_label)
-    plt.grid(True)
+    for v in range(8):
+        if (v < 4):
+            y_label = f"alpha_1, vane {v}"
+        else:
+            y_label = f"alpha_2, vane {v-4}"
+        plt.figure()
+        for k in range(5, len(benchmark_time_steps)):
+            plt.plot((dependent_variable_arrays_list[k][:, 0]-dependent_variable_arrays_list[k][0, 0])/3600, dependent_variable_arrays_list[k][:, 21+v], label=f"dt={benchmark_time_steps[k]}")
+        plt.legend()
+        plt.xlabel("Time [hours]")
+        plt.ylabel(y_label)
+        plt.grid(True)
 
-"""
-for v in range(6):
-    if v < 3:
-        y_label_add_on = "optimal_torque"
-    else:
-        y_label_add_on = "vane_torque"
-    if (v==0 or v==3):
-        y_label = 'Tx '
-    elif (v==1 or v==4):
-        y_label = 'Ty '
-    else:
-        y_label = 'Tz '
-
-    y_label += y_label_add_on
-    plt.figure()
-    for k in range(5, len(benchmark_time_steps)):
-        plt.plot((dependent_variable_arrays_list[k][:, 0]-dependent_variable_arrays_list[k][0, 0])/3600, dependent_variable_arrays_list[k][:, 29+v], label=f"dt={benchmark_time_steps[k]}")
-    plt.legend()
-    plt.xlabel("Time [hours]")
-    plt.ylabel(y_label)
-    plt.grid(True)
-"""
 plt.show()
 
 

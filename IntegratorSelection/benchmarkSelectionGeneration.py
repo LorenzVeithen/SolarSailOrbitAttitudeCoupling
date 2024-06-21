@@ -18,13 +18,13 @@ from tudatpy.astro.time_conversion import DateTime
 from tudatpy.numerical_simulation import propagation_setup
 
 algorithm_constants = {}
-algorithm_constants["vane_angle_determination_start_golden_section"] = 1e-3
-algorithm_constants["vane_angle_determination_golden_section"] = 1e-3
-algorithm_constants["vane_angle_determination_global_search"] = 1e-4
+algorithm_constants["tol_vane_angle_determination_start_golden_section"] = 1e-3
+algorithm_constants["tol_vane_angle_determination_golden_section"] = 1e-3
+algorithm_constants["tol_vane_angle_determination"] = 1e-4
 
-algorithm_constants["torque_allocation_problem_constraint"] = 1e-7
-algorithm_constants["torque_allocation_problem_objective"] = 0#1e-7
-algorithm_constants["torque_allocation_problem_x"] = 1e-4
+algorithm_constants["tol_torque_allocation_problem_constraint"] = 1e-7
+algorithm_constants["tol_torque_allocation_problem_objective"] = 0#1e-7
+algorithm_constants["tol_torque_allocation_problem_x"] = 1e-4
 
 algorithm_constants["max_rotational_velocity_orientation_change_update_vane_angles_degrees"] = 5  # [deg]
 algorithm_constants["max_sunlight_vector_body_frame_orientation_change_update_vane_angles_degrees"] = 5  # [deg]
@@ -37,7 +37,7 @@ algorithm_constants["sigmoid_scaling_parameter"] = 3        # [-] but is related
 algorithm_constants["sigmoid_time_shift_parameter"] = 4     # [s]
 algorithm_constants["vane_controller_shut_down_rotational_velocity_tolerance"] = 0.1
 
-benchmark_time_steps = [2**(-2), 2**(-3), 2**(-4), 2**(-5), 2**(-6)]   #2**7, 2**6, 2**5, 2**4, 2**3, 2**2, 2**1, 2**0, 2**(-1), ... , 2**(-7), 2**(-8)
+benchmark_time_steps = [2**(-5), 2**(-6)]   #2**7, 2**6, 2**5, 2**4, 2**3, 2**2, 2**1, 2**0, 2**(-1), 2**(-2), 2**(-3), 2**(-4), , ... , 2**(-7), 2**(-8)
 # Note that a faster propagation would probably require smaller time steps, but the benchmark is only used on a single
 # propagation to make the choices
 for dt in benchmark_time_steps:

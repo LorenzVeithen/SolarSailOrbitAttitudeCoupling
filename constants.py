@@ -95,13 +95,13 @@ vane_has_ideal_model = True
 vanes_rotational_dof = np.array([[True, True], [True, True], [True, True], [True, True]])   #
 
 algorithm_constants = {}
-algorithm_constants["vane_angle_determination_start_golden_section"] = 1e-3
-algorithm_constants["vane_angle_determination_golden_section"] = 1e-3
-algorithm_constants["vane_angle_determination_global_search"] = 1e-4
+algorithm_constants["tol_vane_angle_determination_start_golden_section"] = 1e-3
+algorithm_constants["tol_vane_angle_determination_golden_section"] = 1e-3
+algorithm_constants["tol_vane_angle_determination"] = 1e-4
 
-algorithm_constants["torque_allocation_problem_constraint"] = 1e-7
-algorithm_constants["torque_allocation_problem_objective"] = 0#1e-7
-algorithm_constants["torque_allocation_problem_x"] = 1e-4
+algorithm_constants["tol_torque_allocation_problem_constraint"] = 1e-7
+algorithm_constants["tol_torque_allocation_problem_objective"] = 0#1e-7
+algorithm_constants["tol_torque_allocation_problem_x"] = 1e-4
 
 algorithm_constants["max_rotational_velocity_orientation_change_update_vane_angles_degrees"] = 5  # [deg]
 algorithm_constants["max_sunlight_vector_body_frame_orientation_change_update_vane_angles_degrees"] = 5  # [deg]
