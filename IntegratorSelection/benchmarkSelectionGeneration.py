@@ -2,12 +2,10 @@ import sys
 sys.path.insert(0, r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy")
 
 # Load standard modules
-import numpy as np
-import matplotlib.pyplot as plt
 import time
 from integratorSelectionSailModel import *
+import numpy as np
 
-from MiscFunctions import set_axes_equal
 from attitudeControllersClass import sail_attitude_control_systems
 from sailCraftClass import sail_craft
 from dynamicsSim import sailCoupledDynamicsProblem
@@ -16,6 +14,7 @@ from tudatpy.astro.element_conversion import rotation_matrix_to_quaternion_entri
 from tudatpy.astro import element_conversion
 from tudatpy.astro.time_conversion import DateTime
 from tudatpy.numerical_simulation import propagation_setup
+
 
 algorithm_constants = {}
 algorithm_constants["tol_vane_angle_determination_start_golden_section"] = 1e-3
@@ -114,9 +113,9 @@ for dt in benchmark_time_steps:
 
     rotations_per_hour = initial_rotational_velocity * 3600/(2*np.pi)
     sailProp.write_results_to_file(state_history,
-                                   f'/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/IntegratorSelection/BenchmarkSelection/MEE/state_history_benchmark_dt_{dt}.dat',
+                                   integrator_selection_data_directory + f'/BenchmarkSelection/MEE/state_history_benchmark_dt_{dt}.dat',
                                    dependent_variable_history,
-                                   f'/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/IntegratorSelection/BenchmarkSelection/MEE/dependent_variable_history_benchmark_dt_{dt}.dat')
+                                   integrator_selection_data_directory + f'/BenchmarkSelection/MEE/dependent_variable_history_benchmark_dt_{dt}.dat')
 
     print(t1-t0)
 

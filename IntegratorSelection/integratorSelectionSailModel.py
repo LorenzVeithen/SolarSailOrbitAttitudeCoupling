@@ -1,6 +1,9 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-from generalConstants import R_E
+from generalConstants import R_E, Project_directory
+
+# data directory for integrator analysis
+integrator_selection_data_directory = Project_directory + '/0_GeneratedData/IntegratorSelection_Data'
 
 # initial orbit
 a_0 = R_E + 1000e3           # [m ]initial spacecraft semi-major axis

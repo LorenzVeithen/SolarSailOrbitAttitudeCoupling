@@ -83,7 +83,7 @@ class sail_attitude_control_systems:
         # Summation variables
         self.ACS_CoM_stationary_components = np.array([0, 0, 0])
 
-        if (ACS_system == "vanes"):
+        if (ACS_system == "vanes" or ACS_system == "vane_benchmark_test"):
             self.tol_vane_angle_determination_start_golden_section = algorithm_constants["tol_vane_angle_determination_start_golden_section"]
             self.tol_vane_angle_determination_golden_section = algorithm_constants["tol_vane_angle_determination_golden_section"]
             self.tol_vane_angle_determination = algorithm_constants["tol_vane_angle_determination"]
@@ -322,9 +322,49 @@ class sail_attitude_control_systems:
                     R_IB = bodies.get_body(self.sail_craft_name).inertial_to_body_fixed_frame
                     sunlight_vector_body_frame = np.dot(R_IB, sunlight_vector_inertial_frame)
 
-                    # use pre-determined time of update to ensure a comparison only based on the integrator performance
-                    # and not when it is evaluated
-                    if ((current_time - self.latest_updated_time) > 20.):
+                    if (self.body_fixed_rotational_velocity_at_last_vane_angle_update[0] != None):
+                        # Check how much the rotational velocity vector orientation has changed
+                        c_rotational_velocity_vector_orientation_change = np.dot(
+                            bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity,
+                            self.body_fixed_rotational_velocity_at_last_vane_angle_update) / (np.linalg.norm(
+                            bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity) * np.linalg.norm(
+                            self.body_fixed_rotational_velocity_at_last_vane_angle_update))
+                        if (abs(c_rotational_velocity_vector_orientation_change - 1) < 1e-15):
+                            c_rotational_velocity_vector_orientation_change = 1.
+                        change_in_rotational_velocity_orientation_rad = np.arccos(
+                            c_rotational_velocity_vector_orientation_change)
+
+                        # Check how much the rotational velocity vector magnitude has changed
+                        relative_change_in_rotational_velocity_magnitude = (
+                                    (np.linalg.norm(bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity)
+                                     - np.linalg.norm(self.body_fixed_rotational_velocity_at_last_vane_angle_update)) /
+                                    np.linalg.norm(self.body_fixed_rotational_velocity_at_last_vane_angle_update))
+
+                        # Check how much the sunlight vector in the body frame has changed
+                        cos_sunlight_vector_orientation_change = np.dot(sunlight_vector_body_frame,
+                                                                        self.body_fixed_sunlight_vector_at_last_angle_update) / (
+                                                                             np.linalg.norm(
+                                                                                 sunlight_vector_body_frame) * np.linalg.norm(
+                                                                         self.body_fixed_sunlight_vector_at_last_angle_update))
+
+                        # handle special cases giving NaN's
+                        if (abs(cos_sunlight_vector_orientation_change - 1) < 1e-15):
+                            cos_sunlight_vector_orientation_change = 1.
+                        change_in_body_fixed_sunlight_vector_orientation_rad = np.arccos(
+                            cos_sunlight_vector_orientation_change)
+
+                    else:
+                        # dummy values to force update
+                        change_in_rotational_velocity_orientation_rad = 10.
+                        relative_change_in_rotational_velocity_magnitude = 2.
+                        change_in_body_fixed_sunlight_vector_orientation_rad = -1.
+                        self.latest_updated_vane_angles = np.zeros((self.number_of_vanes, 2))
+
+                    if ((np.rad2deg(change_in_rotational_velocity_orientation_rad) > self.tol_rotational_velocity_orientation_change_update_vane_angles_degrees
+                        or np.rad2deg(change_in_rotational_velocity_orientation_rad) < 0
+                        or np.rad2deg(change_in_body_fixed_sunlight_vector_orientation_rad) > self.tol_sunlight_vector_body_frame_orientation_change_update_vane_angles_degrees
+                        or np.rad2deg(change_in_body_fixed_sunlight_vector_orientation_rad) < 0
+                        or relative_change_in_rotational_velocity_magnitude > self.tol_relative_change_in_rotational_velocity_magnitude)):
                         controller_vane_angles = np.zeros((self.number_of_vanes, 2))
                         for vane_id in range(self.number_of_vanes):
                             if (current_time - self.time_of_jump[vane_id] > 0):
@@ -446,6 +486,8 @@ class sail_attitude_control_systems:
         #    built_function = buildEllipseCoefficientFunctions(filename)
         #    ellipse_coefficient_functions_list.append(
         #        lambda aps, bes, f=built_function: ellipseCoefficientFunction(aps, bes, f))
+
+        # TODO: make this more clear that non-ideal models can be selected, and show how
         if (self.include_shadow):
             if (vane_has_ideal_model):
                 ellipse_coefficient_functions_list = ellipse_truncated_coefficients_function_shadow_TRUE_ideal_model()

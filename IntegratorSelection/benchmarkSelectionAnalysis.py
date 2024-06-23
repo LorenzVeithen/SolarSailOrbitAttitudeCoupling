@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tudatpy.util import compare_results, result2array
 from tudatpy.astro.element_conversion import quaternion_entries_to_rotation_matrix
+from integratorSelectionSailModel import integrator_selection_data_directory
 
-directory = '/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python'
 PLOT_CHECKS = True
 benchmark_time_steps = [2**7, 2**6, 2**5, 2**4, 2**3, 2**2, 2**1, 2**0, 2**(-1), 2**(-2), 2**(-3), 2**(-4), 2**(-5)]    # , , 2**(-6), 2**(-7)
 #benchmark_time_steps = [2**7, 2**6, 2**5, 2**4, 2**3, 2**2, 2**0] #, 2**0, 2**(-1), 2**(-2), 2**(-3)
@@ -15,10 +15,10 @@ state_history_dicts_list, dependent_variable_dicts_list = [], []
 for dt in benchmark_time_steps:
     print(f"loading {dt} s benchmark")
 
-    state_history_array = np.loadtxt(directory + f'/IntegratorSelection/BenchmarkSelection/Cowell/state_history_benchmark_dt_{dt}.dat')
+    state_history_array = np.loadtxt(integrator_selection_data_directory + f'/IntegratorSelection/BenchmarkSelection/Cowell/state_history_benchmark_dt_{dt}.dat')
     state_history_arrays_list.append(state_history_array)
 
-    dependent_variable_array = np.loadtxt(directory + f'/IntegratorSelection/BenchmarkSelection/Cowell/dependent_variable_history_benchmark_dt_{dt}.dat')
+    dependent_variable_array = np.loadtxt(integrator_selection_data_directory + f'/IntegratorSelection/BenchmarkSelection/Cowell/dependent_variable_history_benchmark_dt_{dt}.dat')
     dependent_variable_arrays_list.append(dependent_variable_array)
 
     current_state_history_dict = {}

@@ -358,6 +358,11 @@ def special_round(vec, decimals=3):
     exponents = np.floor(np.log10(np.abs(vec))).astype(int)
     return np.stack([np.round(v, decimals=-e+decimals) for v, e in zip(vec, exponents)])
 
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
 
 
 

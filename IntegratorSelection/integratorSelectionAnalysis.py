@@ -7,7 +7,8 @@ from tudatpy.util import compare_results, result2array
 from tudatpy.astro.element_conversion import quaternion_entries_to_rotation_matrix
 import os
 from pathlib import Path
-directory = '/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/IntegratorSelection'
+from integratorSelectionSailModel import integrator_selection_data_directory
+integrator_selection_data_directory
 selected_benchmark_step = 2**(-3)
 lower_than_selected_time_step = 2**(-4)
 markers_list = [".", "o", "v", "^", "<", ">", "1", "2", "3", "4", "8", "s", "p",
@@ -16,9 +17,9 @@ markers_list = [".", "o", "v", "^", "<", ">", "1", "2", "3", "4", "8", "s", "p",
 PLOT_CHECKS = True
 # load benchmark data
 benchmark_state_history_array = np.loadtxt(
-    directory + f'/BenchmarkSelection/Cowell/state_history_benchmark_dt_{selected_benchmark_step}.dat')
+    integrator_selection_data_directory + f'/BenchmarkSelection/Cowell/state_history_benchmark_dt_{selected_benchmark_step}.dat')
 benchmark_dependent_variable_array = np.loadtxt(
-    directory + f'/BenchmarkSelection/Cowell/dependent_variable_history_benchmark_dt_{selected_benchmark_step}.dat')
+    integrator_selection_data_directory + f'/BenchmarkSelection/Cowell/dependent_variable_history_benchmark_dt_{selected_benchmark_step}.dat')
 benchmark_state_history_dict, benchmark_dependent_variables_dict = {}, {}
 for j, time in enumerate(benchmark_state_history_array[:, 0]):
     benchmark_state_history_dict[time] = benchmark_state_history_array[j, 1:]
@@ -26,7 +27,7 @@ for j, time in enumerate(benchmark_state_history_array[:, 0]):
 
 # load smaller
 benchmark_check_state_history_array = np.loadtxt(
-    directory + f'/BenchmarkSelection/Cowell/state_history_benchmark_dt_{lower_than_selected_time_step}.dat')
+    integrator_selection_data_directory + f'/BenchmarkSelection/Cowell/state_history_benchmark_dt_{lower_than_selected_time_step}.dat')
 benchmark_check_state_history_dict = {}
 for j, time in enumerate(benchmark_check_state_history_array[:, 0]):
     benchmark_check_state_history_dict[time] = benchmark_check_state_history_array[j, 1:]
@@ -41,7 +42,7 @@ max_rotational_velocity_error_norm = max(np.rad2deg(np.sqrt(np.sum(benchmark_sta
 # initialise dictionary to store information
 integrator_dicts = {}
 
-integrator_directory = directory + "/IntegratorSelection"
+integrator_directory = integrator_selection_data_directory + "/IntegratorSelection"
 p = Path(integrator_directory)
 integrator_sub_directories = [x for x in p.iterdir() if x.is_dir()]
 num_integrators = len(integrator_sub_directories)
@@ -101,6 +102,7 @@ for int_sub_dir in integrator_sub_directories:
         max_position_error_list.append(max(position_error_norm))
         max_velocity_error_list.append(max(velocity_error_norm))
         max_omega_error_list.append(max(rotational_velocity_error_norm))
+
         # read ancillary file
         with open(str(tol_sub_dir) + "/ancillary_simulation_info.txt", 'r') as f:
             for l, line in enumerate(f):
@@ -174,7 +176,7 @@ plt.xlabel('Number of functions evaluations, N, [-]', fontsize=14)
 plt.ylabel(r'Maximum velocity error norm, $\epsilon_v$, [m/s]', fontsize=14)
 plt.legend(ncol=2)
 
-req_omega = 1e-2
+req_omega = 5e-2
 plt.figure()
 for i, int in enumerate(integrator_list):
     plt.plot(integrator_dicts[int + "_num_eval_list"], integrator_dicts[int + "_max_omega_error_list"], label=int, marker=markers_list[i], color=colors_integrators[i])

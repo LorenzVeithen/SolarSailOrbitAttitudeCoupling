@@ -19,7 +19,7 @@ from tudatpy.astro.time_conversion import DateTime
 from tudatpy.numerical_simulation import propagation_setup
 from tudatpy.data import save2txt
 
-save_dir = "/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/IntegratorSelection/IntegratorSelection/"
+save_dir = integrator_selection_data_directory + "/IntegratorSelection/"
 algorithm_constants = {}
 algorithm_constants["tol_vane_angle_determination_start_golden_section"] = 1e-3
 algorithm_constants["tol_vane_angle_determination_golden_section"] = 1e-3

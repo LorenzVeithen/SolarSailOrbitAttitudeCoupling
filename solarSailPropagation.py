@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 from constants import *
-from generalConstants import AMS_directory
+from generalConstants import AMS_directory, Project_directory
 
 from MiscFunctions import set_axes_equal
 from attitudeControllersClass import sail_attitude_control_systems
@@ -23,7 +23,7 @@ simulation_start_epoch = DateTime(2024, 6, 1, 0).epoch()
 simulation_end_epoch = DateTime(2024, 6, 2, 0).epoch()
 
 # Define solar sail - see constants file
-acs_object = sail_attitude_control_systems("vane_benchmark_test", boom_list, sail_I, algorithm_constants, include_shadow=False, sim_start_epoch=simulation_start_epoch)
+acs_object = sail_attitude_control_systems("None", boom_list, sail_I, algorithm_constants, include_shadow=False, sim_start_epoch=simulation_start_epoch)
 acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     vanes_origin_list,
                                     vanes_rotation_matrices_list,
@@ -76,7 +76,7 @@ sailProp = sailCoupledDynamicsProblem(sail,
                simulation_end_epoch)
 
 dependent_variables = sailProp.define_dependent_variables(acs_object)
-bodies, vehicle_target_settings = sailProp.define_simulation_bodies()
+bodies, vehicle_target_settings = sailProp.define_simulation_bodies(reduced_ephemeris_model_boolean=False)
 sail.setBodies(bodies)
 termination_settings, integrator_settings = sailProp.define_numerical_environment()
 acceleration_models, torque_models = sailProp.define_dynamical_environment(bodies, acs_object, vehicle_target_settings)
@@ -87,9 +87,9 @@ t1 = time.time()
 
 rotations_per_hour = initial_rotational_velocity * 3600/(2*np.pi)
 sailProp.write_results_to_file(state_history,
-                               f'PropagationData/vaneDetumblingTest/state_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}_benchmark.dat',
+                               Project_directory + f'/0_GeneratedData/PropagationData/vaneDetumblingTest/state_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}_benchmark.dat',
                                dependent_variable_history,
-                               f'PropagationData/vaneDetumblingTest/dependent_variable_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}_benchmark.dat')
+                               Project_directory + f'/0_GeneratedData/PropagationData/vaneDetumblingTest/dependent_variable_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}_benchmark.dat')
 
 print(t1-t0)
 

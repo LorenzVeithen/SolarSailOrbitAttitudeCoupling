@@ -15,6 +15,7 @@ from tudatpy.numerical_simulation import environment_setup, propagation_setup
 from tudatpy import constants
 from tudatpy.util import result2array
 from tudatpy.data import save2txt
+from tudatpy.kernel.interface import spice_interface
 
 
 class sailCoupledDynamicsProblem:
@@ -47,9 +48,49 @@ class sailCoupledDynamicsProblem:
         self.initial_translational_state = initial_translational_state
         self.initial_rotational_state = initial_rotational_state
 
-    def define_simulation_bodies(self):
+    def define_simulation_bodies(self, reduced_ephemeris_model_boolean=False):
         body_settings = environment_setup.get_default_body_settings(
             self.bodies_to_create, self.global_frame_origin, self.global_frame_orientation)
+
+        if (reduced_ephemeris_model_boolean):
+            constant_cartesian_state_Earth = spice_interface.get_body_cartesian_state_at_epoch('Earth', 'SSB',
+                                                                                               'ECLIPJ2000',
+                                                                                               'NONE',
+                                                                                               self.simulation_start_epoch)
+            constant_cartesian_state_Sun = spice_interface.get_body_cartesian_state_at_epoch('Sun', 'SSB',
+                                                                                              'ECLIPJ2000',
+                                                                                              'NONE',
+                                                                                              self.simulation_start_epoch)
+
+            # Movement of Earth and Sun
+            body_settings.get("Earth").ephemeris_settings = environment_setup.ephemeris.keplerian_from_spice(
+                "Earth",
+                self.simulation_start_epoch,
+                spice_interface.get_body_gravitational_parameter("Earth") +
+                spice_interface.get_body_gravitational_parameter("Sun"),
+                "SSB",
+                "J2000")
+
+            body_settings.get("Sun").ephemeris_settings = environment_setup.ephemeris.constant(
+                constant_cartesian_state_Sun,
+                "SSB",
+                "J2000")
+
+            # Rotation settings
+            #body_settings.get("Earth").rotation_model_settings = environment_setup.rotation_model.constant(
+            #    "ECLIPJ2000",
+            #    "Earth_fixed",
+            #    np.eye(3))  # whatever not really using that anyway
+
+            #body_settings.get("Earth").rotation_model_settings = environment_setup.rotation_model.constant(
+            #    "ECLIPJ2000",
+            #    "Sun_fixed",
+            #    np.eye(3))  # whatever not really using that anyway
+
+            # Shape settings
+            body_settings.get("Earth").shape_settings = environment_setup.shape.spherical_spice()
+            body_settings.get("Sun").shape_settings = environment_setup.shape.spherical_spice()
+
         # Add vehicle object to system of bodies
         body_settings.add_empty_settings("ACS3")
 
