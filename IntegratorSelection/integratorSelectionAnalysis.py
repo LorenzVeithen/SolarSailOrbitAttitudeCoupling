@@ -1,5 +1,6 @@
 import sys
-sys.path.insert(0, r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy")
+from generalConstants import tudat_path
+sys.path.insert(0, tudat_path)
 import matplotlib.pyplot as plt
 import matplotlib.pylab as pl
 import numpy as np
@@ -8,13 +9,14 @@ from tudatpy.astro.element_conversion import quaternion_entries_to_rotation_matr
 import os
 from pathlib import Path
 from integratorSelectionSailModel import integrator_selection_data_directory
-integrator_selection_data_directory
+from generalConstants import Project_directory
+
 selected_benchmark_step = 2**(-3)
 lower_than_selected_time_step = 2**(-4)
 markers_list = [".", "o", "v", "^", "<", ">", "1", "2", "3", "4", "8", "s", "p",
                 "P", "*", "h", "H", "+", "x", "X", "D", "d", "|", "_", "o", "v", "^", "<", ">"]
 
-PLOT_CHECKS = True
+PLOT_CHECKS = False
 # load benchmark data
 benchmark_state_history_array = np.loadtxt(
     integrator_selection_data_directory + f'/BenchmarkSelection/Cowell/state_history_benchmark_dt_{selected_benchmark_step}.dat')
@@ -162,6 +164,9 @@ plt.grid(True, which="both")
 plt.xlabel('Number of functions evaluations, N, [-]', fontsize=14)
 plt.ylabel(r'Maximum position error norm, $\epsilon_r$, [m]', fontsize=14)
 plt.legend(ncol=2)
+plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Integrator_Comparison_position.png',
+            dpi=1200,
+            bbox_inches='tight')
 
 req_vel = 1e-3
 plt.figure()
@@ -175,6 +180,9 @@ plt.grid(True, which="both")
 plt.xlabel('Number of functions evaluations, N, [-]', fontsize=14)
 plt.ylabel(r'Maximum velocity error norm, $\epsilon_v$, [m/s]', fontsize=14)
 plt.legend(ncol=2)
+plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Integrator_Comparison_velocity.png',
+            dpi=1200,
+            bbox_inches='tight')
 
 req_omega = 5e-2
 plt.figure()
@@ -188,6 +196,9 @@ plt.grid(True, which="both")
 plt.xlabel('Number of functions evaluations, N, [-]', fontsize=14)
 plt.ylabel('Maximum rotational velocity error norm,\n' +'$\epsilon_{\omega}$, [deg/s]', fontsize=14)
 plt.legend(ncol=2)
+plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Integrator_Comparison_omega.png',
+            dpi=1200,
+            bbox_inches='tight')
 
 if (PLOT_CHECKS):
     selected_integrator_and_tol = {"rkf_45": [1e-13, 1e-14],
@@ -228,4 +239,3 @@ if (PLOT_CHECKS):
         plt.xlabel("Time [hours]")
         plt.ylabel(y_label)
         plt.grid(True)
-plt.show()

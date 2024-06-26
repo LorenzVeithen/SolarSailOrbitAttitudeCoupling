@@ -1,5 +1,6 @@
 import sys
-sys.path.insert(0, r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy")
+from generalConstants import tudat_path
+sys.path.insert(0, tudat_path)
 
 # Load standard modules
 import numpy as np

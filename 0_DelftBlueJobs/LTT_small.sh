@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #SBATCH --job-name="LTT_small"
-#SBATCH --time=07:00:00
-#SBATCH --ntasks=25
+#SBATCH --time=00:15:00
+#SBATCH --ntasks=3
 #SBATCH --cpus-per-task=1
 #SBATCH --partition=compute
 #SBATCH --mem-per-cpu=1GB
@@ -19,7 +19,8 @@ module load openssh
 module load git
 
 # Activate conda, run job, deactivate conda
-conda activate <name-of-my-conda-environment>
-srun python myscript.py
+conda activate LV-tudat-bundle
+srun python scatch/lveithen/SourceCode_24_06_2024/LongTermTumblingAnalysis/LTT_MPI.py > scratch/lveithen/SourceCode_24_06_2024/0_DelftBlue_Jobs/LTT_small.log
 conda deactivate
-srun python calculate_pi.py > pi.log
+
+

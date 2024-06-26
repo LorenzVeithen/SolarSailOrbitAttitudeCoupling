@@ -1,10 +1,8 @@
 import sys
-sys.path.insert(0, r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy")
+from generalConstants import tudat_path
+sys.path.insert(0, tudat_path)
 
 # Load standard modules
-import matplotlib
-matplotlib.use('TkAgg')
-
 from attitudeControllersClass import *
 
 
@@ -76,17 +74,6 @@ class sailCoupledDynamicsProblem:
                 "SSB",
                 "J2000")
 
-            # Rotation settings
-            #body_settings.get("Earth").rotation_model_settings = environment_setup.rotation_model.constant(
-            #    "ECLIPJ2000",
-            #    "Earth_fixed",
-            #    np.eye(3))  # whatever not really using that anyway
-
-            #body_settings.get("Earth").rotation_model_settings = environment_setup.rotation_model.constant(
-            #    "ECLIPJ2000",
-            #    "Sun_fixed",
-            #    np.eye(3))  # whatever not really using that anyway
-
             # Shape settings
             body_settings.get("Earth").shape_settings = environment_setup.shape.spherical_spice()
             body_settings.get("Sun").shape_settings = environment_setup.shape.spherical_spice()
@@ -116,10 +103,6 @@ class sailCoupledDynamicsProblem:
                 panel_type_str = "Vane"
                 number_of_panels = self.sail_craft.get_number_of_vanes()
 
-            #panel_normal_functions_list = []
-            #panel_area_functions_list = []
-            #panel_centroid_functions_list = []
-            #panel_properties_functions_list = []
             for i in range(number_of_panels):
                 panel_functions_dict[f"{panel_type_str}_panel_{i}_surface_normal"] = lambda current_panel_i=i, current_panel_type=panel_type_str: self.sail_craft.get_ith_panel_surface_normal(panel_id=current_panel_i, panel_type=current_panel_type)
                 panel_functions_dict[f"{panel_type_str}_panel_{i}_centroid"] = lambda current_panel_i=i, current_panel_type=panel_type_str: self.sail_craft.get_ith_panel_centroid(panel_id=current_panel_i, panel_type=current_panel_type)
@@ -141,8 +124,6 @@ class sailCoupledDynamicsProblem:
                                                                                                                            panel_functions_dict[f"{panel_type_str}_panel_{i}_optical_properties_list"][7],
                                                                                                                            panel_functions_dict[f"{panel_type_str}_panel_{i}_optical_properties_list"][8],
                                                                                                                            panel_functions_dict[f"{panel_type_str}_panel_{i}_optical_properties_list"][9])
-
-                #reflection_law = environment_setup.radiation_pressure.solar_sail_optical_body_panel_reflection(1, 1, 0, 0, 0, 0, 0, 0, 0, 0)
 
                 panel = environment_setup.vehicle_systems.body_panel_settings(panel_type_id=panel_type_str,
                                                                                panel_reflection_law=reflection_law,
@@ -167,25 +148,35 @@ class sailCoupledDynamicsProblem:
         self.sail_craft.setBodies(bodies)
         return bodies, vehicle_target_settings
 
-    def define_dependent_variables(self, attitude_control_system_object):
+    def define_dependent_variables(self, attitude_control_system_object, keplerian_bool=False):
         # DEPENDENT VARIABLES
         attitude_control_system_object.initialise_actuator_states_dictionary()
         first_attitude_control_dependent_variable_array = (
             attitude_control_system_object.get_attitude_control_system_actuators_states())
 
-        return [propagation_setup.dependent_variable.keplerian_state('ACS3', 'Earth'),
-                propagation_setup.dependent_variable.received_irradiance_shadow_function("ACS3", "Sun"),
-                propagation_setup.dependent_variable.single_acceleration(
-                    propagation_setup.acceleration.radiation_pressure_type, "ACS3", "Sun"),
-                propagation_setup.dependent_variable.single_torque(
-                    propagation_setup.torque.radiation_pressure_type, "ACS3", "Sun"),
-                propagation_setup.dependent_variable.relative_position("Sun", "ACS3"),
-                propagation_setup.dependent_variable.relative_position("Sun", "Earth"),
-                propagation_setup.dependent_variable.total_torque_norm("ACS3"),
-                propagation_setup.dependent_variable.custom_dependent_variable(
-                    attitude_control_system_object.get_attitude_control_system_actuators_states,
-                    np.shape(first_attitude_control_dependent_variable_array)[0]),       # Vane deflections
-                ]
+        if (keplerian_bool):
+            return [propagation_setup.dependent_variable.keplerian_state('ACS3', 'Earth'),
+                    propagation_setup.dependent_variable.relative_position("Sun", "ACS3"),
+                    propagation_setup.dependent_variable.relative_position("Sun", "Earth"),
+                    propagation_setup.dependent_variable.total_torque_norm("ACS3"),
+                    propagation_setup.dependent_variable.custom_dependent_variable(
+                        attitude_control_system_object.get_attitude_control_system_actuators_states,
+                        np.shape(first_attitude_control_dependent_variable_array)[0]),  # Vane deflections
+                    ]
+        else:
+            return [propagation_setup.dependent_variable.keplerian_state('ACS3', 'Earth'),
+                    propagation_setup.dependent_variable.received_irradiance_shadow_function("ACS3", "Sun"),
+                    propagation_setup.dependent_variable.single_acceleration(
+                        propagation_setup.acceleration.radiation_pressure_type, "ACS3", "Sun"),
+                    propagation_setup.dependent_variable.single_torque(
+                        propagation_setup.torque.radiation_pressure_type, "ACS3", "Sun"),
+                    propagation_setup.dependent_variable.relative_position("Sun", "ACS3"),
+                    propagation_setup.dependent_variable.relative_position("Sun", "Earth"),
+                    propagation_setup.dependent_variable.total_torque_norm("ACS3"),
+                    propagation_setup.dependent_variable.custom_dependent_variable(
+                        attitude_control_system_object.get_attitude_control_system_actuators_states,
+                        np.shape(first_attitude_control_dependent_variable_array)[0]),       # Vane deflections
+                    ]
 
     def define_numerical_environment(self,
                                      integrator_coefficient_set=propagation_setup.integrator.rkf_78,
@@ -211,33 +202,53 @@ class sailCoupledDynamicsProblem:
 
         return termination_settings, integrator_settings
 
-    def define_dynamical_environment(self, bodies, attitude_control_system_object, vehicle_target_settings):
+    def define_dynamical_environment(self, bodies, attitude_control_system_object, vehicle_target_settings,
+                                     keplerian_bool=False,
+                                     theoretical_detumbling_bool=False):
         environment_setup.add_radiation_pressure_target_model(
             bodies, "ACS3", vehicle_target_settings)
 
         # Translational dynamics settings
-        acceleration_settings_acs3 = dict(
-            Earth=[propagation_setup.acceleration.point_mass_gravity()],
-            Sun=[propagation_setup.acceleration.radiation_pressure()]
-        )
+        if (keplerian_bool):
+            acceleration_settings_acs3 = dict(
+                Earth=[propagation_setup.acceleration.point_mass_gravity()],
+                Sun=[],
+            )
+        else:
+            acceleration_settings_acs3 = dict(
+                Earth=[propagation_setup.acceleration.point_mass_gravity()],
+                Sun=[propagation_setup.acceleration.radiation_pressure()]
+            )
 
         acceleration_settings = {"ACS3": acceleration_settings_acs3}
         acceleration_models = propagation_setup.create_acceleration_models(
             bodies, acceleration_settings, self.bodies_to_propagate, self.central_bodies)
 
         # Rotational dynamics settings
-        #optimalDetumblingTorque = lambda t, bd=bodies, tau_m=1e-4: attitude_control_system_object.computeBodyFrameTorqueForDetumbling(bd, tau_m, desired_rotational_velocity_vector=np.array([0., 0., 0]))
+        if (keplerian_bool):
+            torque_settings_on_sail = dict()
 
-        torque_settings_on_sail = dict(Sun=[propagation_setup.torque.radiation_pressure()],
-                                       #ACS3=[propagation_setup.torque.custom_torque(optimalDetumblingTorque)],
-                                       )  # dict(Earth = [propagation_setup.torque.second_degree_gravitational()])
+        elif (theoretical_detumbling_bool):
+            optimalDetumblingTorque = lambda t, bd=bodies, tau_m=1e-4: (
+                attitude_control_system_object.computeBodyFrameTorqueForDetumbling(bd, tau_m,
+                  desired_rotational_velocity_vector=np.array([0., 0., 0])))
+
+            torque_settings_on_sail = dict(
+                                            Sun=[propagation_setup.torque.radiation_pressure()],
+                                            ACS3=[propagation_setup.torque.custom_torque(optimalDetumblingTorque)],
+                                           )  # dict(Earth = [propagation_setup.torque.second_degree_gravitational()])
+        else:
+            torque_settings_on_sail = dict(
+                                            Sun=[propagation_setup.torque.radiation_pressure()],
+                                           )
         torque_settings = {'ACS3': torque_settings_on_sail}
         torque_models = propagation_setup.create_torque_models(bodies, torque_settings, self.bodies_to_propagate)
         return acceleration_models, torque_models
 
     def define_propagators(self, integrator_settings, termination_settings, acceleration_models, torque_models,
                            dependent_variables,
-                           selected_propagator_=propagation_setup.propagator.gauss_modified_equinoctial):
+                           selected_propagator_=propagation_setup.propagator.gauss_modified_equinoctial,
+                           output_frequency_in_seconds=0):
         # Create propagation settings
         selected_propagator = selected_propagator_
 
@@ -265,6 +276,10 @@ class sailCoupledDynamicsProblem:
                                                                               self.simulation_start_epoch,
                                                                               termination_settings,
                                                                               output_variables=dependent_variables)
+
+        # TODO: Why does this not work ?
+        combined_propagator_settings.processing_settings.results_save_frequency_in_steps = 0
+        combined_propagator_settings.processing_settings.results_save_frequency_in_seconds = output_frequency_in_seconds
         return combined_propagator_settings
 
     def run_sim(self, bodies, combined_propagator_settings):
