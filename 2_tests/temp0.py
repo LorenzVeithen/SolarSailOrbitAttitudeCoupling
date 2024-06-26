@@ -1,16 +1,11 @@
-from longTermTumblingNoAsymmetryGeneration import runLLT
-from mpi4py import MPI
 import numpy as np
 import itertools
 from MiscFunctions import chunks, divide_list
-from longTermTumbling_ACS3Model import LTT_save_data_dir
+from LongTermTumblingAnalysis.longTermTumbling_ACS3Model import LTT_save_data_dir
 import os
 
 overwrite_previous_bool = False
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-n_processes = size
+n_processes = 15
 
 # generate all combinations of rotational velocity components from a selected subset to analyse
 # for later
@@ -33,10 +28,10 @@ if (not overwrite_previous_bool):
         else:
             new_combs.append(comb)
     all_combinations = new_combs
-
 chunks_list = divide_list(all_combinations, n_processes)
 
 print(len(chunks_list))
-print(f"hello from rank {rank}")
-runLLT(chunks_list[rank], overwrite_previous=overwrite_previous_bool)
+print(chunks_list)
+
+
 

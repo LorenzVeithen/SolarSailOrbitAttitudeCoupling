@@ -363,7 +363,27 @@ def chunks(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
+def divide_list(lst, n):
+    """
+    Divide a list into n roughly equal parts.
 
+    Parameters:
+    lst (list): The list to be divided.
+    n (int): The number of parts to divide the list into.
+
+    Returns:
+    list of lists: A list containing n sublists with the divided elements.
+    """
+    # Determine the size of each part
+    avg = len(lst) / float(n)
+    out = []
+    last = 0.0
+
+    while last < len(lst):
+        out.append(lst[int(last):int(last + avg)])
+        last += avg
+
+    return out
 
 
 
