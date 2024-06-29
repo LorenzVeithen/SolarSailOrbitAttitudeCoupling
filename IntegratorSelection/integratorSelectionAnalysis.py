@@ -16,7 +16,7 @@ lower_than_selected_time_step = 2**(-4)
 markers_list = [".", "o", "v", "^", "<", ">", "1", "2", "3", "4", "8", "s", "p",
                 "P", "*", "h", "H", "+", "x", "X", "D", "d", "|", "_", "o", "v", "^", "<", ">"]
 
-PLOT_CHECKS = False
+PLOT_CHECKS = True
 # load benchmark data
 benchmark_state_history_array = np.loadtxt(
     integrator_selection_data_directory + f'/BenchmarkSelection/Cowell/state_history_benchmark_dt_{selected_benchmark_step}.dat')
@@ -239,3 +239,7 @@ if (PLOT_CHECKS):
         plt.xlabel("Time [hours]")
         plt.ylabel(y_label)
         plt.grid(True)
+
+
+
+plt.show()

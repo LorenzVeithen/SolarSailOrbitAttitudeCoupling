@@ -13,6 +13,7 @@
       <excludeFolder url="file://$MODULE_DIR$/0_GeneratedData/LTT_Data/LTT_Asymetry_data_ACS3" />
       <excludeFolder url="file://$MODULE_DIR$/0_GeneratedData/LTT_Data/LTT_NoAsymetry_data_ACS3" />
       <excludeFolder url="file://$MODULE_DIR$/0_GeneratedData/PropagationData" />
+      <excludeFolder url="file://$MODULE_DIR$/0_FinalPlots" />
     </content>
     <orderEntry type="jdk" jdkName="tudat-bundle" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

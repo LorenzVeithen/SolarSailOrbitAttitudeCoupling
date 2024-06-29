@@ -6,7 +6,7 @@ from generalConstants import R_E, Project_directory
 LTT_save_data_dir = Project_directory + f'/0_GeneratedData/LTT_Data'
 
 # initial orbit
-a_0 = R_E + 1000e3           # [m ]initial spacecraft semi-major axis
+a_0 = R_E + 1000e3           # [m initial spacecraft semi-major axis
 e_0 = 4.03294322e-03         # [-] initial spacecraft eccentricity
 i_0 = np.deg2rad(98.0131)    # [deg] initial spacecraft inclination
 w_0 = np.deg2rad(120.0)      # [deg] initial spacecraft argument of pericentre

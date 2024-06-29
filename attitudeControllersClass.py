@@ -269,11 +269,11 @@ class sail_attitude_control_systems:
 
                         vane_torques = vane_torques * current_solar_irradiance / c_sol
                         optimal_torque_allocation = optimal_torque_allocation * current_solar_irradiance / c_sol
-                        print(optimal_torque_allocation)
-                        print(f"required torque:{required_body_torque}")
-                        print(f"optimal torque:{optimal_torque_allocation.sum(axis=0)* (current_solar_irradiance / c_sol)**-1}")
-                        print(f"vane torque: {vane_torques.sum(axis=0) * (current_solar_irradiance / c_sol)**-1}")
-                        print(np.rad2deg(controller_vane_angles))
+                        #print(optimal_torque_allocation)
+                        #print(f"required torque:{required_body_torque}")
+                        #print(f"optimal torque:{optimal_torque_allocation.sum(axis=0)* (current_solar_irradiance / c_sol)**-1}")
+                        #print(f"vane torque: {vane_torques.sum(axis=0) * (current_solar_irradiance / c_sol)**-1}")
+                        #print(np.rad2deg(controller_vane_angles))
                         print(f"rotations per hour {bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity * 3600 / (2 * np.pi)}")
 
                         self.latest_updated_vane_torques = vane_torques.reshape(-1)
@@ -286,7 +286,12 @@ class sail_attitude_control_systems:
 
                     #print( self.latest_updated_vane_angles)
                     sig_vane_angles = sigmoid_transition(current_time, self.latest_updated_vane_angles, self.latest_updated_time, self.previous_vane_angles, scaling_parameter=3, shift_time_parameter=4)
-                    if (np.amax(100 * abs((sig_vane_angles-self.latest_updated_vane_angles)/(self.latest_updated_vane_angles-self.previous_vane_angles))) < 1.):
+
+                    # check if sigmoids have converged
+                    den = abs(self.latest_updated_vane_angles - self.previous_vane_angles)
+                    den[np.where(den<1e-15)] = 1e-8
+                    sigmoids_convergence_bool = np.amax(100 * abs((sig_vane_angles - self.latest_updated_vane_angles) / (den))) < 1.
+                    if (sigmoids_convergence_bool):
                         self.allow_update = True
                     else:
                         self.allow_update = False

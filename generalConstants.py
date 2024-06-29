@@ -4,7 +4,7 @@ home_name = current_working_directory.split('/')[2]
 
 Project_directory = str(current_working_directory)
 if (home_name=='lveithen'):
-    Project_directory = "/scratch/lveithen/SourceCode_25_06_2024"
+    Project_directory = "/scratch/lveithen/SourceCode_28_06_2024"
     tudat_path = r"/home/lveithen/tudat-bundle/build/tudatpy"
 elif (home_name=='lorenz_veithen'):
     Project_directory = "/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python"
