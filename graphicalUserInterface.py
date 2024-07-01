@@ -32,9 +32,9 @@ thr_previous_spacecraft_positions_fade_down = 1
 thr_sun_rays = 1 * 24 * 3600
 
 # Load data
-state_history_array = np.loadtxt("PropagationData/vaneDetumblingTest/state_history_omega_x_5.0_omega_y_5.0_omega_z_5.0_benchmark.dat")
+state_history_array = np.loadtxt("0_GeneratedData/PropagationData/vaneDetumblingTest/state_history_omega_x_5.0_omega_y_5.0_omega_z_5.0_output_test.dat")
 dependent_variable_history_array = np.loadtxt(
-    "PropagationData/vaneDetumblingTest/dependent_variable_history_omega_x_5.0_omega_y_5.0_omega_z_5.0_benchmark.dat")
+    "0_GeneratedData/PropagationData/vaneDetumblingTest/dependent_variable_history_omega_x_5.0_omega_y_5.0_omega_z_5.0_output_test.dat")
 
 # Extract state history
 #state_history_array = state_history_array[::25]

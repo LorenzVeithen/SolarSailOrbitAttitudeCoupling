@@ -1,9 +1,12 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-from generalConstants import R_E
+from generalConstants import R_E, Project_directory
+
+# LTT save data
+detumbling_save_data_dir = Project_directory + f'/0_GeneratedData/DetumblingAnalysis'
 
 # initial orbit
-a_0 = R_E + 1000e3           # [m ]initial spacecraft semi-major axis
+a_0 = R_E + 1000e3           # [m initial spacecraft semi-major axis
 e_0 = 4.03294322e-03         # [-] initial spacecraft eccentricity
 i_0 = np.deg2rad(98.0131)    # [deg] initial spacecraft inclination
 w_0 = np.deg2rad(120.0)      # [deg] initial spacecraft argument of pericentre
@@ -51,11 +54,12 @@ panel4 = np.array([[0., boom_attachment_point, 0.],
                     [-boom_attachment_point, 0., 0.]])
 
 wings_coordinates_list = [panel1, panel2, panel3, panel4]
-wings_optical_properties = [np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1, 1])] * 4
+wings_optical_properties = [np.array([0.1, 0.57, 0.74, 0.23, 0.16, 0.2, 2/3, 2/3, 0.03, 0.6])] * 4
 wings_rotation_matrices_list = [R.from_euler('z', -45., degrees=True).as_matrix(),
                                 R.from_euler('z', -135., degrees=True).as_matrix(),
                                 R.from_euler('z', -225., degrees=True).as_matrix(),
                                 R.from_euler('z', -315., degrees=True).as_matrix()]
+
 
 vane_angle = np.deg2rad(30.)
 vane_side_length = 0.5
@@ -88,11 +92,9 @@ for i in range(len(vanes_origin_list)):
     current_vane_coords_body_frame_coords = np.vstack((current_vane_coords_body_frame_coords, second_point_body_frame, third_point_body_frame))
     vanes_coordinates_list.append(current_vane_coords_body_frame_coords)
 
-vanes_optical_properties = [np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)
-vane_has_ideal_model = True
-
 vanes_rotational_dof = np.array([[True, True], [True, True], [True, True], [True, True]])   #
 
+# vane algorithm
 algorithm_constants = {}
 algorithm_constants["tol_vane_angle_determination_start_golden_section"] = 1e-3
 algorithm_constants["tol_vane_angle_determination_golden_section"] = 1e-3

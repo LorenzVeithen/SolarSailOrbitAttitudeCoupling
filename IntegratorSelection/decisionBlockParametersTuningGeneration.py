@@ -45,7 +45,7 @@ algorithm_constants["max_vane_torque_relative_magnitude_error"] = 0.25  # [-]   
 algorithm_constants["sigmoid_scaling_parameter"] = 3        # [-] but is related to the rate of change of the vane angles
 algorithm_constants["sigmoid_time_shift_parameter"] = 4     # [s]
 algorithm_constants["vane_controller_shut_down_rotational_velocity_tolerance"] = 0.1
-
+algorithm_constants["torque_allocation_problem_target_weight"] = 2/3
 
 
 chosen_integrator = propagation_setup.integrator.rkf_56
@@ -55,23 +55,26 @@ chosen_tolerance = 1e-12
 tolerances_to_tune = {"baseline_case": [0],
                       "tol_vane_angle_determination_start_golden_section": [1e-6, 1e-5, 1e-4, 1e-2, 1e-1, 1.],    # This is a tolerance on the vane angle determination optimisation objective value... Not big physical meaning
                       "tol_vane_angle_determination_golden_section": [],        # not really important as this just tries to get the angle inside the envelope - just do a test independently. Also on a scaling factor which can be very easily tuned independently. Do not do it here
-                      "tol_vane_angle_determination": [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.],
+                      "tol_vane_angle_determination": [1e-7, 1e-6, 1e-5, 1e-3, 1e-2, 1e-1],
 
-                      "tol_torque_allocation_problem_constraint": [1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5,
+                      "tol_torque_allocation_problem_constraint": [1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-6, 1e-5,
                                                                    1e-4, 1e-3],
-                      "tol_torque_allocation_problem_objective": [0, 1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5,
+                      "tol_torque_allocation_problem_objective": [1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5,
                                                                   1e-4, 1e-3, 1e-2],
-                      "tol_torque_allocation_problem_x": [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1],
+                      "tol_torque_allocation_problem_x": [1e-7, 1e-6, 1e-5, 1e-3, 1e-2],
 
-                      "max_rotational_velocity_orientation_change_update_vane_angles_degrees": [0.01, 0.1, 0.25, 0.5, 1, 2.5,
-                                                                                                5, 10, 15, 20, 25],
+                      "max_rotational_velocity_orientation_change_update_vane_angles_degrees": [0.01, 0.1, 0.25, 0.5, 1, 2, 3, 4,
+                                                                                                6, 7, 8, 9, 10, 15, 20, 25],
                       "max_sunlight_vector_body_frame_orientation_change_update_vane_angles_degrees": [0.01, 0.1, 0.25, 0.5,
-                                                                                                       1, 2.5, 5, 10,
+                                                                                                       1, 2, 3, 4, 6, 7, 8, 9, 10,
                                                                                                        15, 20, 25],
-                      "max_relative_change_in_rotational_velocity_magnitude": [1e-4, 1e-3, 1e-2, 1e-1, 1],   # definitely not driving, not sure if it is even worth investigating
+                      "max_relative_change_in_rotational_velocity_magnitude": [1e-4, 1e-3, 1e-2, 1],   # definitely not driving, not sure if it is even worth investigating
 
                       "max_vane_torque_orientation_error": [0.1, 1, 5, 10, 20, 30, 40, 50],
-                      "max_vane_torque_relative_magnitude_error": [1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1]}
+                      "max_vane_torque_relative_magnitude_error": [1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1],
+                      "torque_allocation_problem_target_weight": [1., 0.9, 0.8, 0.7, 2/3, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]}
+
+
 
 # Set simulation start and end epochs
 simulation_start_epoch = DateTime(2024, 6, 1, 0).epoch()
@@ -79,8 +82,9 @@ simulation_end_epoch = DateTime(2024, 6, 1, 20).epoch()
 
 # 10
 tolerances_to_tune_keys_ordered = [#"baseline_case",
-                                #"max_rotational_velocity_orientation_change_update_vane_angles_degrees",
-                                #"max_sunlight_vector_body_frame_orientation_change_update_vane_angles_degrees",
+                                "max_rotational_velocity_orientation_change_update_vane_angles_degrees",
+                                "max_sunlight_vector_body_frame_orientation_change_update_vane_angles_degrees",
+                                "torque_allocation_problem_target_weight",
                                 #"tol_vane_angle_determination",
                                 #"tol_torque_allocation_problem_x",
                                 #"tol_torque_allocation_problem_constraint",
@@ -93,12 +97,13 @@ tolerances_to_tune_keys_ordered = [#"baseline_case",
                                    ]
 for tol_to_tune_key in tolerances_to_tune_keys_ordered:
     for tol in tolerances_to_tune[tol_to_tune_key]:
+        print(f"{tol_to_tune_key}: {tol}")
         if (not os.path.exists(save_dir + f'{tol_to_tune_key}/')):
             os.mkdir(save_dir + f'{tol_to_tune_key}/')
 
-        if (not os.path.exists(save_dir + f'{tol_to_tune_key}/tol_{tol}')):
-            os.makedirs(save_dir + f'{tol_to_tune_key}/tol_{tol}')
-        current_complete_dir = save_dir + f'{tol_to_tune_key}/tol_{tol}/'
+        if (not os.path.exists(save_dir + f'{tol_to_tune_key}/tol_{float(tol):.1e}')):
+            os.makedirs(save_dir + f'{tol_to_tune_key}/tol_{float(tol):.1e}')
+        current_complete_dir = save_dir + f'{tol_to_tune_key}/tol_{float(tol):.1e}/'
 
         if (not (tol_to_tune_key == "baseline_case")):
             algorithm_constants[tol_to_tune_key] = tol
@@ -153,17 +158,18 @@ for tol_to_tune_key in tolerances_to_tune_keys_ordered:
         acs_object = sail_attitude_control_systems("vanes", boom_list, sail_I, algorithm_constants,
                                                    include_shadow=False)
         acs_object.set_vane_characteristics(vanes_coordinates_list,
-                                            vanes_origin_list,
-                                            vanes_rotation_matrices_list,
-                                            0,
-                                            np.array([0, 0, 0]),
-                                            0.0045,
-                                            vanes_rotational_dof,
-                                            vane_has_ideal_model,
-                                            wings_coordinates_list,
-                                            vane_mechanical_rotation_limits,
-                                            vanes_optical_properties,
-                                            torque_allocation_problem_objective_function_weights=[2. / 3., 1. / 3.])    #TODO : check this, should vary it or nah?
+            vanes_origin_list,
+            vanes_rotation_matrices_list,
+            0,
+            np.array([0, 0, 0]),
+            0.0045,
+            vanes_rotational_dof,
+            vane_has_ideal_model,
+            wings_coordinates_list,
+            vane_mechanical_rotation_limits,
+            vanes_optical_properties,
+            torque_allocation_problem_objective_function_weights=[algorithm_constants["torque_allocation_problem_target_weight"],
+                                                                  1-algorithm_constants["torque_allocation_problem_target_weight"]])
 
         sail = sail_craft("ACS3",
                           len(wings_coordinates_list),
@@ -240,25 +246,25 @@ for tol_to_tune_key in tolerances_to_tune_keys_ordered:
         save2txt(dict_to_write, current_complete_dir + f'ancillary_simulation_info.txt')
         print(t1 - t0)
 
-    # re-initialise the tolerances
-    algorithm_constants["tol_vane_angle_determination_start_golden_section"] = 1e-3  # ok
-    algorithm_constants["tol_vane_angle_determination_golden_section"] = 1e-3  # ok
-    algorithm_constants["tol_vane_angle_determination"] = 1e-4  # ok
+        # re-initialise the tolerances
+        algorithm_constants["tol_vane_angle_determination_start_golden_section"] = 1e-3  # ok
+        algorithm_constants["tol_vane_angle_determination_golden_section"] = 1e-3  # ok
+        algorithm_constants["tol_vane_angle_determination"] = 1e-4  # ok
 
-    algorithm_constants["tol_torque_allocation_problem_constraint"] = 1e-7  # ok
-    algorithm_constants["tol_torque_allocation_problem_objective"] = 0  # ok
-    algorithm_constants["tol_torque_allocation_problem_x"] = 1e-4  # ok
+        algorithm_constants["tol_torque_allocation_problem_constraint"] = 1e-7  # ok
+        algorithm_constants["tol_torque_allocation_problem_objective"] = 0  # ok
+        algorithm_constants["tol_torque_allocation_problem_x"] = 1e-4  # ok
 
-    algorithm_constants["max_rotational_velocity_orientation_change_update_vane_angles_degrees"] = 5  # [deg] ok
-    algorithm_constants["max_sunlight_vector_body_frame_orientation_change_update_vane_angles_degrees"] = 5  # [deg] ok
-    algorithm_constants["max_relative_change_in_rotational_velocity_magnitude"] = 0.1  # [-] ok
+        algorithm_constants["max_rotational_velocity_orientation_change_update_vane_angles_degrees"] = 5  # [deg] ok
+        algorithm_constants["max_sunlight_vector_body_frame_orientation_change_update_vane_angles_degrees"] = 5  # [deg] ok
+        algorithm_constants["max_relative_change_in_rotational_velocity_magnitude"] = 0.1  # [-] ok
 
-    # a bit of a different nature of analysis, still produce the data but do a bit differently
-    # use the things selected from before for that one especially
-    algorithm_constants["max_vane_torque_orientation_error"] = 15.  # [deg]     - go to DIRECT algorithm    ok
-    algorithm_constants["max_vane_torque_relative_magnitude_error"] = 0.25  # [-]   ok
+        # a bit of a different nature of analysis, still produce the data but do a bit differently
+        # use the things selected from before for that one especially
+        algorithm_constants["max_vane_torque_orientation_error"] = 15.  # [deg]     - go to DIRECT algorithm    ok
+        algorithm_constants["max_vane_torque_relative_magnitude_error"] = 0.25  # [-]   ok
 
-    # purely design, not really tuning parameters
-    algorithm_constants["sigmoid_scaling_parameter"] = 3  # [-] but is related to the rate of change of the vane angles
-    algorithm_constants["sigmoid_time_shift_parameter"] = 4  # [s]
-    algorithm_constants["vane_controller_shut_down_rotational_velocity_tolerance"] = 0.1
+        # purely design, not really tuning parameters
+        algorithm_constants["sigmoid_scaling_parameter"] = 3  # [-] but is related to the rate of change of the vane angles
+        algorithm_constants["sigmoid_time_shift_parameter"] = 4  # [s]
+        algorithm_constants["vane_controller_shut_down_rotational_velocity_tolerance"] = 0.1

@@ -81,7 +81,7 @@ bodies, vehicle_target_settings = sailProp.define_simulation_bodies(reduced_ephe
 sail.setBodies(bodies)
 termination_settings, integrator_settings = sailProp.define_numerical_environment()
 acceleration_models, torque_models = sailProp.define_dynamical_environment(bodies, acs_object, vehicle_target_settings)
-combined_propagator_settings = sailProp.define_propagators(integrator_settings, termination_settings, acceleration_models, torque_models, dependent_variables, output_frequency_in_seconds=500)
+combined_propagator_settings = sailProp.define_propagators(integrator_settings, termination_settings, acceleration_models, torque_models, dependent_variables)
 t0 = time.time()
 state_history, states_array, dependent_variable_history, dependent_variable_array, number_of_function_evaluations, propagation_outcome = sailProp.run_sim(bodies, combined_propagator_settings)
 t1 = time.time()
