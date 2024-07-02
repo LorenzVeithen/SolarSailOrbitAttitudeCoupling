@@ -10,6 +10,7 @@ import pygmo as pg
 from scipy.optimize import minimize, golden
 from time import time
 from AMSDerivation.truncatedEllipseCoefficientsFunctions import ellipse_truncated_coefficients_function_shadow_FALSE_ideal_model, ellipse_truncated_coefficients_function_shadow_TRUE_ideal_model
+from AMSDerivation.truncatedEllipseCoefficientsFunctions import ellipse_truncated_coefficients_function_shadow_FALSE_single_ideal_optical_model, ellipse_truncated_coefficients_function_shadow_TRUE_single_ideal_optical_model
 
 class sail_attitude_control_systems:
     def __init__(self, ACS_system, booms_coordinates_list, spacecraft_inertia_tensor, algorithm_constants={}, include_shadow=False, sail_craft_name="ACS3", sim_start_epoch=0):
@@ -437,7 +438,7 @@ class sail_attitude_control_systems:
                                  stationary_system_system_CoM,
                                  vanes_material_areal_density,
                                  vanes_rotational_dof_booleans,
-                                 vane_has_ideal_model,
+                                 vane_optical_model_str,
                                  wings_coordinates_list,
                                  vane_mechanical_rotation_bounds,
                                  vanes_optical_properties,
@@ -485,24 +486,26 @@ class sail_attitude_control_systems:
         self.vane_is_aligned_on_body_axis = np.array(self.vane_is_aligned_on_body_axis)
 
         # feasible torque ellipse coefficients from pre-computed functions
-        #ellipse_coefficient_functions_list = []
-        #for i in range(6):
-        #    filename = f'{directory_feasibility_ellipse_coefficients}/{["A", "B", "C", "D", "E", "F"][i]}_shadow_{str(self.include_shadow)}.txt'
-        #    built_function = buildEllipseCoefficientFunctions(filename)
-        #    ellipse_coefficient_functions_list.append(
-        #        lambda aps, bes, f=built_function: ellipseCoefficientFunction(aps, bes, f))
-
-        # TODO: make this more clear that non-ideal models can be selected, and show how
-        if (self.include_shadow):
-            if (vane_has_ideal_model):
+        if (vane_optical_model_str == "double_ideal_optical_model"):
+            vane_has_ideal_model = True
+            if (self.include_shadow):
                 ellipse_coefficient_functions_list = ellipse_truncated_coefficients_function_shadow_TRUE_ideal_model()
             else:
-                raise Exception("Non-ideal model ellipse coefficients have not been explicitly implemented yet")
-        else:
-            if (vane_has_ideal_model):
                 ellipse_coefficient_functions_list = ellipse_truncated_coefficients_function_shadow_FALSE_ideal_model()
+        elif (vane_optical_model_str == "single_ideal_optical_model"):
+            vane_has_ideal_model = True
+            if (self.include_shadow):
+                ellipse_coefficient_functions_list = ellipse_truncated_coefficients_function_shadow_TRUE_single_ideal_optical_model()
             else:
-                raise Exception("Non-ideal model ellipse coefficients have not been explicitly implemented yet")
+                ellipse_coefficient_functions_list = ellipse_truncated_coefficients_function_shadow_FALSE_single_ideal_optical_model()
+        elif (vane_optical_model_str == "ACS3_optical_model"):
+            vane_has_ideal_model = False
+            if (self.include_shadow):
+                ellipse_coefficient_functions_list = ellipse_truncated_coefficients_function_shadow_TRUE_ideal_model()
+            else:
+                ellipse_coefficient_functions_list = ellipse_truncated_coefficients_function_shadow_FALSE_ideal_model()
+        else:
+            raise Exception("Non-ideal model ellipse coefficients have not been explicitly implemented yet")
 
         # vane torque allocation problem
         self.vane_torque_allocation_problem_object = vaneTorqueAllocationProblem(self,

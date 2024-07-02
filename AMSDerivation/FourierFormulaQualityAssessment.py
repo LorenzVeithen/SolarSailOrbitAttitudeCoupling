@@ -4,22 +4,24 @@ from generalConstants import AMS_directory
 from vaneControllerMethods import buildEllipseCoefficientFunctions, ellipseCoefficientFunction, cart_to_pol
 from matplotlib import cm
 from scipy.optimize import golden
-from fullEllipseCoefficientsFunctions import ellipse_full_coefficients_function_shadow_FALSE_ideal_model, ellipse_full_coefficients_function_shadow_TRUE_ideal_model
+from fullEllipseCoefficientsFunctions import ellipse_full_coefficients_function_shadow_FALSE_double_ideal_optical_model, ellipse_full_coefficients_function_shadow_TRUE_double_ideal_optical_model
+from fullEllipseCoefficientsFunctions import ellipse_full_coefficients_function_shadow_FALSE_single_ideal_optical_model, ellipse_full_coefficients_function_shadow_TRUE_single_ideal_optical_model
+from fullEllipseCoefficientsFunctions import ellipse_full_coefficients_function_shadow_FALSE_ACS3_optical_model, ellipse_full_coefficients_function_shadow_TRUE_ACS3_optical_model
 from MiscFunctions import special_round
 
 coefficients_labels = ['A', 'B', 'C', 'D', 'E', 'F']
-vane_optical_model = "ideal_model"
-sh_comp = 0     # 0 if no shadow
-GENERATE_FOURIER_ELLIPSE_FUNCTIONS = False
-COMPUTE_SCALING = False
-GENERATE_ACCURACY_PLOTS = True
+vane_optical_model = "single_ideal_optical_model"
+sh_comp = 1     # 0 if no shadow
+GENERATE_FOURIER_ELLIPSE_FUNCTIONS = True
+COMPUTE_SCALING = True
+GENERATE_ACCURACY_PLOTS = False
 scaling = 1e-2      # necessary if COMPUTE_SCALING is False, disregarded otherwise
 
 if (COMPUTE_SCALING):
     print_mode = "truncated"
 else:
     print_mode = "full"
-def truncated_fourier_ellipse(relative_magnitude, plot_bool=False):
+def truncated_fourier_ellipse(relative_magnitude, optical_model_str="double_ideal_optical_model",plot_bool=False):
     """
 
     :param relative_magnitude: maximum relative magnitude between the most significant and least significant term of the
@@ -30,29 +32,32 @@ def truncated_fourier_ellipse(relative_magnitude, plot_bool=False):
     ellipse_coefficient_functions_list = []
     the_id_relevance_list = []
     for i in range(6):
-        filename = f'{AMS_directory}/Datasets/Ideal_model/vane_1/dominantFitTerms/{["A", "B", "C", "D", "E", "F"][i]}_shadow_{bool(sh_comp)}.txt'
+        filename = f'{AMS_directory}/Datasets/{optical_model_str}/vane_1/dominantFitTerms/{["A", "B", "C", "D", "E", "F"][i]}_shadow_{bool(sh_comp)}.txt'
         average_magnitude = np.genfromtxt(filename, delimiter=',')[:, 1]
         id_relevance = np.where(abs(average_magnitude) < max(average_magnitude) * relative_magnitude)[0]
         if (len(id_relevance) == 0):
             id_relevance = [-1]
         the_id_relevance = id_relevance[0]
         the_id_relevance_list.append(the_id_relevance)
-        #built_function = ellipseCoefficientsFunction_shadow_FALSE(the_id_relevance+1)
-        #ellipse_coefficient_functions_list.append(
-        #    lambda aps, bes, f=built_function: ellipseCoefficientFunction(aps, bes, f))
-    if (sh_comp==0):
-        ellipse_coefficient_functions_list = ellipse_full_coefficients_function_shadow_FALSE_ideal_model(the_id_relevance_list)
-    else:
-        ellipse_coefficient_functions_list = ellipse_full_coefficients_function_shadow_TRUE_ideal_model(the_id_relevance_list)
 
-    test_data_file = f'{AMS_directory}/Datasets/Ideal_model/vane_1/ellipseCoefficients/AMS_ellipse_coefficients_shadow_{bool(sh_comp)}_hull_TyTz_test_data.csv'
+    if (optical_model_str == "double_ideal_optical_model"):
+        if (sh_comp==0):
+            ellipse_coefficient_functions_list = ellipse_full_coefficients_function_shadow_FALSE_double_ideal_optical_model(the_id_relevance_list)
+        else:
+            ellipse_coefficient_functions_list = ellipse_full_coefficients_function_shadow_TRUE_double_ideal_optical_model(the_id_relevance_list)
+    elif (optical_model_str == "single_ideal_optical_model"):
+        if (sh_comp==0):
+            ellipse_coefficient_functions_list = ellipse_full_coefficients_function_shadow_FALSE_single_ideal_optical_model(the_id_relevance_list)
+        else:
+            ellipse_coefficient_functions_list = ellipse_full_coefficients_function_shadow_TRUE_single_ideal_optical_model(the_id_relevance_list)
+    elif (optical_model_str == "ACS3_optical_model"):
+        if (sh_comp == 0):
+            ellipse_coefficient_functions_list = ellipse_full_coefficients_function_shadow_FALSE_ACS3_optical_model(the_id_relevance_list)
+        else:
+            ellipse_coefficient_functions_list = ellipse_full_coefficients_function_shadow_TRUE_ACS3_optical_model(the_id_relevance_list)
+
+    test_data_file = f'{AMS_directory}/Datasets/{optical_model_str}/vane_1/ellipseCoefficients/AMS_ellipse_coefficients_shadow_{bool(sh_comp)}_hull_TyTz_test_data.csv'
     test_data = np.genfromtxt(test_data_file, delimiter=',')
-
-    #test_data = test_data[3200:]
-    x = test_data
-    n = 10000  # number of rows
-    idx = np.random.choice(len(x), n, replace = False)
-    #test_data = np.array([x[i] for i in idx])
 
     alpha_s_rad_list = test_data[:, 0]
     beta_s_rad_list = test_data[:, 1]
@@ -166,7 +171,7 @@ if (GENERATE_FOURIER_ELLIPSE_FUNCTIONS):
         the_id_relevance_list = [1700, 1700, 1700, 1700, 1700, 1700]
 
     for i in range(6):
-        filename = f'{AMS_directory}/Datasets/Ideal_model/vane_1/dominantFitTerms/{["A", "B", "C", "D", "E", "F"][i]}_shadow_{bool(sh_comp)}.txt'
+        filename = f'{AMS_directory}/Datasets/{vane_optical_model}/vane_1/dominantFitTerms/{["A", "B", "C", "D", "E", "F"][i]}_shadow_{bool(sh_comp)}.txt'
         original_fourier_fit = np.genfromtxt(filename, delimiter=',', dtype=object)
         coefficients_array = "np.array(["
         expressions_array = "np.array(["

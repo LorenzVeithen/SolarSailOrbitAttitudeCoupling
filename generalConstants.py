@@ -22,3 +22,8 @@ acc0 = 0.045 * 1E-3   # [m/s/s] characteristic sail acceleration - original ACS3
 
 # Constant with no impact on the simulation really, therefore kept here
 default_ellipse_bounding_box_margin = 2
+
+# optical models used
+ACS3_opt_model_coeffs_set = [0.1, 0.57, 0.74, 0.23, 0.16, 0.2, 2/3, 2/3, 0.03, 0.6]
+double_ideal_opt_model_coeffs_set = [0., 0., 1., 1., 0.0, 0.0, 2 / 3, 2 / 3, 1.0, 1.0]
+single_ideal_opt_model_coeffs_set = [0., 0., 1., 0., 0.0, 0.0, 2 / 3, 2 / 3, 1.0, 1.0]

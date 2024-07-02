@@ -3,7 +3,7 @@ from scipy.spatial.transform import Rotation as R
 from generalConstants import R_E, Project_directory
 
 # LTT save data
-detumbling_save_data_dir = Project_directory + f'/0_GeneratedData/DetumblingAnalysis'
+analysis_save_data_dir = Project_directory + f'/0_GeneratedData/DetumblingAnalysis'
 
 # initial orbit
 a_0 = R_E + 1000e3           # [m initial spacecraft semi-major axis

@@ -31,6 +31,13 @@ def runLLT(selected_combinations, wings_optical_properties, sma_0, ecc_0, save_d
     initial_sma = sma_0
     initial_ecc = ecc_0
 
+    # sort the combinations by magnitude to start with the easiest
+    temp_sort_array = np.empty((len(selected_combinations), 2), dtype=object)
+    for si in range(len(selected_combinations)):
+        temp_sort_array[si, 0] = selected_combinations[si]
+        temp_sort_array[si, 1] = np.sqrt(selected_combinations[si][0]**2 + selected_combinations[si][1]**2 + selected_combinations[si][2]**2)
+    sorted_temp_sort_array = temp_sort_array[np.argsort(temp_sort_array[:, 1])]
+    selected_combinations = sorted_temp_sort_array[:, 0]
     for counter, combination in enumerate(selected_combinations):
         print(f"--- running {combination}, {100 * ((counter+1)/len(selected_combinations))}% ---")
 

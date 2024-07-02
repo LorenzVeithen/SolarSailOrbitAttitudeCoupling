@@ -105,7 +105,7 @@ if (VANES_BOOL):
                                     np.array([0, 0, 0]),
                                     0.0045,
                                     vanes_rotational_dof,
-                                    vane_has_ideal_model,
+                                    "double_ideal_optical_model",
                                     wings_coordinates_list,
                                     vane_mechanical_rotation_limits,
                                     vanes_optical_properties)

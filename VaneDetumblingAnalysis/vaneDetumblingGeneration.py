@@ -31,6 +31,15 @@ def runDetumblingAnalysis(selected_combinations, vanes_optical_properties, vane_
     initial_sma = sma_0
     initial_ecc = ecc_0
     intial_inc = np.deg2rad(i_0_deg)
+
+    # sort the combinations by magnitude to start with the easiest
+    temp_sort_array = np.empty((len(selected_combinations), 2), dtype=object)
+    for si in range(len(selected_combinations)):
+        temp_sort_array[si, 0] = selected_combinations[si]
+        temp_sort_array[si, 1] = np.sqrt(selected_combinations[si][0]**2 + selected_combinations[si][1]**2 + selected_combinations[si][2]**2)
+    sorted_temp_sort_array = temp_sort_array[np.argsort(temp_sort_array[:, 1])]
+    selected_combinations = sorted_temp_sort_array[:, 0]
+
     for counter, combination in enumerate(selected_combinations):
         print(f"--- running {combination}, {100 * ((counter+1)/len(selected_combinations))}% ---")
 
@@ -55,7 +64,7 @@ def runDetumblingAnalysis(selected_combinations, vanes_optical_properties, vane_
                                             np.array([0, 0, 0]),
                                             0.0045,
                                             vanes_rotational_dof,
-                                            vane_has_ideal_model_bool,
+                                            "double_ideal_optical_model",
                                             wings_coordinates_list,
                                             vane_mechanical_rotation_limits,
                                             vanes_optical_properties,
@@ -101,7 +110,8 @@ def runDetumblingAnalysis(selected_combinations, vanes_optical_properties, vane_
         acceleration_models, torque_models = sailProp.define_dynamical_environment(bodies, acs_object, vehicle_target_settings)
         combined_propagator_settings = sailProp.define_propagators(integrator_settings, termination_settings, acceleration_models,
                                                                    torque_models, dependent_variables,
-                                                                   selected_propagator_=propagation_setup.propagator.gauss_modified_equinoctial)
+                                                                   selected_propagator_=propagation_setup.propagator.gauss_modified_equinoctial,
+                                                                   output_frequency_in_seconds=1)
 
         t0 = time.time()
         state_history, states_array, dependent_variable_history, dependent_variable_array, number_of_function_evaluations, propagation_outcome = sailProp.run_sim(bodies, combined_propagator_settings)

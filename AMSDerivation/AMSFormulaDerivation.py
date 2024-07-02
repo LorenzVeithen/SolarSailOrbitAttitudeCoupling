@@ -26,9 +26,9 @@ from sklearn.metrics import make_scorer, roc_auc_score
 #import h5py
 
 PLOT = False
-COMPUTE_DATA = False
-COMPUTE_ELLIPSES = False
-COMPUTE_ELLIPSE_FOURIER_FORMULA = True
+COMPUTE_DATA = True
+COMPUTE_ELLIPSES = True
+COMPUTE_ELLIPSE_FOURIER_FORMULA = False
 order_i = 15     # 8
 order_m = 15     # 6
 order_n = 15     # 6
@@ -37,7 +37,7 @@ cut_off = 0
 SAVE_DATA = True
 ALL_HULLS = False
 FOURIER_ELLIPSE_AVAILABLE = False
-GENERATE_FOURIER_TEST_DATA = False
+GENERATE_FOURIER_TEST_DATA = True
 
 if (GENERATE_FOURIER_TEST_DATA):
     coefficients_file_differentiator = '_test_data'
@@ -45,9 +45,11 @@ else:
     coefficients_file_differentiator = ''
 
 # Define solar sail - see constants file
-vanes_optical_properties = [np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)
-vane_optical_model_str = "Ideal_model"
-sh_comp = 1  # Define whether to work with or without shadow effects
+#vanes_optical_properties = [np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)
+#vanes_optical_properties = [np.array([0., 0., 1., 0., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)
+vanes_optical_properties = [np.array([0.1, 0.57, 0.74, 0.23, 0.16, 0.2, 2/3, 2/3, 0.03, 0.6])] * len(vanes_origin_list)
+vane_optical_model_str = "ACS3_optical_model"
+sh_comp = 0  # Define whether to work with or without shadow effects
 vane_id = 1
 cdir = f"{AMS_directory}/Datasets/{vane_optical_model_str}/vane_{vane_id}"
 target_hull = "TyTz"
@@ -73,7 +75,7 @@ if (COMPUTE_DATA):
                                     np.array([0, 0, 0]),
                                     0.0045,
                                     vanes_rotational_dof,
-                                    vane_has_ideal_model,
+                                    "double_ideal_optical_model",
                                     wings_coordinates_list,
                                     vane_mechanical_rotation_limits,
                                     vanes_optical_properties)

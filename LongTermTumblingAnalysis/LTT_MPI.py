@@ -3,7 +3,7 @@ from mpi4py import MPI
 import numpy as np
 import itertools
 from MiscFunctions import chunks, divide_list
-from longTermTumbling_ACS3Model import LTT_save_data_dir
+from longTermTumbling_ACS3Model import analysis_save_data_dir
 import os
 import sys
 from generalConstants import R_E
@@ -67,9 +67,9 @@ elif (optical_model_mode == 2):
 else:
     raise Exception("Unrecognised optical model mode in LTT propagation")
 
-if (not os.path.exists(LTT_save_data_dir + f'/{save_sub_dir}') and rank == 0):
-    os.makedirs(LTT_save_data_dir + f'/{save_sub_dir}/states_history')
-    os.makedirs(LTT_save_data_dir + f'/{save_sub_dir}/dependent_variable_history')
+if (not os.path.exists(analysis_save_data_dir + f'/{save_sub_dir}') and rank == 0):
+    os.makedirs(analysis_save_data_dir + f'/{save_sub_dir}/states_history')
+    os.makedirs(analysis_save_data_dir + f'/{save_sub_dir}/dependent_variable_history')
 
 all_combinations = list(itertools.product(omega_x_list, omega_y_list, omega_z_list))
 if (not overwrite_previous_bool):
@@ -78,7 +78,7 @@ if (not overwrite_previous_bool):
         initial_rotational_velocity = np.array(
             [comb[0] * 2 * np.pi / 3600., comb[1] * 2 * np.pi / 3600, comb[2] * 2 * np.pi / 3600])
         rotations_per_hour = np.round(initial_rotational_velocity * 3600 / (2 * np.pi), 1)
-        tentative_file = LTT_save_data_dir + f'/{save_sub_dir}/states_history/state_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}.dat'
+        tentative_file = analysis_save_data_dir + f'/{save_sub_dir}/states_history/state_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}.dat'
         if (os.path.isfile(tentative_file)):
             # if the file exists, skip this propagation
             continue
@@ -89,11 +89,10 @@ if (not overwrite_previous_bool):
 chunks_list = divide_list(all_combinations, n_processes)
 
 print(f"hello from rank {rank}")
-chunks_list = [[(0, 0, 0)], [(0, 1, 0)], [(0, 0, 1)]]
 runLLT(chunks_list[rank],
-        selected_wings_optical_properties,
-        initial_sma,
-        initial_ecc,
-        LTT_save_data_dir + f'/{save_sub_dir}',
-        overwrite_previous = overwrite_previous_bool)
+       selected_wings_optical_properties,
+       initial_sma,
+       initial_ecc,
+       analysis_save_data_dir + f'/{save_sub_dir}',
+       overwrite_previous = overwrite_previous_bool)
 

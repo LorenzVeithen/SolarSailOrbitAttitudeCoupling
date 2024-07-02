@@ -85,21 +85,10 @@ state_history, states_array, dependent_variable_history, dependent_variable_arra
     bodies, combined_propagator_settings)
 t1 = time.time()
 
-thinner_state_history = {}
-thinner_dependent_variable_history = {}
-previous_time_update = 0
-
-# only store every 10 seconds to avoid too large files
-for t_id, time_s in enumerate(states_array[:, 0]):
-    if (time_s - previous_time_update > 10.):
-        thinner_state_history[time_s] = states_array[t_id, 1:]
-        thinner_dependent_variable_history[time_s] = dependent_variable_array[t_id, 1:]
-        previous_time_update = time_s
-
 rotations_per_hour = np.round(initial_rotational_velocity * 3600 / (2 * np.pi), 1)
-save2txt(thinner_state_history,
-         LTT_save_data_dir + f'/keplerian_orbit_state_history.dat')
-save2txt(thinner_dependent_variable_history,
-         LTT_save_data_dir + f'/keplerian_orbit_dependent_variable_history.dat')
+save2txt(state_history,
+         analysis_save_data_dir + f'/keplerian_orbit_state_history.dat')
+save2txt(dependent_variable_history,
+         analysis_save_data_dir + f'/keplerian_orbit_dependent_variable_history.dat')
 
 print(t1 - t0)

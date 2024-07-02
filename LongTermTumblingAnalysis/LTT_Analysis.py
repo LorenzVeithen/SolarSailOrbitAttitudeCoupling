@@ -1,12 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from longTermTumbling_ACS3Model import LTT_save_data_dir
+from longTermTumbling_ACS3Model import analysis_save_data_dir
 from generalConstants import Project_directory
 from pathlib import Path
 from plottingRoutines import absolute_evolution_plot_LTT, relative_evolution_plot_LTT
 
 current_data_set = 'NoAsymmetry_ACS3'
-analysis_data_dir = LTT_save_data_dir + f'/LTT_NoAsymetry_data_ACS3/LEO_ecc_0.0/'
+analysis_data_dir = analysis_save_data_dir + f'/LTT_NoAsymetry_data_ACS3/LEO_ecc_0.0/'
 thinning_factor = 10
 
 keplerian_keys = ['sma', 'ecc', "inc", "aop", "raan", "tranom"]
