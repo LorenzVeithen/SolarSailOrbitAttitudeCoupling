@@ -4,11 +4,14 @@ home_name = current_working_directory.split('/')[2]
 
 Project_directory = str(current_working_directory)
 if (home_name=='lveithen'):
-    Project_directory = "/scratch/lveithen/SourceCode_28_06_2024"
+    Project_directory = "/scratch/lveithen/SourceCode"
     tudat_path = r"/home/lveithen/tudat-bundle/build/tudatpy"
 elif (home_name=='lorenz_veithen'):
     Project_directory = "/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python"
     tudat_path = r"/Users/lorenz_veithen/tudat-bundle/build/tudatpy"
+elif (home_name=='lorenz'):
+    Project_directory = "/home2/lorenz/SourceCode"
+    tudat_path = r"/home2/lorenz/tudat-bundle/build/tudatpy"
 else:
     raise Exception('does not know which system is being used')
 

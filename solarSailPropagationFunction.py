@@ -11,6 +11,7 @@ from attitudeControllersClass import sail_attitude_control_systems
 from sailCraftClass import sail_craft
 from dynamicsSim import sailCoupledDynamicsProblem
 from scipy.spatial.transform import Rotation as R
+from MiscFunctions import divide_list
 
 from tudatpy.astro.element_conversion import rotation_matrix_to_quaternion_entries
 from tudatpy.astro import element_conversion
@@ -20,11 +21,11 @@ from tudatpy.data import save2txt
 import time
 import os
 
-def runDetumblingAnalysis(selected_combinations,
+def runPropagationAnalysis(all_combinations,
                           optical_model_mode_str,
                           orbital_mode,
-                          save_directory,
                           rank,
+                          num_processes,
                           overwrite_previous=False,
                           include_shadow_bool=False,
                           run_mode='vane_detumbling',
@@ -37,13 +38,22 @@ def runDetumblingAnalysis(selected_combinations,
         keplerian_bool = False
         selected_wings_optical_properties = [np.array(ACS3_opt_model_coeffs_set)] * len(sail_model.wings_coordinates_list)
     elif (run_mode == 'LTT'):
-        import LongTermTumblingAnalysis.vaneDetumbling_ACS3Model as sail_model
+        import LongTermTumblingAnalysis.longTermTumbling_ACS3Model as sail_model
         acs_mode = 'None'
         keplerian_bool = False
-    elif (run_mode == 'keplerian'):
-        import LongTermTumblingAnalysis.vaneDetumbling_ACS3Model as sail_model
+        selected_vanes_optical_properties = []
+    elif (run_mode == 'keplerian_vane_detumbling' or run_mode == 'keplerian_LTT'):
+        if (run_mode == 'keplerian_vane_detumbling'):
+            import VaneDetumblingAnalysis.vaneDetumbling_ACS3Model as sail_model
+        elif (run_mode == 'keplerian_LTT'):
+            import LongTermTumblingAnalysis.longTermTumbling_ACS3Model as sail_model
+
         acs_mode = 'None'
         keplerian_bool = True
+        all_combinations = [(0, 0, 0)]
+        selected_wings_optical_properties = [np.array(double_ideal_opt_model_coeffs_set)] * len(
+            sail_model.wings_coordinates_list)
+        selected_vanes_optical_properties = []
     else:
         raise Exception("Unknown run mode.")
 
@@ -79,19 +89,19 @@ def runDetumblingAnalysis(selected_combinations,
 
     # get directory and correct optical properties
     if (optical_model_mode_str == "ACS3_optical_model"):
-        if (run_mode == 'vane_detumbling'):
+        if (run_mode == 'vane_detumbling' or run_mode == 'keplerian_vane_detumbling'):
             selected_vanes_optical_properties = [np.array(ACS3_opt_model_coeffs_set)] * len(sail_model.vanes_coordinates_list)
         elif (run_mode == 'LTT'):
             selected_wings_optical_properties = [np.array(ACS3_opt_model_coeffs_set)] * len(sail_model.wings_coordinates_list)
-        save_sub_dir = f'{sma_mode}_ecc_{ecc}_inc_{np.round(np.rad2deg(initial_inc))}/NoAsymetry_data_ACS3_opt_model_shadow_{bool(include_shadow_bool)}'
+        save_sub_dir = f'{sma_mode}_ecc_{np.round(ecc, 1)}_inc_{np.round(np.rad2deg(initial_inc))}/NoAsymetry_data_ACS3_opt_model_shadow_{bool(include_shadow_bool)}'
     elif (optical_model_mode_str == "double_ideal_optical_model"):
-        if (run_mode == 'vane_detumbling'):
+        if (run_mode == 'vane_detumbling' or run_mode == 'keplerian_vane_detumbling'):
             selected_vanes_optical_properties = [np.array(double_ideal_opt_model_coeffs_set)] * len(sail_model.vanes_coordinates_list)
         elif (run_mode == 'LTT'):
             selected_wings_optical_properties = [np.array(double_ideal_opt_model_coeffs_set)] * len(sail_model.wings_coordinates_list)
-        save_sub_dir = f'{sma_mode}_ecc_{ecc}_inc_{np.round(np.rad2deg(initial_inc))}/NoAsymetry_data_double_ideal_opt_model_shadow_{bool(include_shadow_bool)}'
+        save_sub_dir = f'{sma_mode}_ecc_{np.round(ecc, 1)}_inc_{np.round(np.rad2deg(initial_inc))}/NoAsymetry_data_double_ideal_opt_model_shadow_{bool(include_shadow_bool)}'
     elif (optical_model_mode_str == "single_ideal_optical_model"):
-        if (run_mode == 'vane_detumbling'):
+        if (run_mode == 'vane_detumbling' or run_mode == 'keplerian_vane_detumbling'):
             selected_vanes_optical_properties = [np.array(single_ideal_opt_model_coeffs_set)] * len(sail_model.vanes_coordinates_list)
         elif (run_mode == 'LTT'):
             selected_wings_optical_properties = [np.array(single_ideal_opt_model_coeffs_set)] * len(sail_model.wings_coordinates_list)
@@ -102,6 +112,29 @@ def runDetumblingAnalysis(selected_combinations,
     if (not os.path.exists(sail_model.analysis_save_data_dir + f'/{save_sub_dir}') and rank == 0):
         os.makedirs(sail_model.analysis_save_data_dir + f'/{save_sub_dir}/states_history')
         os.makedirs(sail_model.analysis_save_data_dir + f'/{save_sub_dir}/dependent_variable_history')
+    save_directory = sail_model.analysis_save_data_dir + f'/{save_sub_dir}'
+
+    if (keplerian_bool == False):
+        # remove combinations which have already been done
+        if (not overwrite_previous):
+            new_combs = []
+            for comb in all_combinations:
+                initial_rotational_velocity = np.array(
+                    [comb[0] * 2 * np.pi / 3600., comb[1] * 2 * np.pi / 3600, comb[2] * 2 * np.pi / 3600])
+                rotations_per_hour = np.round(initial_rotational_velocity * 3600 / (2 * np.pi), 1)
+                tentative_file = save_directory + f'/states_history/state_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}.dat'
+                if (os.path.isfile(tentative_file)):
+                    # if the file exists, skip this propagation
+                    continue
+                else:
+                    new_combs.append(comb)
+            all_combinations = new_combs
+
+        # cut into the number of parallel processes and take the required chunk
+        chunks_list = divide_list(all_combinations, num_processes)
+        selected_combinations = chunks_list[rank]
+    else:
+        selected_combinations = all_combinations
 
     # Set simulation start and end epochs
     simulation_start_epoch = DateTime(2024, 6, 1, 0).epoch()
@@ -126,13 +159,13 @@ def runDetumblingAnalysis(selected_combinations,
 
         rotations_per_hour = np.round(initial_rotational_velocity * 3600 / (2 * np.pi), 1)
         tentative_file = save_directory + f'/states_history/state_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}.dat'
-        if (os.path.isfile(tentative_file) and overwrite_previous==False):
+        if (os.path.isfile(tentative_file) and overwrite_previous==False and keplerian_bool==False):
             # if the file exists, skip this propagation
             continue
 
         # Define solar sail - see constants file
         acs_object = sail_attitude_control_systems(acs_mode, sail_model.boom_list, sail_model.sail_I, sail_model.algorithm_constants, include_shadow=include_shadow_bool)
-        if (acs_mode == 'vanes'):
+        if (acs_mode == 'vanes' or run_mode=='keplerian_vane_detumbling'):
             acs_object.set_vane_characteristics(sail_model.vanes_coordinates_list,
                                                 sail_model.vanes_origin_list,
                                                 sail_model.vanes_rotation_matrices_list,
@@ -194,7 +227,7 @@ def runDetumblingAnalysis(selected_combinations,
         state_history, states_array, dependent_variable_history, dependent_variable_array, number_of_function_evaluations, propagation_outcome = sailProp.run_sim(bodies, combined_propagator_settings)
         t1 = time.time()
 
-        if (run_mode == 'keplerian'):
+        if (keplerian_bool):
             save2txt(state_history,
                      save_directory + f'/keplerian_orbit_state_history.dat')
             save2txt(dependent_variable_history,

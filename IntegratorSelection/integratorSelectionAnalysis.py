@@ -158,12 +158,12 @@ for i, int in enumerate(integrator_list):
     plt.plot(integrator_dicts[int + "_num_eval_list"], integrator_dicts[int + "_max_pos_error_list"], label=int, marker=markers_list[i], color=colors_integrators[i])
 plt.yscale('log')
 plt.xscale('log')
-plt.axhline(y=req_pos, color='r', linestyle='--', label='Max position error')
+plt.axhline(y=req_pos, color='r', linestyle='--', label='Required accuracy')
 plt.axhline(y=max_position_error_norm, color='b', linestyle='--', label='Benchmark accuracy')
 plt.grid(True, which="both")
 plt.xlabel('Number of functions evaluations, N, [-]', fontsize=14)
 plt.ylabel(r'Maximum position error norm, $\epsilon_r$, [m]', fontsize=14)
-plt.legend(ncol=2)
+plt.legend(ncol=2, loc="upper left")
 plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Integrator_Comparison_position.png',
             dpi=1200,
             bbox_inches='tight')
@@ -174,12 +174,12 @@ for i, int in enumerate(integrator_list):
     plt.plot(integrator_dicts[int + "_num_eval_list"], integrator_dicts[int + "_max_vel_error_list"], label=int, marker=markers_list[i], color=colors_integrators[i])
 plt.yscale('log')
 plt.xscale('log')
-plt.axhline(y=req_vel, color='r', linestyle='--', label='Max velocity error')
+plt.axhline(y=req_vel, color='r', linestyle='--', label='Required accuracy')
 plt.axhline(y=max_velocity_error_norm, color='b', linestyle='--', label='Benchmark accuracy')
 plt.grid(True, which="both")
 plt.xlabel('Number of functions evaluations, N, [-]', fontsize=14)
 plt.ylabel(r'Maximum velocity error norm, $\epsilon_v$, [m/s]', fontsize=14)
-plt.legend(ncol=2)
+plt.legend(ncol=2, loc="upper left")
 plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Integrator_Comparison_velocity.png',
             dpi=1200,
             bbox_inches='tight')
@@ -190,12 +190,12 @@ for i, int in enumerate(integrator_list):
     plt.plot(integrator_dicts[int + "_num_eval_list"], integrator_dicts[int + "_max_omega_error_list"], label=int, marker=markers_list[i], color=colors_integrators[i])
 plt.yscale('log')
 plt.xscale('log')
-plt.axhline(y=req_omega, color='r', linestyle='--', label=r'Max rotational velocity error')
+plt.axhline(y=req_omega, color='r', linestyle='--', label='Required accuracy')
 plt.axhline(y=max_rotational_velocity_error_norm, color='b', linestyle='--', label='Benchmark accuracy')
 plt.grid(True, which="both")
 plt.xlabel('Number of functions evaluations, N, [-]', fontsize=14)
 plt.ylabel('Maximum rotational velocity error norm,\n' +'$\epsilon_{\omega}$, [deg/s]', fontsize=14)
-plt.legend(ncol=2)
+plt.legend(ncol=2, loc="upper left")
 plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Integrator_Comparison_omega.png',
             dpi=1200,
             bbox_inches='tight')

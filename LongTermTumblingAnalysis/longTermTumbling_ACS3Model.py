@@ -59,3 +59,10 @@ wings_rotation_matrices_list = [R.from_euler('z', -45., degrees=True).as_matrix(
                                 R.from_euler('z', -135., degrees=True).as_matrix(),
                                 R.from_euler('z', -225., degrees=True).as_matrix(),
                                 R.from_euler('z', -315., degrees=True).as_matrix()]
+
+# empty vanes
+algorithm_constants = {}
+vanes_coordinates_list = []
+vanes_rotational_dof = np.array([])
+vanes_origin_list = []
+vanes_rotation_matrices_list = []

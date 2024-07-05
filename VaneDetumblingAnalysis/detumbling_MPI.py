@@ -3,7 +3,9 @@ from mpi4py import MPI
 import numpy as np
 import itertools
 import sys
+import random
 
+random.seed(42)
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
@@ -17,10 +19,31 @@ include_shadow_b = int(sys.argv[3])     #0: False (no shadow), 1: True (with sha
 optical_mode_str = ["ACS3_optical_model", "double_ideal_optical_model", "single_ideal_optical_model"][optical_model_mode]
 
 
-omega_list = list(np.arange(-150, 150 + 1, 10))
-omega_list.remove(0)
-all_combinations = (list(itertools.product(omega_list, [0], [0])) + list(itertools.product([0], omega_list, [0]))
-                    + list(itertools.product([0], [0], omega_list)))
+# single axis
+omega_list_single = list(np.arange(-150, 150 + 1, 10))
+omega_list_single.remove(0)
+all_single_axis_combinations = (list(itertools.product(omega_list_single, [0], [0])) + list(itertools.product([0], omega_list_single, [0]))
+                                + list(itertools.product([0], [0], omega_list_single)))
+
+# double axis
+omega_list_double = [-100, -85, -70, -55, -40, -30, -20, -10, 100, 85, 70, 55, 40, 30, 20, 10]
+all_double_axis_combinations = []
+for omega in omega_list_double:
+    all_double_axis_combinations.append((omega, omega, 0))
+    all_double_axis_combinations.append((0, omega, omega))
+    all_double_axis_combinations.append((omega, 0, omega))
+
+# triple axis
+omega_list_triple = [-85, -70, -55, -40, -30, -20, -10, 85, 70, 55, 40, 30, 20, 10]
+
+all_triple_axis_combinations = list(itertools.product(omega_list_triple, omega_list_triple, omega_list_triple))
+sampled_triple_axis_combinations = random.sample(all_triple_axis_combinations, 250)
+for omega in omega_list_triple:
+    if ((omega, omega, omega) not in sampled_triple_axis_combinations):
+        sampled_triple_axis_combinations.append((omega, omega, omega))
+
+all_combinations = all_single_axis_combinations + all_double_axis_combinations + sampled_triple_axis_combinations
+print(len(all_combinations))
 
 print(f"hello from rank {rank}")
 if (rank==0):

@@ -4,10 +4,11 @@ from longTermTumbling_ACS3Model import analysis_save_data_dir
 from generalConstants import Project_directory
 from pathlib import Path
 from plottingRoutines import absolute_evolution_plot_LTT, relative_evolution_plot_LTT
+import os
 
-current_data_set = 'NoAsymmetry_ACS3'
-analysis_data_dir = analysis_save_data_dir + f'/LTT_NoAsymetry_data_ACS3/LEO_ecc_0.0/'
-thinning_factor = 10
+current_data_set = f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False'
+analysis_data_dir = analysis_save_data_dir + current_data_set
+thinning_factor = 1
 
 keplerian_keys = ['sma', 'ecc', "inc", "aop", "raan", "tranom"]
 omega_components_id = ['x', 'y', 'z']
@@ -44,12 +45,13 @@ variables_list = ['sma', 'ecc', "inc", "aop", "raan", "tranom", "apo", "peri"]
 
 states_history_dir = analysis_data_dir + "/states_history"
 dependent_variable_history_dir = analysis_data_dir + "/dependent_variable_history"
+
 # state history files
 p = Path(states_history_dir)
 state_history_files = [x for x in p.iterdir() if (not x.is_dir())]
 
 # add the path with zero rotational velocity in case it was not in the original bundle
-omega_is_zero_vector_data = Path('/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/LTT_Data/LTT_NoAsymetry_data_ACS3/LEO_ecc_0.0/states_history/state_history_omega_x_0.0_omega_y_0.0_omega_z_0.0.dat')
+omega_is_zero_vector_data = Path(analysis_save_data_dir + f'{analysis_data_dir}/states_history/state_history_omega_x_0.0_omega_y_0.0_omega_z_0.0.dat')
 if (((omega_is_zero_vector_data in state_history_files) == False) and (omega_is_zero_vector_data.exists())):
     state_history_files += [omega_is_zero_vector_data]
 
@@ -57,8 +59,9 @@ if (((omega_is_zero_vector_data in state_history_files) == False) and (omega_is_
 LTT_results_dict = {}
 
 # First handle the Keplerian orbit case for comparison
-keplerian_dependent_variable_history_array = np.loadtxt('/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/LTT_Data/LTT_NoAsymetry_data_ACS3/LEO_ecc_0.0/keplerian_orbit_dependent_variable_history.dat')
-keplerian_state_history_array = np.loadtxt('/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/LTT_Data/LTT_NoAsymetry_data_ACS3/LEO_ecc_0.0/keplerian_orbit_state_history.dat')
+keplerian_dependent_variable_history_array = np.loadtxt(f'{analysis_data_dir}/keplerian_orbit_dependent_variable_history.dat')
+keplerian_state_history_array = np.loadtxt(f'{analysis_data_dir}/keplerian_orbit_state_history.dat')
+
 LTT_results_dict["keplerian" + "_time_array"] = (keplerian_state_history_array[:, 0] - keplerian_state_history_array[0, 0]) / (24 * 3600)
 for i in range(6):
     LTT_results_dict["keplerian" + f"_{keplerian_keys[i]}_array"] = keplerian_dependent_variable_history_array[:, i+1]
@@ -159,9 +162,18 @@ for l in range(len(LTT_results_dict[f"all" + "_omega_vector_array"])):
                                           + LTT_results_dict[f"all" + "_omega_vector_array"][l][1]**2))
 
 time_label = r"Time, $t$, [days]"
+
+save_plot_dir = Project_directory + f'/0_FinalPlots/LTT' + current_data_set
+if (not os.path.exists(save_plot_dir)):
+    os.makedirs(save_plot_dir)
+
 for i in range(8):
     # Keplerian absolute variations
-    save_path = Project_directory + f'/0_FinalPlots/LTT/' + current_data_set + '/' + variables_list[i] + '.png'
+    current_save_plot_dir = save_plot_dir + '/' + variables_list[i]
+    if (not os.path.exists(current_save_plot_dir)):
+        os.mkdir(current_save_plot_dir)
+
+    save_path = current_save_plot_dir + '/' + variables_list[i] + '.png'
     absolute_evolution_plot_LTT(LTT_results_dict[f"all" + "_time_array"],
                                 processed_array_dict["all" + f"_{variables_list[i]}_array"],
                                 time_label,
@@ -175,7 +187,7 @@ for i in range(8):
             if (ref_key == "default" and omega_is_zero_vector_data.exists()==False):
                 continue
 
-            save_path = Project_directory + f'/0_FinalPlots/LTT/' + current_data_set + '/' + variables_list[
+            save_path = current_save_plot_dir + '/' + variables_list[
                 i] + f'_change_wrt_{ref_key}_cbar_omega_{save_fig_cb_label[cb_id]}.png'
             relative_evolution_plot_LTT(LTT_results_dict[f"all" + "_time_array"],
                                         processed_array_dict["all" + f"_{variables_list[i]}_array"],

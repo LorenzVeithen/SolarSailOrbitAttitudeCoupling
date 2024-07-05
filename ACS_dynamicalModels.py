@@ -4,7 +4,6 @@ Functions describing the attitude control systems dynamics.
 from scipy.spatial.transform import Rotation as R
 import numpy as np
 from MiscFunctions import all_equal, closest_point_on_a_segment_to_a_third_point, compute_panel_geometrical_properties
-from numba import jit
 
 def vane_dynamical_model(rotation_x_deg,
                          rotation_y_deg,

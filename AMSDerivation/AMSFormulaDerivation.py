@@ -25,7 +25,7 @@ from sklearn.metrics import make_scorer, roc_auc_score
 
 #import h5py
 
-PLOT = False
+PLOT = True
 COMPUTE_DATA = True
 COMPUTE_ELLIPSES = True
 COMPUTE_ELLIPSE_FOURIER_FORMULA = False
@@ -34,10 +34,10 @@ order_m = 15     # 6
 order_n = 15     # 6
 cut_off = 0
 
-SAVE_DATA = True
+SAVE_DATA = False
 ALL_HULLS = False
-FOURIER_ELLIPSE_AVAILABLE = False
-GENERATE_FOURIER_TEST_DATA = True
+FOURIER_ELLIPSE_AVAILABLE = True
+GENERATE_FOURIER_TEST_DATA = False
 
 if (GENERATE_FOURIER_TEST_DATA):
     coefficients_file_differentiator = '_test_data'
@@ -49,7 +49,7 @@ else:
 #vanes_optical_properties = [np.array([0., 0., 1., 0., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)
 vanes_optical_properties = [np.array([0.1, 0.57, 0.74, 0.23, 0.16, 0.2, 2/3, 2/3, 0.03, 0.6])] * len(vanes_origin_list)
 vane_optical_model_str = "ACS3_optical_model"
-sh_comp = 0  # Define whether to work with or without shadow effects
+sh_comp = 0#  # Define whether to work with or without shadow effects
 vane_id = 1
 cdir = f"{AMS_directory}/Datasets/{vane_optical_model_str}/vane_{vane_id}"
 target_hull = "TyTz"
@@ -75,7 +75,7 @@ if (COMPUTE_DATA):
                                     np.array([0, 0, 0]),
                                     0.0045,
                                     vanes_rotational_dof,
-                                    "double_ideal_optical_model",
+                                    "AMS_Derivation",
                                     wings_coordinates_list,
                                     vane_mechanical_rotation_limits,
                                     vanes_optical_properties)
@@ -104,7 +104,7 @@ if (COMPUTE_DATA):
     vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0, 1, 0]), np.array([0, 0, -1]),
                                                                vane_variable_optical_properties=True, vane_optical_properties_list=vanes_optical_properties)  # and the next time you can put False
 
-    sun_angles_num, vane_angles_num = 181, 100
+    sun_angles_num, vane_angles_num = 21, 100
 
     if (not GENERATE_FOURIER_TEST_DATA):
         sun_angle_alpha_list = np.linspace(-180, 180, sun_angles_num)
@@ -166,7 +166,7 @@ if (COMPUTE_ELLIPSES):
                 AMS_points = np.hstack((Tx, Ty))
                 numerical_hull = ConvexHull(AMS_points)
                 numerical_hull_points = numerical_hull.points[numerical_hull.vertices]
-                plot_labels = ['Tx [-]', 'Ty [-]']
+                plot_labels = [r'Non-dimensional $X_{\textit{B}}$ Torque, $T_{x}$, [-]', r'Non-dimensional $Y_{\textit{B}}$ Torque, $T_{y}$, [-]']
             case 'TxTz':
                 AMS_points = np.hstack((Tx, Tz))
                 numerical_hull = ConvexHull(AMS_points)
@@ -274,9 +274,9 @@ if (COMPUTE_ELLIPSES):
             if (FOURIER_ELLIPSE_AVAILABLE):
                 plt.plot(x_fourier, y_fourier, color='darkblue', label="Fourier ellipse")
             plt.scatter(numerical_hull_points[:, 0], numerical_hull_points[:, 1])
-            plt.xlabel(plot_labels[0])
-            plt.ylabel(plot_labels[1])
-            plt.title(r"$\alpha$=" + f'{round(alpha_sun_deg, 1)}' + r" and $\beta$=" + f'{round(beta_sun_deg, 1)}')
+            plt.xlabel(plot_labels[0], fontsize=14)
+            plt.ylabel(plot_labels[1], fontsize=14)
+            plt.title(r"$\alpha_{s}$=" + f'{round(alpha_sun_deg, 1)}' + r" and $\beta_{s}$=" + f'{round(beta_sun_deg, 1)}')
             plt.legend()
             if (not FOURIER_ELLIPSE_AVAILABLE):
                 if (not COMPUTE_DATA):
@@ -289,8 +289,8 @@ if (COMPUTE_ELLIPSES):
                 else:
                     plt.savefig(
                         f"{AMS_directory}/Plots/{vane_optical_model_str}/vane_{vane_id}/Fourier_Ellipses/AMS_alpha_{round(alpha_sun_deg, 1)}_beta_{round(beta_sun_deg, 1)}_shadow_{str(bool(sh_comp))}_hull_{target_hull}.png")
-            #plt.show()
-            plt.close()
+            plt.show()
+            #plt.close()
 
     if (len(np.shape(optimised_ellipse_coefficients_stack_with_shadow)) == 1):
         optimised_ellipse_coefficients_stack_with_shadow = optimised_ellipse_coefficients_stack_with_shadow[..., None]

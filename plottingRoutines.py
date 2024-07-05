@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import CubicSpline
 import matplotlib.cm as cm
-cmap = plt.get_cmap('seismic')
+cmap = plt.get_cmap('jet')
 
 def absolute_evolution_plot_LTT(x_arrays_list, y_arrays_list, xlabel, ylabel, savefig_label, close_fig_bool=True):
     plt.figure()
@@ -15,7 +15,7 @@ def absolute_evolution_plot_LTT(x_arrays_list, y_arrays_list, xlabel, ylabel, sa
     plt.grid(True)
     plt.xlabel(xlabel, fontsize=14)
     plt.ylabel(ylabel, fontsize=14)
-    plt.savefig(savefig_label, bbox_inches='tight', dpi=1200)
+    plt.savefig(savefig_label, bbox_inches='tight', dpi=300)
     if (close_fig_bool): plt.close()
 
 def relative_evolution_plot_LTT(x_arrays_list, y_arrays_list,
@@ -43,5 +43,5 @@ def relative_evolution_plot_LTT(x_arrays_list, y_arrays_list,
     plt.ylabel(ylabel, fontsize=14)
     cbar = fig.colorbar(cm.ScalarMappable(norm=c_norm_omega_all, cmap=cmap), ax=ax)
     cbar.set_label(colour_bar_label, rotation=270, labelpad=13)
-    plt.savefig(savefig_label, bbox_inches='tight', dpi=1200)
+    plt.savefig(savefig_label, bbox_inches='tight', dpi=300)
     if (close_fig_bool): plt.close()

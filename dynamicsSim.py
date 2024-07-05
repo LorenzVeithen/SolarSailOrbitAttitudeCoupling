@@ -52,11 +52,11 @@ class sailCoupledDynamicsProblem:
 
         if (reduced_ephemeris_model_boolean):
             constant_cartesian_state_Earth = spice_interface.get_body_cartesian_state_at_epoch('Earth', 'SSB',
-                                                                                               'ECLIPJ2000',
+                                                                                               'J2000',
                                                                                                'NONE',
                                                                                                self.simulation_start_epoch)
             constant_cartesian_state_Sun = spice_interface.get_body_cartesian_state_at_epoch('Sun', 'SSB',
-                                                                                              'ECLIPJ2000',
+                                                                                              'J2000',
                                                                                               'NONE',
                                                                                               self.simulation_start_epoch)
 

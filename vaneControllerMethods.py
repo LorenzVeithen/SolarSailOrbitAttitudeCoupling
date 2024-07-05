@@ -114,15 +114,15 @@ class vaneAnglesAllocationProblem:
             # W * vane_area/ c_sol *
             f = (abs(c_theta)) * ((
               self.alpha_front * self.absorption_reemission_ratio - 2 * self.rho_s_front * c_theta - self.rho_d_front * self.B_front) * surface_normal_body_frame + (
-              self.alpha_front + self.rho_d_front) * -self.sun_direction_body_frame)
+              self.alpha_front + self.rho_d_front) * self.sun_direction_body_frame)
         else:
             # W * vane_area/ c_sol *
             f = (abs(c_theta)) * ((
               self.alpha_back * self.absorption_reemission_ratio - 2 * self.rho_s_back * c_theta + self.rho_d_back * self.B_back) * surface_normal_body_frame + (
-              self.alpha_back + self.rho_d_back) * -self.sun_direction_body_frame)
+              self.alpha_back + self.rho_d_back) * self.sun_direction_body_frame)
 
         force_on_vane_body_frame = f
-        torque_on_body_from_vane = (1/np.linalg.norm(self.vane_origin)) * np.cross(centroid_body_frame, force_on_vane_body_frame)   #TODO: why is this flagged as unreachable ?
+        torque_on_body_from_vane = (1/np.linalg.norm(self.vane_origin)) * np.cross(centroid_body_frame, force_on_vane_body_frame)
         result = torque_on_body_from_vane
         if (self.include_shadow):
             shadow_bool = self.vane_shadow(rotated_points_body_frame[2:-1, :],

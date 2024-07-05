@@ -17,10 +17,9 @@ include_shadow_b = int(sys.argv[3])     #0: False (no shadow), 1: True (with sha
 optical_mode_str = ["ACS3_optical_model", "double_ideal_optical_model", "single_ideal_optical_model"][optical_model_mode]
 
 
-omega_list = list(np.arange(-150, 150 + 1, 10))
-omega_list.remove(0)
-all_combinations = (list(itertools.product(omega_list, [0], [0])) + list(itertools.product([0], omega_list, [0]))
-                    + list(itertools.product([0], [0], omega_list)))
+omega_list = [-100, -85, -70, -55, -40, -30, -20, -10, 100, 85, 70, 55, 40, 30, 20, 10]
+all_combinations = (list(itertools.product(omega_list, omega_list, [0])) + list(itertools.product([0], omega_list, omega_list))
+                    + list(itertools.product(omega_list, [0], omega_list)))
 
 print(f"hello from rank {rank}")
 if (rank==0):

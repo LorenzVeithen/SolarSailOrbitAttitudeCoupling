@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from generalConstants import AMS_directory
+from generalConstants import AMS_directory, Project_directory
 from vaneControllerMethods import buildEllipseCoefficientFunctions, ellipseCoefficientFunction, cart_to_pol
 from matplotlib import cm
 from scipy.optimize import golden
@@ -10,18 +10,20 @@ from fullEllipseCoefficientsFunctions import ellipse_full_coefficients_function_
 from MiscFunctions import special_round
 
 coefficients_labels = ['A', 'B', 'C', 'D', 'E', 'F']
-vane_optical_model = "single_ideal_optical_model"
+vane_optical_model = "ACS3_optical_model"
 sh_comp = 1     # 0 if no shadow
 GENERATE_FOURIER_ELLIPSE_FUNCTIONS = True
 COMPUTE_SCALING = True
 GENERATE_ACCURACY_PLOTS = False
 scaling = 1e-2      # necessary if COMPUTE_SCALING is False, disregarded otherwise
+desired_two_sigma_width = 2     # % relative difference in area 5.2 for ACS3 with shadow, 4 for ACS3 without shadow, 2 otherwise !!!
+
 
 if (COMPUTE_SCALING):
     print_mode = "truncated"
 else:
     print_mode = "full"
-def truncated_fourier_ellipse(relative_magnitude, optical_model_str="double_ideal_optical_model",plot_bool=False):
+def truncated_fourier_ellipse(relative_magnitude, optical_model_str, plot_bool=False):
     """
 
     :param relative_magnitude: maximum relative magnitude between the most significant and least significant term of the
@@ -67,9 +69,6 @@ def truncated_fourier_ellipse(relative_magnitude, optical_model_str="double_idea
     fourier_ellipse_coefficients[:, 1] = beta_s_rad_list
 
     for i, (alpha_s_rad, beta_s_rad) in enumerate(zip(alpha_s_rad_list, beta_s_rad_list)):
-        if (i % 100 == 0):
-            print(i)
-
         for j in range(6):
             fourier_ellipse_coefficients[i, 2 + j] = ellipse_coefficient_functions_list[j](alpha_s_rad, beta_s_rad)
 
@@ -86,35 +85,57 @@ def truncated_fourier_ellipse(relative_magnitude, optical_model_str="double_idea
     alpha_sun_deg, beta_sun_deg = np.rad2deg(alpha_s_rad_list), np.rad2deg(beta_s_rad_list)
     if (plot_bool):
         fig = plt.figure()
+        fig.set_size_inches(32, 18)  # set figure's size manually to your full screen (32x18)
         ax = fig.add_subplot(projection='3d')
         ax.grid(b=True, color='grey',
                 linestyle='-.', linewidth=0.3,
                 alpha=0.2)
         my_cmap = plt.get_cmap('jet')
         ax.scatter(alpha_sun_deg, beta_sun_deg, area_diff_rel, c=area_diff_rel, cmap=my_cmap, alpha=0.5, label="Data")
-        ax.set_xlabel('alpha')
-        ax.set_ylabel('beta')
-        ax.set_zlabel(f"Relative area difference, %")
+        ax.set_xlabel(r'Sun cone angle, $\alpha_{s}$, [deg]', fontsize=14)
+        ax.set_ylabel(r'Sun clock angle, $\beta_{s}$, [deg]', fontsize=14)
+        ax.set_zlabel(r"Relative area difference, $\Delta A$, [%]")
+        plt.savefig(Project_directory + f'/0_FinalPlots/AMS/FourierFit/{optical_model_str}/area_diff_shadow_{sh_comp}.png',
+                    dpi=1200,
+                    bbox_inches="tight")
 
         for i in range(6):
             fig = plt.figure()
+            fig.set_size_inches(32, 18)  # set figure's size manually to your full screen (32x18)
             ax = fig.add_subplot(projection='3d')
             z = (fourier_ellipse_coefficients[:, i + 2] - test_data[:, i + 2])
             id = z.argmax(axis=0)
             ax.scatter(alpha_sun_deg, beta_sun_deg, z, c=z, cmap=my_cmap, alpha=0.5, label="Data")
-            ax.set_xlabel("alpha_sun")
-            ax.set_ylabel("beta_sun")
-            ax.set_zlabel(f'{coefficients_labels[i]} coefficient error')
+            ax.set_xlabel(r'Sun cone angle, $\alpha_{s}$, [deg]', fontsize=14)
+            ax.set_ylabel(r'Sun clock angle, $\beta_{s}$, [deg]', fontsize=14)
+            ax.set_zlabel(f'{coefficients_labels[i]} coefficient error, [-]', fontsize=14)
+            plt.savefig(
+                Project_directory + f'/0_FinalPlots/AMS/FourierFit/{optical_model_str}/{coefficients_labels[i]}_coeff_error_shadow_{sh_comp}_3D.png',
+                dpi=1200,
+                bbox_inches="tight")
+            plt.close()
 
             plt.figure()
             plt.scatter(alpha_sun_deg, z, s=1)
-            plt.xlabel('alpha_sun')
-            plt.ylabel(f'{coefficients_labels[i]} coefficient error')
+            plt.xlabel(r'Sun cone angle, $\alpha_{s}$, [deg]', fontsize=14)
+            plt.ylabel(f'{coefficients_labels[i]} coefficient error, [-]', fontsize=14)
+            plt.grid(True)
+            plt.savefig(
+                Project_directory + f'/0_FinalPlots/AMS/FourierFit/{optical_model_str}/{coefficients_labels[i]}_coeff_error_shadow_{sh_comp}_2D_alpha.png',
+                dpi=1200,
+                bbox_inches="tight")
+            plt.close()
 
             plt.figure()
             plt.scatter(beta_sun_deg, z, s=1)
-            plt.xlabel('beta_sun')
-            plt.ylabel(f'{coefficients_labels[i]} coefficient error')
+            plt.xlabel(r'Sun clock angle, $\beta_{s}$, [deg]', fontsize=14)
+            plt.ylabel(f'{coefficients_labels[i]} coefficient error, [-]', fontsize=14)
+            plt.grid(True)
+            plt.savefig(
+                Project_directory + f'/0_FinalPlots/AMS/FourierFit/{optical_model_str}/{coefficients_labels[i]}_coeff_error_shadow_{sh_comp}_2D_beta.png',
+                dpi=1200,
+                bbox_inches="tight")
+            plt.close()
 
     print(f'maximum area difference: {max(area_diff_rel)}')
     print(f'minimum area difference: {min(area_diff_rel)}')
@@ -122,8 +143,8 @@ def truncated_fourier_ellipse(relative_magnitude, optical_model_str="double_idea
     print(f'STD area difference: {np.std(area_diff_rel)}')
     return [np.mean(area_diff_rel) - 2 * np.std(area_diff_rel), np.mean(area_diff_rel) + 2 * np.std(area_diff_rel)], the_id_relevance_list, area_diff_rel
 
-def golden_section_wrapper(t, desired_two_sigma_interval_width=2):
-    interval = truncated_fourier_ellipse(t)[0]
+def golden_section_wrapper(t, desired_two_sigma_interval_width=desired_two_sigma_width):
+    interval = truncated_fourier_ellipse(t, vane_optical_model)[0]
     interval_difference = interval[1] - interval[0]
     if (interval_difference > desired_two_sigma_interval_width):
         return 1
@@ -141,7 +162,7 @@ def plots_number_of_terms_Fourier_ellipse(selected_scaling):
     std_list = []
     area_diff_rel_list = []
     for sc in scaling_list:
-        current_area_diff_rel = truncated_fourier_ellipse(sc)[2]
+        current_area_diff_rel = truncated_fourier_ellipse(sc, vane_optical_model)[2]
         min_list.append(min(current_area_diff_rel))
         mean_list.append(np.mean(current_area_diff_rel))
         max_list.append(max(current_area_diff_rel))
@@ -156,17 +177,25 @@ def plots_number_of_terms_Fourier_ellipse(selected_scaling):
     plt.grid(True)
 
     fig, ax = plt.subplots()
+    fig.set_size_inches(32, 18)  # set figure's size manually to your full screen (32x18)
     ax.boxplot(area_diff_rel_list)
-    ax.set_xticklabels(special_round(scaling_list, 1))
-
+    ax.set_xticklabels(special_round(scaling_list, 1), rotation=90)
+    ax.set_xlabel(r"Scaling factor, $t_{s}$, [-]")
+    ax.set_ylabel(r"Relative area difference, $\Delta A$, [%]")
+    plt.savefig(
+        Project_directory + f'/0_FinalPlots/AMS/FourierFit/{vane_optical_model}/area_error_dist_shadow_{sh_comp}.png',
+        dpi=1200,
+        bbox_inches="tight")
+    plt.close()
     return True
 
 if (GENERATE_FOURIER_ELLIPSE_FUNCTIONS):
     if (COMPUTE_SCALING):
         scaling = golden(golden_section_wrapper, brack=(1e-7, 1e-2), tol=1e-7)
+        _, the_id_relevance_list = truncated_fourier_ellipse(scaling, vane_optical_model, plot_bool=True)[:2]
         print(scaling)
-        _, the_id_relevance_list = truncated_fourier_ellipse(scaling, plot_bool=True)[:2]
-        plt.show()
+        print(the_id_relevance_list)
+        plots_number_of_terms_Fourier_ellipse(scaling)
     else:
         the_id_relevance_list = [1700, 1700, 1700, 1700, 1700, 1700]
 
@@ -211,9 +240,6 @@ if (GENERATE_FOURIER_ELLIPSE_FUNCTIONS):
         else:
             print('    return np.dot(coefficients_array[:n_terms], expressions_array[:n_terms])')
 
-if (GENERATE_ACCURACY_PLOTS):
-    # probably way better to do a boxplot
-    plots_number_of_terms_Fourier_ellipse(1e-3)
-    plt.show()
+
 
 

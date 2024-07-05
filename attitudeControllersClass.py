@@ -1,16 +1,15 @@
-from scipy.spatial.transform import Rotation as R
 import numpy as np
 from MiscFunctions import all_equal, closest_point_on_a_segment_to_a_third_point, compute_panel_geometrical_properties
 from ACS_dynamicalModels import vane_dynamical_model, shifted_panel_dynamical_model, sliding_mass_dynamical_model
-from numba import jit
 from vaneControllerMethods import buildEllipseCoefficientFunctions, ellipseCoefficientFunction, vaneTorqueAllocationProblem
 from vaneControllerMethods import sigmoid_transition, vaneAngleAllocationScaling
 from generalConstants import AMS_directory, c_sol, W
 import pygmo as pg
 from scipy.optimize import minimize, golden
 from time import time
-from AMSDerivation.truncatedEllipseCoefficientsFunctions import ellipse_truncated_coefficients_function_shadow_FALSE_ideal_model, ellipse_truncated_coefficients_function_shadow_TRUE_ideal_model
+from AMSDerivation.truncatedEllipseCoefficientsFunctions import ellipse_truncated_coefficients_function_shadow_FALSE_double_ideal_optical_model, ellipse_truncated_coefficients_function_shadow_TRUE_double_ideal_optical_model
 from AMSDerivation.truncatedEllipseCoefficientsFunctions import ellipse_truncated_coefficients_function_shadow_FALSE_single_ideal_optical_model, ellipse_truncated_coefficients_function_shadow_TRUE_single_ideal_optical_model
+from AMSDerivation.truncatedEllipseCoefficientsFunctions import ellipse_truncated_coefficients_function_shadow_FALSE_ACS3_optical_model, ellipse_truncated_coefficients_function_shadow_TRUE_ACS3_optical_model
 
 class sail_attitude_control_systems:
     def __init__(self, ACS_system, booms_coordinates_list, spacecraft_inertia_tensor, algorithm_constants={}, include_shadow=False, sail_craft_name="ACS3", sim_start_epoch=0):
@@ -489,9 +488,9 @@ class sail_attitude_control_systems:
         if (vane_optical_model_str == "double_ideal_optical_model"):
             vane_has_ideal_model = True
             if (self.include_shadow):
-                ellipse_coefficient_functions_list = ellipse_truncated_coefficients_function_shadow_TRUE_ideal_model()
+                ellipse_coefficient_functions_list = ellipse_truncated_coefficients_function_shadow_TRUE_double_ideal_optical_model()
             else:
-                ellipse_coefficient_functions_list = ellipse_truncated_coefficients_function_shadow_FALSE_ideal_model()
+                ellipse_coefficient_functions_list = ellipse_truncated_coefficients_function_shadow_FALSE_double_ideal_optical_model()
         elif (vane_optical_model_str == "single_ideal_optical_model"):
             vane_has_ideal_model = True
             if (self.include_shadow):
@@ -501,9 +500,13 @@ class sail_attitude_control_systems:
         elif (vane_optical_model_str == "ACS3_optical_model"):
             vane_has_ideal_model = False
             if (self.include_shadow):
-                ellipse_coefficient_functions_list = ellipse_truncated_coefficients_function_shadow_TRUE_ideal_model()
+                ellipse_coefficient_functions_list = ellipse_truncated_coefficients_function_shadow_TRUE_ACS3_optical_model()
             else:
-                ellipse_coefficient_functions_list = ellipse_truncated_coefficients_function_shadow_FALSE_ideal_model()
+                ellipse_coefficient_functions_list = ellipse_truncated_coefficients_function_shadow_FALSE_ACS3_optical_model()
+        elif (vane_optical_model_str == "AMS_Derivation"):
+            vane_has_ideal_model = False
+            ellipse_coefficient_functions_list = []
+
         else:
             raise Exception("Non-ideal model ellipse coefficients have not been explicitly implemented yet")
 
