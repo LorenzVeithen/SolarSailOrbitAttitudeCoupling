@@ -1,17 +1,23 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from generalConstants import Project_directory
+import os
 
-selected_combinations = [(0.0, 0.0, 70.0),
-                         (20.0, 0.0, 0.0)]
+selected_combinations = [(5.0, 0.0, 0.0),
+                    (0.0, 5.0, 0.0),
+                    (0.0, 0.0, 5.0),
+                    (5.0, 5.0, 0.0),
+                    (0.0, 5.0, 5.0),
+                    (5.0, 0.0, 5.0),
+                    (5.0, 5.0, 5.0)]
 
 for c_id, c in enumerate(selected_combinations):
 
-    for plot_id in range(1):
+    for plot_id in range(8):
         # Focus on
 
         if (plot_id == 0):
-            comparison_name = "optical_model"   # shadow, orbital regime, etc.
+            comparison_name = "optical_model"
             states_history_datasets_list = [
                 f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
                 f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
@@ -19,13 +25,67 @@ for c_id, c in enumerate(selected_combinations):
             ]
             plot_label = ['ACS3 O-SRP', 'DI-SRP', 'SI-SRP']
         elif (plot_id == 1):
-            comparison_name = "inclination"  # shadow, orbital regime, etc.
+            comparison_name = "inclination_LEO"
             states_history_datasets_list = [
                 f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
                 f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_45.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
                 f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
             plot_label = ['i=98.0°', 'i=45.0°', 'i=0.0°']
+        elif (plot_id == 2):
+            comparison_name = "inclination_MEO"
+            states_history_datasets_list = [
+                f"0_GeneratedData/DetumblingAnalysis/MEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/MEO_ecc_0.0_inc_45.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/MEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+            ]
+            plot_label = ['i=98.0°', 'i=45.0°', 'i=0.0°']
+        elif (plot_id == 3):
+            comparison_name = "inclination_GEO"
+            states_history_datasets_list = [
+                f"0_GeneratedData/DetumblingAnalysis/GEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/GEO_ecc_0.0_inc_45.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/GEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+            ]
+            plot_label = ['i=98.0°', 'i=45.0°', 'i=0.0°']
+        elif (plot_id == 4):
+            comparison_name = "orbital_regime"
+            states_history_datasets_list = [
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/MEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/GEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+            ]
+            plot_label = ['LEO', 'MEO', 'GEO']
+        elif (plot_id == 5):
+            comparison_name = "sma"
+            states_history_datasets_list = [
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/MEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/GEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+            ]
+            plot_label = ['LEO', 'MEO', 'GEO']
+        elif (plot_id == 6):
+            comparison_name = "orientation"
+            states_history_datasets_list = [
+                f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/sun_pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/edge-on-x/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/edge-on-y/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/identity_to_inertial/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+            ]
+            plot_label = ['sun-pointing', 'edge-on-x', 'edge-on-y', 'identity_to_inertial']
+        elif (plot_id == 7):
+            comparison_name = 'vane_shadow'
+            states_history_datasets_list = [
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+            ]
+            plot_label = ['Shadow constraint', 'No shadow constraint']
+
+        # create plots directory
+        if (not os.path.exists(f'{Project_directory}/0_FinalPlots/Detumbling/{comparison_name}/{str(c)}')):
+            os.makedirs(f'{Project_directory}/0_FinalPlots/Detumbling/{comparison_name}/{str(c)}')
+        save_plots_dir = f'{Project_directory}/0_FinalPlots/Detumbling/{comparison_name}/{str(c)}'
+
         # obtain the associated dependent variables
         dependent_variable_history_datasets_list = []
         for state_data_path in states_history_datasets_list:
@@ -49,6 +109,7 @@ for c_id, c in enumerate(selected_combinations):
         omega_deg_s_arrays_list = []
         T_arrays_list = []
         detumbling_time_list = []
+
         for (current_states_path, current_dep_vars_path) in zip(states_history_datasets_list, dependent_variable_history_datasets_list):
             # Extract data
             current_state_history_array = np.loadtxt(f'{Project_directory}/{current_states_path}')
@@ -90,37 +151,42 @@ for c_id, c in enumerate(selected_combinations):
         custom_xlim = (0, max(detumbling_time_list) * 1.05)
         # Compare the rotational velocity change
         for i, (time_array, om_array) in enumerate(zip(time_arrays_list, omega_deg_s_arrays_list)):
-            plt.figure(c_id*100 + 1)
+            plt.figure(plot_id*1000 + c_id*100 + 1)
             plt.plot(time_array, om_array[:, 0], label=f'{plot_label[i]}')
-            plt.figure(c_id*100 + 2)
+            plt.figure(plot_id*1000 + c_id*100 + 2)
             plt.plot(time_array, om_array[:, 1], label=f'{plot_label[i]}')
-            plt.figure(c_id*100 + 3)
+            plt.figure(plot_id*1000 + c_id*100 + 3)
             plt.plot(time_array, om_array[:, 2], label=f'{plot_label[i]}')
 
-        plt.figure(c_id*100 + 1)
-        plt.title(str(c))
+        plt.figure(plot_id*1000 + c_id*100 + 1)
+        plt.title(f'{str(c)}: {comparison_name}')
         plt.grid(True)
         plt.xlabel(r"Time, $t$, [days]", fontsize=14)
         plt.ylabel(r"Rotational velocity X-component, $\omega_{x}$, [deg/s]", fontsize=14)
         plt.legend()
         plt.xlim(custom_xlim)
+        plt.savefig(f'{save_plots_dir}/omega_x.png', bbox_inches='tight')
+        plt.close()
 
-        plt.figure(c_id*100 + 2)
-        plt.title(str(c))
+        plt.figure(plot_id*1000 + c_id*100 + 2)
+        plt.title(f'{str(c)}: {comparison_name}')
         plt.grid(True)
         plt.xlabel(r"Time, $t$, [days]", fontsize=14)
         plt.ylabel(r"Rotational velocity Y-component, $\omega_{y}$, [deg/s]", fontsize=14)
         plt.legend()
         plt.xlim(custom_xlim)
+        plt.savefig(f'{save_plots_dir}/omega_y.png', bbox_inches='tight')
+        plt.close()
 
-        plt.figure(c_id*100 + 3)
-        plt.title(str(c))
+        plt.figure(plot_id*1000 + c_id*100 + 3)
+        plt.title(f'{str(c)}: {comparison_name}')
         plt.grid(True)
         plt.xlabel(r"Time, $t$, [days]", fontsize=14)
         plt.ylabel(r"Rotational velocity Z-component, $\omega_{z}$, [deg/s]", fontsize=14)
         plt.legend()
         plt.xlim(custom_xlim)
-
+        plt.savefig(f'{save_plots_dir}/omega_z.png', bbox_inches='tight')
+        plt.close()
         # compare vane angles histories
 
 

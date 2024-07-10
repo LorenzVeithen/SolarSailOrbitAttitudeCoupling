@@ -6,6 +6,28 @@ import re
 
 @jit(nopython=True, cache=True)
 def compute_panel_geometrical_properties(panel_coordinates):
+    """
+      Compute the geometrical properties of a panel defined by its attachment points.
+
+      This function calculates the centroid, area, and surface normal of a polygonal panel
+      given its attachment points in 3D space. The calculations are performed using
+      vectorized operations to ensure efficiency.
+
+      Parameters:
+      panel_coordinates : numpy.ndarray
+          A 2D array of shape (N, 3) representing the coordinates of the N attachment
+          points of the panel in 3D space. Each row corresponds to a point with x, y,
+          and z coordinates.
+
+      Returns:
+      tuple
+          A tuple containing:
+          - current_panel_centroid (numpy.ndarray): A 1D array of shape (3,) representing
+            the x, y, and z coordinates of the panel's centroid.
+          - current_panel_area (float): The area of the panel.
+          - current_panel_surface_normal (numpy.ndarray): A 1D array of shape (3,) representing
+            the x, y, and z components of the panel's surface normal.
+    """
     # Number of attachment points
     number_of_attachment_points = np.shape(panel_coordinates)[0]
 
@@ -43,11 +65,70 @@ def compute_panel_geometrical_properties(panel_coordinates):
     return current_panel_centroid, current_panel_area, current_panel_surface_normal
 
 def quiver_data_to_segments(X, Y, Z, u, v, w, length=1):
+    """
+        Convert quiver data into line segments.
+
+        This function takes the starting points and direction components of vectors from
+        3D quiver data and converts them into line segments. Each segment is defined by
+        its start point and end point, calculated using the provided direction components
+        and an optional scaling factor (`length`).
+
+        Parameters:
+        X : numpy.ndarray
+            The x-coordinates of the starting points of the vectors.
+
+        Y : numpy.ndarray
+            The y-coordinates of the starting points of the vectors.
+
+        Z : numpy.ndarray
+            The z-coordinates of the starting points of the vectors.
+
+        u : numpy.ndarray
+            The x-components of the direction vectors.
+
+        v : numpy.ndarray
+            The y-components of the direction vectors.
+
+        w : numpy.ndarray
+            The z-components of the direction vectors.
+
+        length : float, optional
+            The scaling factor for the length of the vectors. Default is 1.
+
+        Returns:
+        list of list of list of float
+            A list of line segments, where each segment is represented as
+            `[[x_start, y_start, z_start], [x_end, y_end, z_end]]`.
+    """
     segments = (X, Y, Z, X+v*length, Y+u*length, Z+w*length)
     segments = np.array(segments).reshape(6,-1)
     return [[[x, y, z], [u, v, w]] for x, y, z, u, v, w in zip(*list(segments))]
 
 def closest_point_on_a_segment_to_a_third_point(p1, p2, p3):
+    """
+        Find the closest point on a line segment to a third point.
+
+        This function calculates the closest point on the line segment defined by the points
+        `p1` and `p2` to a third point `p3`. If `p3` coincides with `p1` or `p2`, it returns
+        `p1` or `p2` respectively. Otherwise, it computes the orthogonal projection of `p3`
+        onto the line defined by `p1` and `p2`, and then checks if this projection lies within
+        the segment `[p1, p2]`. If the projection lies outside the segment, the nearest
+        endpoint (`p1` or `p2`) is returned.
+
+        Parameters:
+        p1 : numpy.ndarray
+            The first endpoint of the line segment.
+
+        p2 : numpy.ndarray
+            The second endpoint of the line segment.
+
+        p3 : numpy.ndarray
+            The third point to which the closest point on the segment is to be found.
+
+        Returns:
+        numpy.ndarray
+        The point on the segment `[p1, p2]` that is closest to `p3`.
+    """
     if (all(p3[i] == p1[i] for i in range(len(p3)))):
         return p1
     elif (all(p3[i] == p2[i] for i in range(len(p3)))):
@@ -65,6 +146,21 @@ def closest_point_on_a_segment_to_a_third_point(p1, p2, p3):
             return p4
 
 def lists_of_arrays_equal(list1, list2):
+    """
+        Check if two lists of NumPy arrays are equal.
+
+        Parameters:
+        list1 : list of numpy.ndarray
+            The first list of NumPy arrays to be compared.
+
+        list2 : list of numpy.ndarray
+            The second list of NumPy arrays to be compared.
+
+        Returns:
+        bool
+            `True` if the lists are of the same length and all corresponding pairs of
+            arrays are equal, `False` otherwise.
+    """
     if len(list1) != len(list2):
         return False
 
@@ -74,16 +170,31 @@ def lists_of_arrays_equal(list1, list2):
     return True
 
 def all_equal(iterable):
+    """
+    Check if all elements in the given iterable are equal.
+
+    Parameters:
+    iterable : iterable
+        An iterable of elements to be checked for equality.
+
+    Returns:
+    bool
+        `True` if all elements in the iterable are equal, `False` otherwise.
+    """
     g = groupby(iterable)
     return next(g, True) and not next(g, False)
 
-def set_axes_equal(ax):  # from https://stackoverflow.com/questions/13685386/matplotlib-equal-unit-length-with-equal-aspect-ratio-z-axis-is-not-equal-to
+def set_axes_equal(ax):  # from
     '''Make axes of 3D plot have equal scale so that spheres appear as spheres,
     cubes as cubes, etc.  This is one possible solution to Matplotlib's
     ax.set_aspect('equal') and ax.axis('equal') not working for 3D.
 
     Input
       ax: a matplotlib axis, e.g., as output from plt.gca().
+
+    Reference:
+    -------
+    https://stackoverflow.com/questions/13685386/matplotlib-equal-unit-length-with-equal-aspect-ratio-z-axis-is-not-equal-to
     '''
 
     x_limits = ax.get_xlim3d()
@@ -105,44 +216,6 @@ def set_axes_equal(ax):  # from https://stackoverflow.com/questions/13685386/mat
     ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
     ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
     return
-
-def Rx_matrix(theta):
-    '''
-    Rotation matrix around the x axis by an angle theta
-    :param theta: rotation angle in radians
-    :return: 3x3 rotation matrix around the x axis
-    '''
-    return np.array([[1, 0, 0], [0, np.cos(theta), -np.sin(theta)], [0, np.sin(theta), np.cos(theta)]])
-
-def Ry_matrix(theta):
-    '''
-    Rotation matrix around the y axis by an angle theta
-    :param theta: rotation angle in radians
-    :return: 3x3 rotation matrix around the y axis
-    '''
-    return np.array([[np.cos(theta), 0, np.sin(theta)], [0, 1, 0], [-np.sin(theta), 0, np.cos(theta)]])
-
-
-def Rz_matrix(theta):
-    '''
-    Rotation matrix around the z axis by an angle theta
-    :param theta: rotation angle in radians
-    :return: 3x3 rotation matrix around the z axis
-    '''
-    return np.array([[np.cos(theta), -np.sin(theta), 0], [np.sin(theta), np.cos(theta), 0], [0, 0, 1]])
-
-def find_linearly_independent_rows(matrix):
-    # Perform LU decomposition
-    P, L, U = lu(matrix)
-
-    # Identify the pivot rows
-    # The pivots are the rows in the original matrix that are linearly independent
-    pivot_rows = np.where(np.abs(U.diagonal()) > 1e-10)[0]
-
-    # Extract the linearly independent rows
-    independent_rows = matrix[pivot_rows, :]
-
-    return pivot_rows, independent_rows
 
 def bring_inside_bounds(original: float | np.ndarray, lower_bound: float,
                         upper_bound: float, include: str = 'lower') -> float | np.ndarray:
@@ -169,6 +242,9 @@ def bring_inside_bounds(original: float | np.ndarray, lower_bound: float,
     float | np.array
         The number of array of numbers, all inside the interval.
 
+    Reference:
+    -------
+    https://docs.tudat.space/en/latest/_src_getting_started/_src_examples/notebooks/propagation/coupled_translational_rotational_dynamics.html
     """
 
     if include not in ['upper', 'lower']:
@@ -213,6 +289,9 @@ def bring_inside_bounds_single_dim(original: np.ndarray, lower_bound: float,
     np.array
         The array of numbers, all inside the interval.
 
+    Reference:
+    -------
+    https://docs.tudat.space/en/latest/_src_getting_started/_src_examples/notebooks/propagation/coupled_translational_rotational_dynamics.html
     """
 
     new = np.zeros_like(original)
@@ -246,6 +325,9 @@ def bring_inside_bounds_double_dim(original: np.ndarray, lower_bound: float,
     np.array
         The array of numbers, all inside the interval.
 
+    Reference:
+    -------
+    https://docs.tudat.space/en/latest/_src_getting_started/_src_examples/notebooks/propagation/coupled_translational_rotational_dynamics.html
     """
 
     lengths = original.shape
@@ -281,10 +363,10 @@ def bring_inside_bounds_scalar(original: float, lower_bound: float,
     float
         The number, now inside the interval.
 
+    Reference:
+    -------
+    https://docs.tudat.space/en/latest/_src_getting_started/_src_examples/notebooks/propagation/coupled_translational_rotational_dynamics.html
     """
-
-    # EXPLAIN THINGS HERE. MAKE CLEAR WHAT VARIABLES REPRESENT.
-
     if original == upper_bound or original == lower_bound:
         if include == 'lower':
             return lower_bound
@@ -318,22 +400,14 @@ def bring_inside_bounds_scalar(original: float, lower_bound: float,
 
     return new
 
-def small_singular_value_entries(M, threshold=1e-10):
-    # https://stackoverflow.com/questions/18452633/how-do-i-associate-which-singular-value-corresponds-to-what-entry
-    U, s, V = np.linalg.svd(M)
-    S = np.zeros(M.shape,dtype = np.float64)
-    m = min(M.shape)
-    S[:m,:m] = np.diag(s)
-    Sp = S.copy()
-    for m in range(0,m):
-      Sp[m,m] = 1.0/Sp[m,m] if Sp[m,m] != 0 else 0
-    Vs = np.matrix(V).getH()
-    Vs_significant = Vs[np.where(s>threshold)]
-
-    significant_var_index = np.where(np.sum(np.abs(Vs_significant),axis = 0) > threshold)[1]
-    return significant_var_index
-
 def sun_angles_from_sunlight_vector(R_VB, n_s):
+    """
+    Determine the sun angles based on the sunlight vector
+    :param R_VB: (3 x 3) numpy array, rotation matrix from the reference frame in which n_s is defined to the reference
+    frame in which the sun angles need to be computed.
+    :param n_s: (1 x 3) numpy array, sunlight vector in a given reference frame (eg. inertial).
+    :return: current_alpha_s and current_beta_s, the sunlight angles in radians in the requested reference frame.
+    """
     n_s_vane_frame = np.dot(R_VB, n_s)
     n_s_vane_frame /= np.linalg.norm(n_s_vane_frame)
     if (abs((abs(n_s_vane_frame[2]) - 1)) < 1e-15):
@@ -360,7 +434,11 @@ def special_round(vec, decimals=3):
     return np.stack([np.round(v, decimals=-e+decimals) for v, e in zip(vec, exponents)])
 
 def chunks(lst, n):
-    """Yield successive n-sized chunks from lst."""
+    """
+    Generator yielding successive n-sized chunks from lst.
+    :param: lst, the list to be divided into chunk.
+    :param: int, length of each chunk.
+    """
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
@@ -388,18 +466,3 @@ def divide_list(lst, n):
         return out
     else:
         return [[]]
-
-def atoi(text):
-    return int(text) if text.isdigit() else text
-
-def natural_keys(text):
-    '''
-    alist.sort(key=natural_keys) sorts in human order
-    http://nedbatchelder.com/blog/200712/human_sorting.html
-    (See Toothy's implementation in the comments)
-    '''
-    return [ atoi(c) for c in re.split(r'(\d+)', text) ]
-
-
-
-

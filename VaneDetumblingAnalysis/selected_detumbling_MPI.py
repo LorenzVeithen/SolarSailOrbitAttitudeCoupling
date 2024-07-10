@@ -20,7 +20,7 @@ mode_combs_chunks = divide_list(mode_combinations, number_of_portions)
 current_chunk = mode_combs_chunks[portion]
 
 
-"""
+
 all_combinations = [(150, 0, 0),
                     (75, 0, 0),
                     (0, 150, 0),
@@ -43,10 +43,11 @@ all_combinations = [(5, 0, 0),
                     (0, 5, 5),
                     (5, 0, 5),
                     (5, 5, 5)]
+"""
 
 print(f"hello from rank {rank}")
 
-chunks_list = divide_list(mode_combinations, n_processes)
+chunks_list = divide_list(current_chunk, n_processes)
 selected_mode_combinations = chunks_list[rank]
 
 for mode_comb in selected_mode_combinations:

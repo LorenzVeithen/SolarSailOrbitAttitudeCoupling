@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 from constants import *
-from generalConstants import AMS_directory, Project_directory
+from generalConstants import *
 
 from MiscFunctions import set_axes_equal
 from attitudeControllersClass import sail_attitude_control_systems
@@ -20,6 +20,7 @@ from tudatpy.astro import element_conversion
 from tudatpy.astro.time_conversion import DateTime
 from tudatpy.interface import spice
 from tudatpy.kernel.interface import spice_interface
+
 
 # Set simulation start and end epochs
 simulation_start_epoch = DateTime(2024, 6, 1, 0).epoch()
@@ -67,23 +68,26 @@ initial_translational_state = element_conversion.keplerian_to_cartesian_elementw
     true_anomaly=theta_0)
 
 # Random initial orientation just to try
-spice.load_standard_kernels()
 constant_cartesian_position_Sun = spice_interface.get_body_cartesian_state_at_epoch('Sun',
                                                                                  'Earth',
                                                                                  'J2000',
                                                                                  'NONE',
-                                                                                    simulation_start_epoch)[:3]
-new_z = constant_cartesian_position_Sun / np.linalg.norm(constant_cartesian_position_Sun)
-new_y = np.cross(np.array([0, 1, 0]), new_z)/np.linalg.norm(np.cross(np.array([0, 1, 0]), new_z))
+                                                                                 simulation_start_epoch)[:3]
+new_y = constant_cartesian_position_Sun / np.linalg.norm(constant_cartesian_position_Sun)
+new_z = np.cross(np.array([0, 1, 0]), new_y)/np.linalg.norm(np.cross(np.array([0, 1, 0]), new_y))
 new_x = np.cross(new_y, new_z)/np.linalg.norm(np.cross(new_y, new_z))
 inertial_to_body_initial = np.zeros((3, 3))
 inertial_to_body_initial[:, 0] = new_x
 inertial_to_body_initial[:, 1] = new_y
 inertial_to_body_initial[:, 2] = new_z
+print(inertial_to_body_initial)
+print(R.from_euler('x', 45., degrees=True).as_matrix())
+inertial_to_body_initial = np.dot(inertial_to_body_initial, R.from_euler('x', 90., degrees=True).as_matrix())    # rotate by 45 deg around x
+print(inertial_to_body_initial)
 
 #inertial_to_body_initial = np.dot(np.dot(R.from_euler('y', 0, degrees=True).as_matrix(), R.from_euler('x', 0, degrees=True).as_matrix()), R.from_euler('z', 0, degrees=True).as_matrix())
 initial_quaternions = rotation_matrix_to_quaternion_entries(inertial_to_body_initial)
-initial_rotational_velocity = np.array([5 * 2 * np.pi / 3600., 5 * 2 * np.pi / 3600, 5 * 2 * np.pi / 3600])
+initial_rotational_velocity = np.array([0 * 2 * np.pi / 3600., 0 * 2 * np.pi / 3600, 0 * 2 * np.pi / 3600])
 initial_rotational_state = np.concatenate((initial_quaternions, initial_rotational_velocity))
 
 sailProp = sailCoupledDynamicsProblem(sail,

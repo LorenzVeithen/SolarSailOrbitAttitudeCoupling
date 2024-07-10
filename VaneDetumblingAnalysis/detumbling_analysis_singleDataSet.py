@@ -70,6 +70,10 @@ for current_state_history_path in state_history_files:
     print(str(current_state_history_path).split('/')[-1])
     current_state_history_array = np.loadtxt(current_state_history_path)
     current_state_history_array = current_state_history_array[::thinning_factor]
+
+    if (len(current_state_history_array[: 0]) < 100):
+        # some propagations may be broken, just remove them here
+        continue
     # get the initial rotational velocity vector of the propagation
     l = str(current_state_history_path)[:-4].split('_')
     omega_z_rph = float(l[-1])
@@ -302,5 +306,6 @@ for j, dataset in enumerate([dataset_singleAxisOmegaX, dataset_singleAxisOmegaY,
     ax3.set_ylabel(r"Z-axis body torque, $T_{z}$, [Nm]", fontsize=14)
     fig.tight_layout()
     #custom_xlim = (0, max_detumbling_time_days * 1.05)
-    plt.setp(axs, xlim=custom_xlim)"""
+    plt.setp(axs, xlim=custom_xlim)
+"""
 plt.show()

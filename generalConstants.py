@@ -1,4 +1,6 @@
 import os
+import sys
+
 current_working_directory = os.getcwd()
 home_name = current_working_directory.split('/')[2]
 
@@ -15,6 +17,8 @@ elif (home_name=='lorenz'):
 else:
     raise Exception('does not know which system is being used')
 
+sys.path.insert(0, tudat_path)
+from tudatpy.interface import spice
 
 AMS_directory = Project_directory + "/0_GeneratedData/AMS_Data"
 
@@ -31,3 +35,6 @@ default_ellipse_bounding_box_margin = 2
 ACS3_opt_model_coeffs_set = [0.1, 0.57, 0.74, 0.23, 0.16, 0.2, 2/3, 2/3, 0.03, 0.6]
 double_ideal_opt_model_coeffs_set = [0., 0., 1., 1., 0.0, 0.0, 2 / 3, 2 / 3, 1.0, 1.0]
 single_ideal_opt_model_coeffs_set = [0., 0., 1., 0., 0.0, 0.0, 2 / 3, 2 / 3, 1.0, 1.0]
+
+# Load spice kernels once for ever
+spice.load_standard_kernels()

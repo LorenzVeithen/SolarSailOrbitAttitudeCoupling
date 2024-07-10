@@ -10,7 +10,6 @@ import os
 from pathlib import Path
 from integratorSelectionSailModel import integrator_selection_data_directory
 from generalConstants import Project_directory
-from MiscFunctions import natural_keys
 
 # subdirectory of the stored data
 data_subdir = Project_directory + "/0_GeneratedData/IntegratorSelection_Data/decisionBlockTuning"

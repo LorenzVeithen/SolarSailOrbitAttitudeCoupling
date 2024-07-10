@@ -4,7 +4,7 @@ sys.path.insert(0, tudat_path)
 
 # Load standard modules
 
-from generalConstants import Project_directory, R_E, ACS3_opt_model_coeffs_set, double_ideal_opt_model_coeffs_set, single_ideal_opt_model_coeffs_set
+from generalConstants import R_E, ACS3_opt_model_coeffs_set, double_ideal_opt_model_coeffs_set, single_ideal_opt_model_coeffs_set
 import numpy as np
 
 from attitudeControllersClass import sail_attitude_control_systems
@@ -35,7 +35,7 @@ def runPropagationAnalysis(all_combinations,
                           initial_orientation_str='identity_to_inertial'):
 
     # import different models depending on the mode considered
-    if (run_mode == 'vane_detumbling'):
+    if (run_mode == 'vane_detumbling' or run_mode == 'vane_detumbling_orientation'):
         import VaneDetumblingAnalysis.vaneDetumbling_ACS3Model as sail_model
         acs_mode = 'vanes'
         keplerian_bool = False
@@ -45,8 +45,8 @@ def runPropagationAnalysis(all_combinations,
         acs_mode = 'None'
         keplerian_bool = False
         selected_vanes_optical_properties = []
-    elif (run_mode == 'keplerian_vane_detumbling' or run_mode == 'keplerian_LTT'):
-        if (run_mode == 'keplerian_vane_detumbling'):
+    elif (run_mode == 'keplerian_vane_detumbling' or run_mode == 'keplerian_LTT' or run_mode == 'keplerian_vane_detumbling_orientation'):
+        if (run_mode == 'keplerian_vane_detumbling' or run_mode == 'keplerian_vane_detumbling_orientation'):
             import VaneDetumblingAnalysis.vaneDetumbling_ACS3Model as sail_model
         elif (run_mode == 'keplerian_LTT'):
             import LongTermTumblingAnalysis.longTermTumbling_ACS3Model as sail_model
@@ -90,25 +90,39 @@ def runPropagationAnalysis(all_combinations,
     initial_ecc = ecc
     initial_inc = np.deg2rad(inc)
 
+    if (run_mode == 'vane_detumbling_orientation' or run_mode == 'keplerian_vane_detumbling_orientation'):
+        analysis_dir = f'OrientationAnalysis/{initial_orientation_str}/'
+    else:
+        analysis_dir = ''
+
     # get directory and correct optical properties
     if (optical_model_mode_str == "ACS3_optical_model"):
-        if (run_mode == 'vane_detumbling' or run_mode == 'keplerian_vane_detumbling'):
+        if (run_mode == 'vane_detumbling'
+                or run_mode == 'keplerian_vane_detumbling'
+                or run_mode=='vane_detumbling_orientation'
+                or run_mode == 'keplerian_vane_detumbling_orientation'):
             selected_vanes_optical_properties = [np.array(ACS3_opt_model_coeffs_set)] * len(sail_model.vanes_coordinates_list)
         elif (run_mode == 'LTT'):
             selected_wings_optical_properties = [np.array(ACS3_opt_model_coeffs_set)] * len(sail_model.wings_coordinates_list)
-        save_sub_dir = f'{sma_mode}_ecc_{np.round(ecc, 1)}_inc_{np.round(np.rad2deg(initial_inc))}/NoAsymetry_data_ACS3_opt_model_shadow_{bool(include_shadow_bool)}'
+        save_sub_dir = f'{analysis_dir}{sma_mode}_ecc_{np.round(ecc, 1)}_inc_{np.round(np.rad2deg(initial_inc))}/NoAsymetry_data_ACS3_opt_model_shadow_{bool(include_shadow_bool)}'
     elif (optical_model_mode_str == "double_ideal_optical_model"):
-        if (run_mode == 'vane_detumbling' or run_mode == 'keplerian_vane_detumbling'):
+        if (run_mode == 'vane_detumbling'
+                or run_mode == 'keplerian_vane_detumbling'
+                or run_mode=='vane_detumbling_orientation'
+                or run_mode == 'keplerian_vane_detumbling_orientation'):
             selected_vanes_optical_properties = [np.array(double_ideal_opt_model_coeffs_set)] * len(sail_model.vanes_coordinates_list)
         elif (run_mode == 'LTT'):
             selected_wings_optical_properties = [np.array(double_ideal_opt_model_coeffs_set)] * len(sail_model.wings_coordinates_list)
-        save_sub_dir = f'{sma_mode}_ecc_{np.round(ecc, 1)}_inc_{np.round(np.rad2deg(initial_inc))}/NoAsymetry_data_double_ideal_opt_model_shadow_{bool(include_shadow_bool)}'
+        save_sub_dir = f'{analysis_dir}{sma_mode}_ecc_{np.round(ecc, 1)}_inc_{np.round(np.rad2deg(initial_inc))}/NoAsymetry_data_double_ideal_opt_model_shadow_{bool(include_shadow_bool)}'
     elif (optical_model_mode_str == "single_ideal_optical_model"):
-        if (run_mode == 'vane_detumbling' or run_mode == 'keplerian_vane_detumbling'):
+        if (run_mode == 'vane_detumbling'
+                or run_mode == 'keplerian_vane_detumbling'
+                or run_mode=='vane_detumbling_orientation'
+                or run_mode == 'keplerian_vane_detumbling_orientation'):
             selected_vanes_optical_properties = [np.array(single_ideal_opt_model_coeffs_set)] * len(sail_model.vanes_coordinates_list)
         elif (run_mode == 'LTT'):
             selected_wings_optical_properties = [np.array(single_ideal_opt_model_coeffs_set)] * len(sail_model.wings_coordinates_list)
-        save_sub_dir = f'{sma_mode}_ecc_{np.round(ecc, 1)}_inc_{np.round(np.rad2deg(initial_inc), 1)}/NoAsymetry_data_single_ideal_opt_model_shadow_{bool(include_shadow_bool)}'
+        save_sub_dir = f'{analysis_dir}{sma_mode}_ecc_{np.round(ecc, 1)}_inc_{np.round(np.rad2deg(initial_inc), 1)}/NoAsymetry_data_single_ideal_opt_model_shadow_{bool(include_shadow_bool)}'
     else:
         raise Exception("Unrecognised optical model mode in detumbling propagation")
 
@@ -116,7 +130,7 @@ def runPropagationAnalysis(all_combinations,
         os.makedirs(sail_model.analysis_save_data_dir + f'/{save_sub_dir}/states_history')
         os.makedirs(sail_model.analysis_save_data_dir + f'/{save_sub_dir}/dependent_variable_history')
     save_directory = sail_model.analysis_save_data_dir + f'/{save_sub_dir}'
-
+    print(save_directory)
     if (keplerian_bool == False):
         # remove combinations which have already been done
         if (not overwrite_previous):
@@ -155,23 +169,44 @@ def runPropagationAnalysis(all_combinations,
         print(f"--- running {combination}, {100 * ((counter+1)/len(selected_combinations))}% ---")
 
         # initial rotational state
+        constant_cartesian_position_Sun = spice_interface.get_body_cartesian_state_at_epoch('Sun',
+                                                                                            'Earth',
+                                                                                            'J2000',
+                                                                                            'NONE',
+                                                                                            simulation_start_epoch)[:3]
         if (initial_orientation_str == 'identity_to_inertial'):
-            inertial_to_body_initial = np.eye(3)
-        elif (initial_orientation_str == 'sun_pointing'):
-            spice.load_standard_kernels()
-            constant_cartesian_position_Sun = spice_interface.get_body_cartesian_state_at_epoch('Sun',
-                                                                                                'Earth',
-                                                                                                'J2000',
-                                                                                                'NONE',
-                                                                                                simulation_start_epoch)[:3]
+            new_x = np.array([1., 0, 0])
+            new_y = np.array([0, 1., 0])
+            new_z = np.array([0, 0, 1.])
 
+        elif (initial_orientation_str == 'sun_pointing'):
             new_z = constant_cartesian_position_Sun / np.linalg.norm(constant_cartesian_position_Sun)
             new_y = np.cross(np.array([0, 1, 0]), new_z) / np.linalg.norm(np.cross(np.array([0, 1, 0]), new_z))
             new_x = np.cross(new_y, new_z) / np.linalg.norm(np.cross(new_y, new_z))
-            inertial_to_body_initial = np.zeros((3, 3))
-            inertial_to_body_initial[:, 0] = new_x
-            inertial_to_body_initial[:, 1] = new_y
-            inertial_to_body_initial[:, 2] = new_z
+
+        elif (initial_orientation_str == 'edge-on-y'
+              or initial_orientation_str == 'facing_45_deg_x_rot'
+              or initial_orientation_str == 'facing_45_deg_y_rot'):
+            new_y = constant_cartesian_position_Sun / np.linalg.norm(constant_cartesian_position_Sun)
+            new_z = np.cross(np.array([0, 1, 0]), new_y) / np.linalg.norm(np.cross(np.array([0, 1, 0]), new_y))
+            new_x = np.cross(new_y, new_z) / np.linalg.norm(np.cross(new_y, new_z))
+
+        elif (initial_orientation_str == 'edge-on-x'):
+            new_x = constant_cartesian_position_Sun / np.linalg.norm(constant_cartesian_position_Sun)
+            new_z = np.cross(np.array([0, 1, 0]), new_x) / np.linalg.norm(np.cross(np.array([0, 1, 0]), new_x))
+            new_y = np.cross(new_x, new_z) / np.linalg.norm(np.cross(new_x, new_z))
+
+        inertial_to_body_initial = np.zeros((3, 3))
+        inertial_to_body_initial[:, 0] = new_x
+        inertial_to_body_initial[:, 1] = new_y
+        inertial_to_body_initial[:, 2] = new_z
+
+        if (initial_orientation_str == 'facing_45_deg_x_rot'):
+            inertial_to_body_initial = np.dot(inertial_to_body_initial, R.from_euler('x', 45.,
+                                                                                     degrees=True).as_matrix())  # rotate by 45 deg around x
+        elif (initial_orientation_str == 'facing_45_deg_y_rot'):
+            inertial_to_body_initial = np.dot(inertial_to_body_initial, R.from_euler('y', 45.,
+                                                                                     degrees=True).as_matrix())  # rotate by 45 deg around x
 
         initial_quaternions = rotation_matrix_to_quaternion_entries(inertial_to_body_initial)
         initial_rotational_velocity = np.array([combination[0] * 2 * np.pi / 3600., combination[1] * 2 * np.pi / 3600, combination[2] * 2 * np.pi / 3600])
@@ -185,7 +220,7 @@ def runPropagationAnalysis(all_combinations,
 
         # Define solar sail - see constants file
         acs_object = sail_attitude_control_systems(acs_mode, sail_model.boom_list, sail_model.sail_I, sail_model.algorithm_constants, include_shadow=include_shadow_bool)
-        if (acs_mode == 'vanes' or run_mode=='keplerian_vane_detumbling'):
+        if (acs_mode == 'vanes' or run_mode=='keplerian_vane_detumbling' or run_mode == 'keplerian_vane_detumbling_orientation'):
             acs_object.set_vane_characteristics(sail_model.vanes_coordinates_list,
                                                 sail_model.vanes_origin_list,
                                                 sail_model.vanes_rotation_matrices_list,

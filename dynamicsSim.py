@@ -7,7 +7,7 @@ from attitudeControllersClass import *
 
 
 # Load tudatpy modules
-from tudatpy.interface import spice
+from generalConstants import *
 from tudatpy import numerical_simulation
 from tudatpy.numerical_simulation import environment_setup, propagation_setup
 from tudatpy import constants
@@ -26,9 +26,6 @@ class sailCoupledDynamicsProblem:
         self.sail_craft = sail_craft
         self.simulation_start_epoch = simulation_start_epoch
         self.simulation_end_epoch = simulation_end_epoch
-
-        # Load spice kernels
-        spice.load_standard_kernels()
 
         # Create default body settings for bodies_to_create, with "Earth"/"J2000" as the global frame origin and orientation
         self.global_frame_origin = "Earth"

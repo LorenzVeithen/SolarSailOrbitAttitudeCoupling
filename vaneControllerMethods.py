@@ -1167,6 +1167,31 @@ def get_ellipse_bb(x, y, ap, bp, angle_deg):
     return min_x, min_y, max_x, max_y
 
 def sigmoid_transition(current_time, new_value, previous_time_update, previous_value, shift_time_parameter=1, scaling_parameter=10):
+    """
+     Calculates the value of a sigmoid transition between a previous value and a new value over time.
+
+     This function models the transition from `previous_value` to `new_value` using a sigmoid function,
+     which allows for smooth and gradual change. The sigmoid curve is adjusted by the specified time
+     and scaling parameters.
+
+     Parameters:
+     current_time: float
+        The current time at which the transition value is being calculated.
+     new_value: float
+        The target value to transition towards.
+     previous_time_update: float
+        The time at which the previous value was last updated.
+     previous_value: float
+        The value at `previous_time_update`.
+     shift_time_parameter: float (optional)
+        A parameter to shift the transition curve along the time axis. Default is 1.
+     scaling_parameter: float (optional)
+        A parameter to control the steepness of the sigmoid curve. Higher values result in a steeper transition.
+        Default is 10.
+
+     Returns:
+        float: The transitioned value at `current_time`, smoothly approaching `new_value` from `previous_value`.
+    """
     previous_time_update = shift_time_parameter + previous_time_update
     value_change = new_value-previous_value
     exp_term = np.exp(-scaling_parameter * (current_time-previous_time_update))

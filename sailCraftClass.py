@@ -5,6 +5,9 @@ from MiscFunctions import compute_panel_geometrical_properties
 
 
 class sail_craft:
+    """
+    Class defining an arbitary sail
+    """
     def __init__(self,
                  sail_name,
                  num_wings,
@@ -20,7 +23,41 @@ class sail_craft:
                  sail_material_areal_density,
                  vane_material_areal_density,
                  attitude_control_object):
+        """
+        Constructor for the sailcraft class.
 
+        Parameters:
+        sail_name : str
+            The name of the sail.
+        num_wings : int
+            The number of wings of the sail (e.g., the number of sail quadrants).
+        num_vanes : int
+            The number of vanes used for attitude control.
+        initial_wings_coordinates_body_frame : array-like [m]
+            A list of num_panels long list of num_points x 3 arrays representing the coordinates
+            of the wings in the body frame, where points {p_i}, 0<=i<num_points, form a counterclockwise polygon.
+        initial_vanes_coordinates_body_frame : array-like [m]
+            A list of num_vanes long list of num_points x 3 arrays representing the coordinates
+            of the vanes in the body frame, where points {p_i}, 0<=i<num_points, form a counterclockwise polygon.
+        initial_wings_optical_properties : list [-]
+            A num_wings long list of 1 x 10 arrays representing the surface properties of the wings.
+        initial_vanes_optical_properties : list [-]
+            A num_vanes long list of 1 x 10 arrays representing the surface properties of the vanes.
+        initial_inertia_tensor_body_frame : numpy.ndarray [kg/m^2]
+            A 3x3 tensor representing the initial inertia tensor in the body frame.
+        sail_mass_without_ACS : float [kg]
+            The mass of the sail without the attitude control system (ACS).
+        spacecraft_mass_without_sail : float [kg]
+            The mass of the spacecraft without the sail.
+        sail_CoM_without_ACS : numpy.ndarray [m]
+            A 3D vector representing the center of mass coordinates of the sail without the ACS, in the body-fixed frame.
+        sail_material_areal_density : float [kg/m^2]
+            The areal density of the sail material.
+        vane_material_areal_density : float [kg/m^2]
+            The areal density of the vane material.
+        attitude_control_object : object
+            An object representing the attitude control system (ACS).
+        """
         # Link to other classes
         self.bodies = None
         self.attitude_control_system = attitude_control_object                          # The ACS class object to obtain all control mechanisms
@@ -43,7 +80,7 @@ class sail_craft:
         ## Panels
         self.sail_wings_coordinates = initial_wings_coordinates_body_frame            # List of num_points x 3 arrays - assuming points {p_i}, 0<=i<n, forms a counterclockwise polygon,
         self.sail_wings_optical_properties = initial_wings_optical_properties         # num_panels x 10 array of panel surface properties
-        self.sail_wings_areas = np.zeros(num_wings)                                    # List of panel areas
+        self.sail_wings_areas = np.zeros(num_wings)                                   # List of panel areas
         self.sail_wings_centroids = [None] * num_wings                                # List of panel centroids
         self.sail_wings_surface_normals = [None] * num_wings                          # List of panel surface normal
 
@@ -171,13 +208,28 @@ class sail_craft:
         return self.moving_masses_positions_dict
 
     def get_number_of_wings(self):
+        """
+        Get the number of wings of the sailcraft.
+        :return: int, the number of wings of the sailcraft.
+        """
         return self.sail_num_wings
 
     def get_number_of_vanes(self):
+        """
+        Get the number of vanes of the sailcraft.
+        :return: int, the number of vanes of the sailcraft attitude control system.
+        """
         return self.sail_num_vanes
 
     # Get specific panel properties
     def get_ith_panel_surface_normal(self, panel_id, panel_type=""):
+        """
+        Get the ith panel surface normal in the body-fixed reference frame.
+        :param panel_id: int, position in initial user-specified panel coordinates list.
+        :param panel_type: str, "Vane" or "Wing", defining the type of panel considered.
+        :return:  (numpy.ndarray): A 1D array of shape (3,) representing
+            the x, y, and z components of the panel's surface normal.
+        """
         self.sail_attitude_control_system()
         if (panel_type == "Vane"):
             return self.sail_vanes_surface_normals[panel_id]
@@ -185,6 +237,12 @@ class sail_craft:
             return self.sail_wings_surface_normals[panel_id]
 
     def get_ith_panel_area(self, panel_id, panel_type=""):
+        """
+        Get the ith panel area.
+        :param panel_id: int, position in initial user-specified panel coordinates list.
+        :param panel_type: str, "Vane" or "Wing", defining the type of panel considered.
+        :return: The panel area.
+        """
         self.sail_attitude_control_system()
         if (panel_type == "Vane"):
             return self.sail_vanes_areas[panel_id]
@@ -192,6 +250,12 @@ class sail_craft:
             return self.sail_wings_areas[panel_id]
 
     def get_ith_panel_centroid(self, panel_id, panel_type=""):
+        """
+        Get the ith panel centroid coordinates in the body-fixed reference frame.
+        :param panel_id: int, position in initial user-specified panel coordinates list.
+        :param panel_type: str, "Vane" or "Wing", defining the type of panel considered.
+        :return: The panel centroid coordinates in the body-fixed reference frame.
+        """
         self.sail_attitude_control_system()
         if (panel_type == "Vane"):
             return self.sail_vanes_centroids[panel_id]
@@ -199,6 +263,12 @@ class sail_craft:
             return self.sail_wings_centroids[panel_id]
 
     def get_ith_panel_optical_properties(self, panel_id, panel_type=""):
+        """
+        Get the ith panel optical properties.
+        :param panel_id: int, position in initial user-specified panel coordinates list.
+        :param panel_type: str, "Vane" or "Wing", defining the type of panel considered.
+        :return: The panel optical properties
+        """
         self.sail_attitude_control_system()
         if (panel_type == "Vane"):
             return self.sail_vanes_optical_properties[panel_id]
@@ -206,6 +276,12 @@ class sail_craft:
             return self.sail_wings_optical_properties[panel_id]
 
     def get_ith_panel_coordinates(self, panel_id, panel_type=""):
+        """
+        Get the ith panel body-fixed coordinates.
+        :param panel_id: int, position in initial user-specified panel coordinates list.
+        :param panel_type: str, "Vane" or "Wing", defining the type of panel considered.
+        :return: The body-fixed panel coordinates.
+        """
         self.sail_attitude_control_system()
         if (panel_type == "Vane"):
             return self.sail_vanes_coordinates[panel_id]

@@ -35,4 +35,5 @@ sail = sail_craft("ACS3",
                   acs_object)
 
 print(sail.get_ith_panel_area(0, "wing")*4)
+print(sail.get_sail_mass(0))
 

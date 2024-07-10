@@ -11,7 +11,7 @@ from matplotlib import cm
 
 from constants import *
 from generalConstants import AMS_directory
-from MiscFunctions import compute_panel_geometrical_properties, find_linearly_independent_rows, sun_angles_from_sunlight_vector
+from MiscFunctions import compute_panel_geometrical_properties, sun_angles_from_sunlight_vector
 from vaneControllerMethods import constrainedEllipseCoefficientsProblem, rotated_ellipse_coefficients_wrt_vane_1
 from vaneControllerMethods import fourierSumFunction, fourierSeriesFunction, combinedFourierFitFunction, cart_to_pol, fit_2d_ellipse, get_ellipse_pts
 from vaneControllerMethods import generate_AMS_data, vaneAnglesAllocationProblem, buildEllipseCoefficientFunctions, ellipseCoefficientFunction
