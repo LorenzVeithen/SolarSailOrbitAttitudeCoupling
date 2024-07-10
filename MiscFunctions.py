@@ -375,16 +375,19 @@ def divide_list(lst, n):
     Returns:
     list of lists: A list containing n sublists with the divided elements.
     """
-    # Determine the size of each part
-    avg = len(lst) / float(n)
-    out = []
-    last = 0.0
+    if (len(lst) != 0):
+        # Determine the size of each part
+        avg = len(lst) / float(n)
+        out = []
+        last = 0.0
 
-    while last < len(lst):
-        out.append(lst[int(last):int(last + avg)])
-        last += avg
+        while last < len(lst):
+            out.append(lst[int(last):int(last + avg)])
+            last += avg
 
-    return out
+        return out
+    else:
+        return [[]]
 
 def atoi(text):
     return int(text) if text.isdigit() else text

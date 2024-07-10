@@ -18,7 +18,6 @@ include_shadow_b = int(sys.argv[3])     #0: False (no shadow), 1: True (with sha
 
 optical_mode_str = ["ACS3_optical_model", "double_ideal_optical_model", "single_ideal_optical_model"][optical_model_mode]
 
-
 # single axis
 omega_list_single = list(np.arange(-150, 150 + 1, 10))
 omega_list_single.remove(0)
@@ -55,7 +54,8 @@ if (rank==0):
                            overwrite_previous=False,
                            include_shadow_bool=bool(include_shadow_b),
                            run_mode='keplerian_vane_detumbling',
-                           output_frequency_in_seconds_=10)
+                           output_frequency_in_seconds_=10,
+                           initial_orientation_str='sun_pointing')
 
 runPropagationAnalysis(all_combinations,
                           optical_mode_str,
@@ -65,4 +65,5 @@ runPropagationAnalysis(all_combinations,
                           overwrite_previous=False,
                           include_shadow_bool=bool(include_shadow_b),
                           run_mode='vane_detumbling',
-                          output_frequency_in_seconds_=10)
+                          output_frequency_in_seconds_=10,
+                          initial_orientation_str='sun_pointing')

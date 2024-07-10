@@ -3,7 +3,7 @@ from MiscFunctions import all_equal, closest_point_on_a_segment_to_a_third_point
 from ACS_dynamicalModels import vane_dynamical_model, shifted_panel_dynamical_model, sliding_mass_dynamical_model
 from vaneControllerMethods import buildEllipseCoefficientFunctions, ellipseCoefficientFunction, vaneTorqueAllocationProblem
 from vaneControllerMethods import sigmoid_transition, vaneAngleAllocationScaling
-from generalConstants import AMS_directory, c_sol, W
+from generalConstants import AMS_directory, c_sol, W, Sun_luminosity
 import pygmo as pg
 from scipy.optimize import minimize, golden
 from time import time
@@ -242,7 +242,8 @@ class sail_attitude_control_systems:
                         or relative_change_in_rotational_velocity_magnitude > self.tol_relative_change_in_rotational_velocity_magnitude)
                         and self.allow_update):
 
-                        current_solar_irradiance = W     #TODO: extract solar irradiance from the body object
+                        sail_sun_distance = np.linalg.norm(bodies.get_body(self.sail_craft_name).position - bodies.get_body("Sun").position)
+                        current_solar_irradiance = Sun_luminosity/(4 * np.pi * sail_sun_distance**2) # W
                         required_body_torque = self.computeBodyFrameTorqueForDetumbling(bodies,
                                                                                         5e-5,   # TODO: make this a general variable
                                                                                         desired_rotational_velocity_vector=desired_sail_body_frame_inertial_rotational_velocity,
@@ -574,9 +575,10 @@ class sail_attitude_control_systems:
             pop = pg.population(prob, size=1, seed=42)
         else:
             current_bounds = tap.get_bounds()
+
             if (
-            [0 < previous_vanes_torque[bi] - current_bounds[0][bi] < current_bounds[1][bi] - current_bounds[0][bi] for
-             bi in range(3 * acs_object.number_of_vanes)]):
+            all([0 < previous_vanes_torque[bi] - current_bounds[0][bi] < current_bounds[1][bi] - current_bounds[0][bi] for
+             bi in range(3 * acs_object.number_of_vanes)])):
                 pop = pg.population(prob)
                 pop.push_back(x=previous_vanes_torque)
             else:

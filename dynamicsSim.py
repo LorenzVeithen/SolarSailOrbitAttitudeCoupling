@@ -182,7 +182,7 @@ class sailCoupledDynamicsProblem:
                                      integrator_coefficient_set=propagation_setup.integrator.rkf_56,
                                      initial_time_step=1.0,
                                      control_settings=propagation_setup.integrator.step_size_control_elementwise_scalar_tolerance(1.0E-12, 1.0E-12),
-                                     validation_settings=propagation_setup.integrator.step_size_validation(1E-5, 1E2),
+                                     validation_settings=propagation_setup.integrator.step_size_validation(1E-5, 3E3),
                                      benchmark_bool=False):
         # Create termination settings
         termination_settings = propagation_setup.propagator.time_termination(self.simulation_end_epoch,

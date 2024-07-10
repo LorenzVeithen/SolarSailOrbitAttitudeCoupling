@@ -89,9 +89,8 @@ for i in range(len(vanes_origin_list)):
     vanes_coordinates_list.append(current_vane_coords_body_frame_coords)
 
 vanes_optical_properties = [np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)
-vane_has_ideal_model = True
 
-vanes_rotational_dof = np.array([[True, True], [True, True], [True, True], [True, True]])   #
+vanes_rotational_dof = np.array([[True, False], [False, True], [True, False], [False, True]])   #
 
 algorithm_constants = {}
 algorithm_constants["tol_vane_angle_determination_start_golden_section"] = 1e-3

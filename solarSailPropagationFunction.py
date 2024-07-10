@@ -18,6 +18,8 @@ from tudatpy.astro import element_conversion
 from tudatpy.astro.time_conversion import DateTime
 from tudatpy.numerical_simulation import propagation_setup
 from tudatpy.data import save2txt
+from tudatpy.interface import spice
+from tudatpy.kernel.interface import spice_interface
 import time
 import os
 
@@ -29,7 +31,8 @@ def runPropagationAnalysis(all_combinations,
                           overwrite_previous=False,
                           include_shadow_bool=False,
                           run_mode='vane_detumbling',
-                          output_frequency_in_seconds_=1):
+                          output_frequency_in_seconds_=1,
+                          initial_orientation_str='identity_to_inertial'):
 
     # import different models depending on the mode considered
     if (run_mode == 'vane_detumbling'):
@@ -152,7 +155,24 @@ def runPropagationAnalysis(all_combinations,
         print(f"--- running {combination}, {100 * ((counter+1)/len(selected_combinations))}% ---")
 
         # initial rotational state
-        inertial_to_body_initial = np.dot(np.dot(R.from_euler('y', 0, degrees=True).as_matrix(), R.from_euler('x', 0, degrees=True).as_matrix()), R.from_euler('z', 0, degrees=True).as_matrix())
+        if (initial_orientation_str == 'identity_to_inertial'):
+            inertial_to_body_initial = np.eye(3)
+        elif (initial_orientation_str == 'sun_pointing'):
+            spice.load_standard_kernels()
+            constant_cartesian_position_Sun = spice_interface.get_body_cartesian_state_at_epoch('Sun',
+                                                                                                'Earth',
+                                                                                                'J2000',
+                                                                                                'NONE',
+                                                                                                simulation_start_epoch)[:3]
+
+            new_z = constant_cartesian_position_Sun / np.linalg.norm(constant_cartesian_position_Sun)
+            new_y = np.cross(np.array([0, 1, 0]), new_z) / np.linalg.norm(np.cross(np.array([0, 1, 0]), new_z))
+            new_x = np.cross(new_y, new_z) / np.linalg.norm(np.cross(new_y, new_z))
+            inertial_to_body_initial = np.zeros((3, 3))
+            inertial_to_body_initial[:, 0] = new_x
+            inertial_to_body_initial[:, 1] = new_y
+            inertial_to_body_initial[:, 2] = new_z
+
         initial_quaternions = rotation_matrix_to_quaternion_entries(inertial_to_body_initial)
         initial_rotational_velocity = np.array([combination[0] * 2 * np.pi / 3600., combination[1] * 2 * np.pi / 3600, combination[2] * 2 * np.pi / 3600])
         initial_rotational_state = np.concatenate((initial_quaternions, initial_rotational_velocity))

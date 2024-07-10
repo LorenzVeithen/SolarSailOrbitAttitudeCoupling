@@ -51,7 +51,7 @@ p = Path(states_history_dir)
 state_history_files = [x for x in p.iterdir() if (not x.is_dir())]
 
 # add the path with zero rotational velocity in case it was not in the original bundle
-omega_is_zero_vector_data = Path(analysis_save_data_dir + f'{analysis_data_dir}/states_history/state_history_omega_x_0.0_omega_y_0.0_omega_z_0.0.dat')
+omega_is_zero_vector_data = Path(f'{analysis_data_dir}/states_history/state_history_omega_x_0.0_omega_y_0.0_omega_z_0.0.dat')
 if (((omega_is_zero_vector_data in state_history_files) == False) and (omega_is_zero_vector_data.exists())):
     state_history_files += [omega_is_zero_vector_data]
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name="LTT_0_6"
+#SBATCH --job-name="SDT_1"
 #SBATCH --time=15:00:00
 #SBATCH --ntasks=12
 #SBATCH --cpus-per-task=1
@@ -22,5 +22,5 @@ export PYTHONPATH="/scratch/lveithen/SourceCode":$PYTHONPATH
 
 # Activate conda, run job, deactivate conda
 conda activate LV-tudat-bundle
-srun python /scratch/lveithen/SourceCode/LongTermTumblingAnalysis/LTT_MPI.py 0 6 > LTT_large_optical_0_combination_6.log
+srun python /scratch/lveithen/SourceCode/VaneDetumblingAnalysis/selected_detumbling_MPI.py 1 > SDT_1.log
 conda deactivate

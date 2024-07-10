@@ -32,14 +32,16 @@ if (rank==0):
                            overwrite_previous=False,
                            include_shadow_bool=bool(include_shadow_b),
                            run_mode='keplerian_vane_detumbling',
-                           output_frequency_in_seconds_=10)
+                           output_frequency_in_seconds_=10,
+                           initial_orientation_str='sun_pointing')
 
 runPropagationAnalysis(all_combinations,
-                          optical_mode_str,
-                          sma_ecc_inc_combination_mode,
-                          rank,
-                          size,
-                          overwrite_previous=False,
-                          include_shadow_bool=bool(include_shadow_b),
-                          run_mode='vane_detumbling',
-                          output_frequency_in_seconds_=10)
+                      optical_mode_str,
+                      sma_ecc_inc_combination_mode,
+                      rank,
+                      size,
+                      overwrite_previous=False,
+                      include_shadow_bool=bool(include_shadow_b),
+                      run_mode='vane_detumbling',
+                      output_frequency_in_seconds_=10,
+                       initial_orientation_str='sun_pointing')

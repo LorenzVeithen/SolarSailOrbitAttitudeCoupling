@@ -1,0 +1,128 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from generalConstants import Project_directory
+
+selected_combinations = [(0.0, 0.0, 70.0),
+                         (20.0, 0.0, 0.0)]
+
+for c_id, c in enumerate(selected_combinations):
+
+    for plot_id in range(1):
+        # Focus on
+
+        if (plot_id == 0):
+            comparison_name = "optical_model"   # shadow, orbital regime, etc.
+            states_history_datasets_list = [
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+            ]
+            plot_label = ['ACS3 O-SRP', 'DI-SRP', 'SI-SRP']
+        elif (plot_id == 1):
+            comparison_name = "inclination"  # shadow, orbital regime, etc.
+            states_history_datasets_list = [
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_45.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+            ]
+            plot_label = ['i=98.0°', 'i=45.0°', 'i=0.0°']
+        # obtain the associated dependent variables
+        dependent_variable_history_datasets_list = []
+        for state_data_path in states_history_datasets_list:
+            file_name = state_data_path.split('/')[-1]
+            l = str(file_name)[:-4].split('_')
+            omega_z_rph = float(l[-1])
+            omega_y_rph = float(l[-4])
+            omega_x_rph = float(l[-7])
+            dependent_variable_history_subdir = f"dependent_variable_history/dependent_variable_history_omega_x_{omega_x_rph}_omega_y_{omega_y_rph}_omega_z_{omega_z_rph}.dat"
+
+            # Construct path
+            dependent_variable_path = ''
+            for path_component in state_data_path.split('/')[:-2]:
+                dependent_variable_path += f'{path_component}/'
+            dependent_variable_path += dependent_variable_history_subdir
+            dependent_variable_history_datasets_list.append(dependent_variable_path)
+
+
+        time_arrays_list = []
+        kep_arrays_list = []
+        omega_deg_s_arrays_list = []
+        T_arrays_list = []
+        detumbling_time_list = []
+        for (current_states_path, current_dep_vars_path) in zip(states_history_datasets_list, dependent_variable_history_datasets_list):
+            # Extract data
+            current_state_history_array = np.loadtxt(f'{Project_directory}/{current_states_path}')
+            current_dependent_variable_history_array = np.loadtxt(f'{Project_directory}/{current_dep_vars_path}')
+
+            current_time_array = (current_dependent_variable_history_array[:, 0]-current_dependent_variable_history_array[0, 0])/(24*3600)
+            current_kep_array = current_dependent_variable_history_array[:, 1:7]
+
+            # apogee and perigee
+            current_apo_array = current_kep_array[:, 0] * (1 + current_kep_array[:, 1])
+            current_peri_array = current_kep_array[:, 0] * (1 - current_kep_array[:, 1])
+
+            # rotational velocity history
+            omega_x_array_deg_s = np.rad2deg(current_state_history_array[:, 11])
+            omega_y_array_deg_s = np.rad2deg(current_state_history_array[:, 12])
+            omega_z_array_deg_s = np.rad2deg(current_state_history_array[:, 13])
+            omega_deg_s = np.rad2deg(current_state_history_array[:, 11:14])
+
+            # SRP torque history
+            current_Tx_array = current_dependent_variable_history_array[:, 11]
+            current_Ty_array = current_dependent_variable_history_array[:, 12]
+            current_Tz_array = current_dependent_variable_history_array[:, 13]
+            T = current_dependent_variable_history_array[:, 11:14]
+
+            # get detumbling time
+            list_indices_zero_angles = np.where(np.sum(current_dependent_variable_history_array[:, 21:29], axis=1) == 0)[0]
+            if (len(list_indices_zero_angles) != 0):
+                current_detumbling_time_hours = (current_state_history_array[list_indices_zero_angles[0], 0]
+                                                  - current_state_history_array[0, 0]) / 3600
+            else:
+                current_detumbling_time_hours = None
+            time_arrays_list.append(current_time_array)
+            kep_arrays_list.append(current_kep_array)
+            omega_deg_s_arrays_list.append(omega_deg_s)
+            T_arrays_list.append(T)
+            detumbling_time_list.append(current_detumbling_time_hours/24)
+
+
+        custom_xlim = (0, max(detumbling_time_list) * 1.05)
+        # Compare the rotational velocity change
+        for i, (time_array, om_array) in enumerate(zip(time_arrays_list, omega_deg_s_arrays_list)):
+            plt.figure(c_id*100 + 1)
+            plt.plot(time_array, om_array[:, 0], label=f'{plot_label[i]}')
+            plt.figure(c_id*100 + 2)
+            plt.plot(time_array, om_array[:, 1], label=f'{plot_label[i]}')
+            plt.figure(c_id*100 + 3)
+            plt.plot(time_array, om_array[:, 2], label=f'{plot_label[i]}')
+
+        plt.figure(c_id*100 + 1)
+        plt.title(str(c))
+        plt.grid(True)
+        plt.xlabel(r"Time, $t$, [days]", fontsize=14)
+        plt.ylabel(r"Rotational velocity X-component, $\omega_{x}$, [deg/s]", fontsize=14)
+        plt.legend()
+        plt.xlim(custom_xlim)
+
+        plt.figure(c_id*100 + 2)
+        plt.title(str(c))
+        plt.grid(True)
+        plt.xlabel(r"Time, $t$, [days]", fontsize=14)
+        plt.ylabel(r"Rotational velocity Y-component, $\omega_{y}$, [deg/s]", fontsize=14)
+        plt.legend()
+        plt.xlim(custom_xlim)
+
+        plt.figure(c_id*100 + 3)
+        plt.title(str(c))
+        plt.grid(True)
+        plt.xlabel(r"Time, $t$, [days]", fontsize=14)
+        plt.ylabel(r"Rotational velocity Z-component, $\omega_{z}$, [deg/s]", fontsize=14)
+        plt.legend()
+        plt.xlim(custom_xlim)
+
+        # compare vane angles histories
+
+
+
+plt.show()
