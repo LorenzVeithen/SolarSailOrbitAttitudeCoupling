@@ -14,13 +14,14 @@ from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from tudatpy.astro.element_conversion import quaternion_entries_to_rotation_matrix
 import matplotlib.gridspec as gridspec
+from MiscFunctions import sun_angles_from_sunlight_vector
 
 plt.rcParams['animation.ffmpeg_path'] ='/opt/homebrew/bin/ffmpeg'
 #plt.subplots_adjust(left=0.09, bottom=0.89, right=0.1, top=0.9, wspace=0.2, hspace=0.2 )    # Not really sure if this is doing anything
 
 generate_mp4 = False
-PLOTS = False
-ANIMATION = True
+PLOTS = True
+ANIMATION = False
 
 fps = 40
 time = 25
@@ -32,9 +33,9 @@ thr_previous_spacecraft_positions_fade_down = 1
 thr_sun_rays = 1 * 24 * 3600
 
 # Load data
-state_history_array = np.loadtxt("/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/PropagationData/state_history_omega_x_0.0_omega_y_0.0_omega_z_0.0_test.dat")
+state_history_array = np.loadtxt("/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/PropagationData/state_history_omega_x_5.0_omega_y_5.0_omega_z_5.0_normal.dat")
 dependent_variable_history_array = np.loadtxt(
-    "/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/PropagationData/dependent_variable_history_omega_x_0.0_omega_y_0.0_omega_z_0.0_test.dat")
+    "/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/PropagationData/dependent_variable_history_omega_x_5.0_omega_y_5.0_omega_z_5.0_normal.dat")
 
 # Extract state history
 #state_history_array = state_history_array[::25]
@@ -347,6 +348,8 @@ if (ANIMATION):
                     spacecraft_sun_relative_position[frame, :])))))
             print(np.dot(R_BI, spacecraft_sun_relative_position[frame, :] / np.linalg.norm(
                 spacecraft_sun_relative_position[frame, :])))
+            print(np.rad2deg(sun_angles_from_sunlight_vector(np.eye(3), np.dot(R_BI, spacecraft_sun_relative_position[frame, :] / np.linalg.norm(
+                spacecraft_sun_relative_position[frame, :])))))
             hstack_centroid_surface_normal_in_inertial_frame = np.hstack(
                 (current_wing_centroid_inertial_frame, current_wing_surface_normal_in_inertial_frame))
             vstack_centroid_surface_normal_in_inertial_frame = np.vstack(

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from vaneDetumbling_ACS3Model import analysis_save_data_dir
 from pathlib import Path
 
-current_data_set = f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False'
+current_data_set = f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False'
 analysis_data_dir = analysis_save_data_dir + current_data_set
 thinning_factor = 1
 selected_combinations = [(-40.0, -20.0, -40.0),
@@ -71,8 +71,9 @@ for current_state_history_path in state_history_files:
     current_state_history_array = np.loadtxt(current_state_history_path)
     current_state_history_array = current_state_history_array[::thinning_factor]
 
-    if (len(current_state_history_array[: 0]) < 100):
+    if (len(current_state_history_array[:, 0]) < 5):
         # some propagations may be broken, just remove them here
+        print("skip")
         continue
     # get the initial rotational velocity vector of the propagation
     l = str(current_state_history_path)[:-4].split('_')
@@ -86,6 +87,7 @@ for current_state_history_path in state_history_files:
     initial_omega_vector_deg_per_sec = np.array([omega_x_rph, omega_y_rph, omega_z_rph]) / 10.
     initial_omega_vector_rph = np.array([omega_x_rph, omega_y_rph, omega_z_rph])
 
+    print(tuple(initial_omega_vector_rph))
     if (tuple(initial_omega_vector_rph) in selected_combinations):
         selected_indices.append(counter)
         ordered_selected_combinations.append(tuple(initial_omega_vector_rph))

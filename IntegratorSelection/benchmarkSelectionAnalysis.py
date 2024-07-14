@@ -8,8 +8,8 @@ from tudatpy.astro.element_conversion import quaternion_entries_to_rotation_matr
 from integratorSelectionSailModel import integrator_selection_data_directory
 from generalConstants import Project_directory
 
-PLOT_CHECKS = False
-benchmark_time_steps = [2**7, 2**6, 2**5, 2**4, 2**3, 2**2, 2**1, 2**0, 2**(-1), 2**(-2), 2**(-3), 2**(-4), 2**(-5)]    # , , 2**(-6), 2**(-7)
+PLOT_CHECKS = True
+benchmark_time_steps = [2**7, 2**6, 2**5, 2**4, 2**3, 2**2, 2**1, 2**0, 2**(-1), 2**(-2), 2**(-3), 2**(-4), 2**(-5)]    # 2**(-1), 2**(-2), 2**(-3), 2**(-4), 2**(-5), 2**(-6), 2**(-7)
 #benchmark_time_steps = [2**7, 2**6, 2**5, 2**4, 2**3, 2**2, 2**0] #, 2**0, 2**(-1), 2**(-2), 2**(-3)
 state_history_arrays_list, dependent_variable_arrays_list = [], []
 state_history_dicts_list, dependent_variable_dicts_list = [], []
@@ -17,10 +17,10 @@ state_history_dicts_list, dependent_variable_dicts_list = [], []
 for dt in benchmark_time_steps:
     print(f"loading {dt} s benchmark")
 
-    state_history_array = np.loadtxt(integrator_selection_data_directory + f'/BenchmarkSelection/Cowell/state_history_benchmark_dt_{dt}.dat')
+    state_history_array = np.loadtxt(integrator_selection_data_directory + f'/BenchmarkSelection/MEE/state_history_benchmark_dt_{dt}.dat')
     state_history_arrays_list.append(state_history_array)
 
-    dependent_variable_array = np.loadtxt(integrator_selection_data_directory + f'/BenchmarkSelection/Cowell/dependent_variable_history_benchmark_dt_{dt}.dat')
+    dependent_variable_array = np.loadtxt(integrator_selection_data_directory + f'/BenchmarkSelection/MEE/dependent_variable_history_benchmark_dt_{dt}.dat')
     dependent_variable_arrays_list.append(dependent_variable_array)
 
     current_state_history_dict = {}
@@ -88,9 +88,9 @@ plt.xlabel(r"Time, $t$ [hours]", fontsize=14)
 plt.ylabel(r'Position error norm, $||\Delta \vec{r}||$, [m]', fontsize=14)
 plt.grid(True)
 plt.legend()
-plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Benchmark_Selection_position_error_history.png',
-            dpi=1200,
-            bbox_inches='tight')
+#plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Benchmark_Selection_position_error_history.png',
+#            dpi=1200,
+#            bbox_inches='tight')
 
 plt.figure()
 for i in range(5, len(benchmark_time_steps)-1):
@@ -99,9 +99,9 @@ plt.xlabel(r"Time, $t$ [hours]", fontsize=14)
 plt.ylabel(r'Velocity error norm, $||\Delta \vec{V}||$, [m/s]', fontsize=14)
 plt.grid(True)
 plt.legend()
-plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Benchmark_Selection_velocity_error_history.png',
-            dpi=1200,
-            bbox_inches='tight')
+#plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Benchmark_Selection_velocity_error_history.png',
+#            dpi=1200,
+#            bbox_inches='tight')
 
 plt.figure()
 for i in range(5, len(benchmark_time_steps)-1):
@@ -110,36 +110,36 @@ plt.xlabel(r"Time, $t$ [hours]", fontsize=14)
 plt.ylabel('Rotational velocity error norm,\n' +r'$||\Delta \vec{\omega}||$, [deg/s]', fontsize=14)
 plt.grid(True)
 plt.legend()
-plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Benchmark_Selection_omega_error_history.png',
-            dpi=1200,
-            bbox_inches='tight')
+#plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Benchmark_Selection_omega_error_history.png',
+#            dpi=1200,
+#            bbox_inches='tight')
 
 plt.figure()
 plt.loglog(benchmark_time_steps[:-1], max_position_error, marker="o")
 plt.xlabel(r"Fixed time step size, $\Delta t$, [s]", fontsize=14)
 plt.ylabel(r'Maximum position error norm, $\epsilon_r$, [m]', fontsize=14)
 plt.grid(True, which='both')
-plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Benchmark_Selection_position_error.png',
-            dpi=1200,
-            bbox_inches='tight')
+#plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Benchmark_Selection_position_error.png',
+#            dpi=1200,
+#            bbox_inches='tight')
 
 plt.figure()
 plt.loglog(benchmark_time_steps[:-1], max_velocity_error, marker="o")
 plt.xlabel(r"Fixed time step size, $\Delta t$, [s]", fontsize=14)
 plt.ylabel(r'Maximum velocity error norm, $\epsilon_v$, [m/s]', fontsize=14)
 plt.grid(True, which='both')
-plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Benchmark_Selection_velocity_error.png',
-            dpi=1200,
-            bbox_inches='tight')
+#plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Benchmark_Selection_velocity_error.png',
+#            dpi=1200,
+#            bbox_inches='tight')
 
 plt.figure()
 plt.loglog(benchmark_time_steps[:-1], max_omega_error, marker="o")
 plt.xlabel(r"Fixed time step size, $\Delta t$, [s]", fontsize=14)
 plt.ylabel('Maximum rotational velocity error norm,\n' +'$\epsilon_{\omega}$, [deg/s]', fontsize=14)
 plt.grid(True, which='both')
-plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Benchmark_Selection_omega_error.png',
-            dpi=1200,
-            bbox_inches='tight')
+#plt.savefig(Project_directory + '/0_FinalPlots/Integrator_Selection/Benchmark_Selection_omega_error.png',
+#            dpi=1200,
+#            bbox_inches='tight')
 
 if (PLOT_CHECKS):
     for v in range(4):
@@ -165,7 +165,7 @@ if (PLOT_CHECKS):
         plt.ylabel(y_label)
         plt.grid(True)
 
-#plt.show()
+plt.show()
 
 
 

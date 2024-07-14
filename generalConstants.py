@@ -27,6 +27,7 @@ W = 1400    # [W/m^2] - roughly
 Sun_luminosity = 382.8 * 10**24
 R_E = 6371e3    # [m]
 acc0 = 0.045 * 1E-3   # [m/s/s] characteristic sail acceleration - original ACS3 value
+sigmoid_start_tolerance = (1/2000)/100
 
 # Constant with no impact on the simulation really, therefore kept here
 default_ellipse_bounding_box_margin = 2

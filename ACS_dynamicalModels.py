@@ -11,6 +11,35 @@ def vane_dynamical_model(rotation_x_deg,
                          vane_reference_frame_origin_list,
                          vane_panels_coordinates_list,
                          vane_reference_frame_rotation_matrix_list):
+    """
+        Perform dynamic modeling of vanes based on given rotations in the vane reference frame.
+
+        Parameters:
+        ----------
+        rotation_x_deg: list of floats
+        Rotation angles in degrees around the x-axis of each vane, in the same order as in the
+        vane_panels_coordinates_list.
+
+        rotation_y_deg: list of floats
+        Rotation angles in degrees around the y-axis of each vane, in the same order as in the
+        vane_panels_coordinates_list.
+
+        number_of_vanes: int
+        Number of vanes to process.
+
+        vane_reference_frame_origin_list: list of (3, ) numpy arrays
+        List of origin vectors for each vane in the body-fixed reference frame.
+
+        vane_panels_coordinates_list: list of numpy arrays
+        List of panel coordinates for each vane in the body-fixed reference frame.
+
+        vane_reference_frame_rotation_matrix_list: list of (3, 3) numpy arrays
+        List of rotation matrices giving the rotation from the vane reference frame to the body-fixed frame (R_BV).
+
+        Returns:
+        new_vane_coordinates: list of numpy arrays
+        List of numpy arrays containing the new coordinates of each vane after rotation, in the global reference frame.
+    """
     # New version which should be twice as fast as the previous one
     # Precompute rotation matrices for all vanes using SciPy's Rotation
     Rx_list = R.from_euler('x', rotation_x_deg, degrees=True).as_matrix()

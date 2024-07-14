@@ -19,7 +19,7 @@ from time import time
 
 class vaneAnglesAllocationProblem:
     # Solving the angle allocation problem of the vanes for a single vane
-    def __init__(self, vane_id, bounds, vane_edge_mesh_nodes, sail_wings_coordinates, acs_object, include_shadow=True):
+    def __init__(self, vane_id, bounds, num_vane_edge_mesh_nodes, sail_wings_coordinates, acs_object, include_shadow=True):
         self.vane_id = vane_id
         self.bounds = bounds    # [[-np.pi, np.pi], [-np.pi, np.pi]]
         self.vane_target_torque = None
@@ -54,10 +54,10 @@ class vaneAnglesAllocationProblem:
                 delta_vec = self.vane_nominal_coordinates[0, :] - self.vane_nominal_coordinates[i - 1, :]
             else:
                 delta_vec = self.vane_nominal_coordinates[i, :] - self.vane_nominal_coordinates[i - 1, :]
-            meshed_points = np.zeros((vane_edge_mesh_nodes + 1, 3))
+            meshed_points = np.zeros((num_vane_edge_mesh_nodes + 1, 3))
 
-            for j in range(vane_edge_mesh_nodes+1):
-                meshed_points[j, :] = self.vane_nominal_coordinates[i - 1, :] + j * delta_vec / vane_edge_mesh_nodes
+            for j in range(num_vane_edge_mesh_nodes + 1):
+                meshed_points[j, :] = self.vane_nominal_coordinates[i - 1, :] + j * delta_vec / num_vane_edge_mesh_nodes
             all_meshed_points = np.vstack((all_meshed_points, meshed_points))
         self.meshed_vane_coordinates = all_meshed_points[1:, :]
 
@@ -80,9 +80,17 @@ class vaneAnglesAllocationProblem:
         return self.bounds
 
     def get_nec(self):
+        """
+        Function returning the number of equality constraints of the optimisation
+        :return: the number of equality constraints (int)
+        """
         return 0
 
     def get_nic(self):
+        """
+        Function returning the number of inequality constraints of the optimisation
+        :return: the number of inequality constraints (int)
+        """
         return 0
 
     def get_name(self):
@@ -91,11 +99,12 @@ class vaneAnglesAllocationProblem:
 
     def single_vane_torque(self, x):
         """
-        Torque performed by the vane alone, in the body frame. Therefore, even for zero rotation angles, the torque will$
+        Torque performed by the vane alone, in the body frame. Therefore, even for zero rotation angles, the torque will
         be non-zero.
         :param x: variables to be optimised. x[0]: rotation around vane x-axis in radians; x[1]: rotation around vane
         y-axis in radians.
-        :return: Torque in the body frame, or a np.array([1e23, 1e23, 1e23]) if the vane is in the shadow.
+        :return: Torque in the body frame, or a np.array([1e23, 1e23, 1e23]) if the vane is casting some or is in
+         the shadow.
         """
         rotated_points_body_frame = vane_dynamical_model([np.rad2deg(x[0])],
                                                          [np.rad2deg(x[1])],

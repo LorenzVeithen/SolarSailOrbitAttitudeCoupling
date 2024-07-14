@@ -42,15 +42,15 @@ algorithm_constants["sigmoid_time_shift_parameter"] = 4     # [s]
 algorithm_constants["vane_controller_shut_down_rotational_velocity_tolerance"] = 0.1
 
 integrator_list = [
-                    #propagation_setup.integrator.rkf_45,
-                    #propagation_setup.integrator.rkf_56,
-                    #propagation_setup.integrator.rkf_78,
-                    #propagation_setup.integrator.rkdp_87,
-                    #propagation_setup.integrator.rkf_89,
-                    propagation_setup.integrator.rkv_89,   # repeat last part
-                    #propagation_setup.integrator.rkf_108,
-                    #propagation_setup.integrator.rkf_1210,
-                    #propagation_setup.integrator.rkf_1412,
+                    propagation_setup.integrator.rkf_45,
+                    propagation_setup.integrator.rkf_56,
+                    propagation_setup.integrator.rkf_78,
+                    propagation_setup.integrator.rkdp_87,
+                    propagation_setup.integrator.rkf_89,
+                    propagation_setup.integrator.rkv_89,
+                    propagation_setup.integrator.rkf_108,
+                    propagation_setup.integrator.rkf_1210,
+                    propagation_setup.integrator.rkf_1412,
                     #propagation_setup.integrator.rkf_12
                     ]
 
@@ -124,7 +124,8 @@ for integrator in integrator_list:
         bodies, vehicle_target_settings = sailProp.define_simulation_bodies()
         sail.setBodies(bodies)
         termination_settings, integrator_settings = sailProp.define_numerical_environment(integrator_coefficient_set=integrator,
-                                                                                          control_settings=propagation_setup.integrator.step_size_control_elementwise_scalar_tolerance(tolerance, tolerance))
+                                                                                          control_settings=propagation_setup.integrator.step_size_control_elementwise_scalar_tolerance(tolerance, tolerance),
+                                                                                          validation_settings=propagation_setup.integrator.step_size_validation(1E-5, 10))  # not sure if this is really smart honestly
         acceleration_models, torque_models = sailProp.define_dynamical_environment(bodies, acs_object, vehicle_target_settings)
         combined_propagator_settings = sailProp.define_propagators(integrator_settings, termination_settings,
                                                                    acceleration_models, torque_models,

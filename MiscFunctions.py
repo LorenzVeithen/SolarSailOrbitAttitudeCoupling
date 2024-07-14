@@ -402,10 +402,10 @@ def bring_inside_bounds_scalar(original: float, lower_bound: float,
 
 def sun_angles_from_sunlight_vector(R_VB, n_s):
     """
-    Determine the sun angles based on the sunlight vector
+    Determine the sun angles based on the sunlight vector.
     :param R_VB: (3 x 3) numpy array, rotation matrix from the reference frame in which n_s is defined to the reference
     frame in which the sun angles need to be computed.
-    :param n_s: (1 x 3) numpy array, sunlight vector in a given reference frame (eg. inertial).
+    :param n_s: (1 x 3) numpy array, sunlight vector in a given reference frame (eg. body-frame).
     :return: current_alpha_s and current_beta_s, the sunlight angles in radians in the requested reference frame.
     """
     n_s_vane_frame = np.dot(R_VB, n_s)
@@ -447,10 +447,13 @@ def divide_list(lst, n):
     Divide a list into n roughly equal parts.
 
     Parameters:
+    ----------
     lst (list): The list to be divided.
+
     n (int): The number of parts to divide the list into.
 
     Returns:
+    ----------
     list of lists: A list containing n sublists with the divided elements.
     """
     if (len(lst) != 0):

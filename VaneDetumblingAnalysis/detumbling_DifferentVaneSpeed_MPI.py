@@ -48,11 +48,10 @@ print(f"hello from rank {rank}")
 chunks_list = divide_list(current_chunk, n_processes)
 selected_mode_combinations = chunks_list[rank]
 
-orientation_strings = ["sun_pointing", "edge-on-x", "edge-on-y",
-                       "identity_to_inertial", "alpha_45_beta_90", "alpha_45_beta_0"]
+vane_speed_rad_s_array = np.deg2rad([1440, 720, 360, 180, 90, 45, 22.5, 11.25])    # rad / s
 
 for mode_comb in selected_mode_combinations:
-    for orientation_str in orientation_strings:
+    for vane_speed in vane_speed_rad_s_array:
         optical_model_mode = mode_comb[0]
         sma_ecc_inc_combination_mode = mode_comb[1]
         include_shadow_b = mode_comb[2]
@@ -67,9 +66,10 @@ for mode_comb in selected_mode_combinations:
                                1,
                                overwrite_previous=False,
                                include_shadow_bool=bool(include_shadow_b),
-                               run_mode='keplerian_vane_detumbling_orientation',
+                               run_mode='keplerian_vane_detumbling_vane_speed',
                                output_frequency_in_seconds_=2,
-                               initial_orientation_str=orientation_str)
+                               initial_orientation_str="sun_pointing",
+                               vane_speed_rad_s=vane_speed)
 
         # run the actual propagation
         runPropagationAnalysis(all_combinations,
@@ -79,6 +79,7 @@ for mode_comb in selected_mode_combinations:
                                   1,
                                   overwrite_previous=False,
                                   include_shadow_bool=bool(include_shadow_b),
-                                  run_mode='vane_detumbling_orientation',
+                                  run_mode='vane_detumbling_vane_speed',
                                   output_frequency_in_seconds_=2,
-                                  initial_orientation_str=orientation_str)
+                                  initial_orientation_str="sun_pointing",
+                                  vane_speed_rad_s=vane_speed)

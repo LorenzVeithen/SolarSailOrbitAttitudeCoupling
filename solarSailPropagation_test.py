@@ -22,9 +22,12 @@ from tudatpy.interface import spice
 from tudatpy.kernel.interface import spice_interface
 
 
+algorithm_constants["max_vane_torque_orientation_error"] = -1.  # [deg]     - go to DIRECT algorithm
+algorithm_constants["max_vane_torque_relative_magnitude_error"] = 0.25  # [-]
+
 # Set simulation start and end epochs
 simulation_start_epoch = DateTime(2024, 6, 1, 0).epoch()
-simulation_end_epoch = DateTime(2024, 6, 30, 0).epoch()
+simulation_end_epoch = DateTime(2024, 6, 1, 20).epoch()
 
 # Define solar sail - see constants file
 acs_object = sail_attitude_control_systems("vanes", boom_list, sail_I, algorithm_constants, include_shadow=False, sim_start_epoch=simulation_start_epoch)
@@ -35,7 +38,7 @@ acs_object.set_vane_characteristics(vanes_coordinates_list,
                                     np.array([0, 0, 0]),
                                     0.0045,
                                     vanes_rotational_dof,
-                                    "double_ideal_optical_model",
+                                    "single_ideal_optical_model",
                                     wings_coordinates_list,
                                     vane_mechanical_rotation_limits,
                                     vanes_optical_properties,
@@ -80,14 +83,11 @@ inertial_to_body_initial = np.zeros((3, 3))
 inertial_to_body_initial[:, 0] = new_x
 inertial_to_body_initial[:, 1] = new_y
 inertial_to_body_initial[:, 2] = new_z
-print(inertial_to_body_initial)
-print(R.from_euler('x', 45., degrees=True).as_matrix())
-inertial_to_body_initial = np.dot(inertial_to_body_initial, R.from_euler('x', 90., degrees=True).as_matrix())    # rotate by 45 deg around x
-print(inertial_to_body_initial)
+inertial_to_body_initial = np.dot(np.dot(inertial_to_body_initial, R.from_euler('x', 45., degrees=True).as_matrix()), R.from_euler('y', 0., degrees=True).as_matrix())    # rotate by 45 deg around x
 
 #inertial_to_body_initial = np.dot(np.dot(R.from_euler('y', 0, degrees=True).as_matrix(), R.from_euler('x', 0, degrees=True).as_matrix()), R.from_euler('z', 0, degrees=True).as_matrix())
 initial_quaternions = rotation_matrix_to_quaternion_entries(inertial_to_body_initial)
-initial_rotational_velocity = np.array([0 * 2 * np.pi / 3600., 0 * 2 * np.pi / 3600, 0 * 2 * np.pi / 3600])
+initial_rotational_velocity = np.array([5 * 2 * np.pi / 3600., 5 * 2 * np.pi / 3600, 5 * 2 * np.pi / 3600])
 initial_rotational_state = np.concatenate((initial_quaternions, initial_rotational_velocity))
 
 sailProp = sailCoupledDynamicsProblem(sail,
@@ -99,7 +99,8 @@ sailProp = sailCoupledDynamicsProblem(sail,
 dependent_variables = sailProp.define_dependent_variables(acs_object)
 bodies, vehicle_target_settings = sailProp.define_simulation_bodies(reduced_ephemeris_model_boolean=False)
 sail.setBodies(bodies)
-termination_settings, integrator_settings = sailProp.define_numerical_environment()
+termination_settings, integrator_settings = sailProp.define_numerical_environment(
+    control_settings=propagation_setup.integrator.step_size_control_elementwise_scalar_tolerance(1.0E-12, 1.0E-12))
 acceleration_models, torque_models = sailProp.define_dynamical_environment(bodies, acs_object, vehicle_target_settings)
 combined_propagator_settings = sailProp.define_propagators(integrator_settings, termination_settings, acceleration_models, torque_models, dependent_variables)
 t0 = time.time()
@@ -108,8 +109,8 @@ t1 = time.time()
 
 rotations_per_hour = initial_rotational_velocity * 3600/(2*np.pi)
 sailProp.write_results_to_file(state_history,
-                               Project_directory + f'/0_GeneratedData/PropagationData/state_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}_test.dat',
+                               Project_directory + f'/0_GeneratedData/PropagationData/state_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}_direct.dat',
                                dependent_variable_history,
-                               Project_directory + f'/0_GeneratedData/PropagationData/dependent_variable_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}_test.dat')
+                               Project_directory + f'/0_GeneratedData/PropagationData/dependent_variable_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}_direct.dat')
 
 print(t1-t0)

@@ -37,7 +37,7 @@ algorithm_constants["sigmoid_scaling_parameter"] = 3        # [-] but is related
 algorithm_constants["sigmoid_time_shift_parameter"] = 4     # [s]
 algorithm_constants["vane_controller_shut_down_rotational_velocity_tolerance"] = 0.1
 
-benchmark_time_steps = [2**(-5), 2**(-6)]   #2**7, 2**6, 2**5, 2**4, 2**3, 2**2, 2**1, 2**0, 2**(-1), 2**(-2), 2**(-3), 2**(-4), , ... , 2**(-7), 2**(-8)
+benchmark_time_steps = [2**7, 2**6, 2**5, 2**4, 2**3, 2**2, 2**1, 2**0, 2**(-1), 2**(-2), 2**(-3), 2**(-4), 2**(-5), 2**(-6)]   #2**7, 2**6, 2**5, 2**4, 2**3, 2**2, 2**1, 2**0, 2**(-1), 2**(-2), 2**(-3), 2**(-4),, 2**(-5), 2**(-6), 2**(-7), 2**(-8)
 # Note that a faster propagation would probably require smaller time steps, but the benchmark is only used on a single
 # propagation to make the choices
 for dt in benchmark_time_steps:

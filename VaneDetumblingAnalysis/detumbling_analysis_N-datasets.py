@@ -12,7 +12,6 @@ selected_combinations = [(5.0, 0.0, 0.0),
                     (5.0, 5.0, 5.0)]
 
 for c_id, c in enumerate(selected_combinations):
-
     for plot_id in range(8):
         # Focus on
 
@@ -71,8 +70,10 @@ for c_id, c in enumerate(selected_combinations):
                 f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/edge-on-x/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
                 f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/edge-on-y/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
                 f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/identity_to_inertial/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/alpha_45_beta_90/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/alpha_45_beta_0/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
-            plot_label = ['sun-pointing', 'edge-on-x', 'edge-on-y', 'identity_to_inertial']
+            plot_label = ['sun-pointing', 'edge-on-x', 'edge-on-y', 'identity_to_inertial', r'$\alpha_{s} = 45$°, $\beta_{s} = 90$°', r'$\alpha_{s} = 45$°, $\beta_{s} = 0$°']
         elif (plot_id == 7):
             comparison_name = 'vane_shadow'
             states_history_datasets_list = [
@@ -109,7 +110,7 @@ for c_id, c in enumerate(selected_combinations):
         omega_deg_s_arrays_list = []
         T_arrays_list = []
         detumbling_time_list = []
-
+        vanes_x_rotation_list, vanes_y_rotation_list = [], []
         for (current_states_path, current_dep_vars_path) in zip(states_history_datasets_list, dependent_variable_history_datasets_list):
             # Extract data
             current_state_history_array = np.loadtxt(f'{Project_directory}/{current_states_path}')
@@ -134,6 +135,12 @@ for c_id, c in enumerate(selected_combinations):
             current_Tz_array = current_dependent_variable_history_array[:, 13]
             T = current_dependent_variable_history_array[:, 11:14]
 
+            # Vane angles history
+            current_vanes_x_rotations = np.rad2deg(current_dependent_variable_history_array[:,
+                                           21:25])
+            current_vanes_y_rotations = np.rad2deg(current_dependent_variable_history_array[:,
+                                           25:29])
+
             # get detumbling time
             list_indices_zero_angles = np.where(np.sum(current_dependent_variable_history_array[:, 21:29], axis=1) == 0)[0]
             if (len(list_indices_zero_angles) != 0):
@@ -146,6 +153,8 @@ for c_id, c in enumerate(selected_combinations):
             omega_deg_s_arrays_list.append(omega_deg_s)
             T_arrays_list.append(T)
             detumbling_time_list.append(current_detumbling_time_hours/24)
+            vanes_x_rotation_list.append(current_vanes_x_rotations)
+            vanes_y_rotation_list.append(current_vanes_y_rotations)
 
 
         custom_xlim = (0, max(detumbling_time_list) * 1.05)
@@ -187,8 +196,34 @@ for c_id, c in enumerate(selected_combinations):
         plt.xlim(custom_xlim)
         plt.savefig(f'{save_plots_dir}/omega_z.png', bbox_inches='tight')
         plt.close()
-        # compare vane angles histories
 
+        # compare vane angles histories
+        for vane_id in range(4):
+            for i, (time_array, vane_x_rotation_array, vane_y_rotation_array) in enumerate(zip(time_arrays_list, vanes_x_rotation_list, vanes_y_rotation_list)):
+                plt.figure(plot_id*1000 + c_id*100 + 4 + vane_id)
+                plt.plot(time_array, vane_x_rotation_array[:, vane_id], label=f'{plot_label[i]}')
+                plt.figure(plot_id*1000 + c_id*100 + 5 + vane_id)
+                plt.plot(time_array, vane_y_rotation_array[:, vane_id], label=f'{plot_label[i]}')
+
+            plt.figure(plot_id*1000 + c_id*100 + 4 + vane_id)
+            plt.title(f'{str(c)}: {comparison_name}')
+            plt.grid(True)
+            plt.xlabel(r"Time, $t$, [days]", fontsize=14)
+            plt.ylabel(fr"Vane {vane_id} x-rotation history, $\theta_1$, [deg]", fontsize=14)
+            plt.legend()
+            plt.xlim(custom_xlim)
+            plt.savefig(f'{save_plots_dir}/vane_{vane_id}_x_hist.png', bbox_inches='tight')
+            plt.close()
+
+            plt.figure(plot_id*1000 + c_id*100 + 5 + vane_id)
+            plt.title(f'{str(c)}: {comparison_name}')
+            plt.grid(True)
+            plt.xlabel(r"Time, $t$, [days]", fontsize=14)
+            plt.ylabel(fr"Vane {vane_id} y-rotation history, $\theta_2$, [deg]", fontsize=14)
+            plt.legend()
+            plt.xlim(custom_xlim)
+            plt.savefig(f'{save_plots_dir}/vane_{vane_id}_y_hist.png', bbox_inches='tight')
+            plt.close()
 
 
 plt.show()

@@ -21,7 +21,8 @@ class sail_attitude_control_systems:
         self.include_shadow = include_shadow
         self.sail_craft_name = sail_craft_name
         self.spacecraft_inertia_tensor = spacecraft_inertia_tensor
-        self.latest_updated_time = -1
+        self.latest_updated_time = sim_start_epoch
+        self.start_sim_epoch = sim_start_epoch
 
         # Booms characteristics
         self.number_of_booms = len(booms_coordinates_list)      # [] Number of booms in the sail.
@@ -147,12 +148,12 @@ class sail_attitude_control_systems:
         if (np.linalg.norm(desired_rotational_velocity_vector - np.array([0, 0, 0]))>1e-15):
             if (len(desired_rotational_velocity_vector[desired_rotational_velocity_vector > 0]) > 1):
                 raise Exception("The desired final rotational velocity vector in " +
-                                "computeBodyFrameTorqueForDetumblingToNonZeroFinalVelocity " +
+                                "computeBodyFrameTorqueForDetumbling " +
                                 "has more than one non-zero element. Spin-stabilised spacecraft should be about an " +
                                 "Eigen-axis.")
             elif (np.count_nonzero(
                     self.spacecraft_inertia_tensor - np.diag(np.diagonal(self.spacecraft_inertia_tensor))) != 0):
-                raise Exception("computeBodyFrameTorqueForDetumblingToNonZeroFinalVelocity is only valid for " +
+                raise Exception("computeBodyFrameTorqueForDetumbling is only valid for " +
                                 " axisymmetric spacecrafts.")
         omega_tilted = body_fixed_angular_velocity_vector - desired_rotational_velocity_vector
 
@@ -286,13 +287,19 @@ class sail_attitude_control_systems:
                         self.latest_updated_time = current_time
 
                     #print( self.latest_updated_vane_angles)
-                    sig_vane_angles = sigmoid_transition(current_time, self.latest_updated_vane_angles, self.latest_updated_time, self.previous_vane_angles, scaling_parameter=3, shift_time_parameter=4)
+                    sig_vane_angles = sigmoid_transition(current_time,
+                                                         self.latest_updated_vane_angles,
+                                                         self.latest_updated_time,
+                                                         self.previous_vane_angles,
+                                                         scaling_parameter=self.sigmoid_scaling_parameter,
+                                                         shift_time_parameter=self.sigmoid_time_shift_parameter)
 
                     # check if sigmoids have converged
                     den = abs(self.latest_updated_vane_angles - self.previous_vane_angles)
                     den[np.where(den<1e-15)] = 1e-8
                     sigmoids_convergence_bool = np.amax(100 * abs((sig_vane_angles - self.latest_updated_vane_angles) / (den))) < 1.
-                    if (sigmoids_convergence_bool):
+                    if (sigmoids_convergence_bool
+                    or np.amax(abs(sig_vane_angles-self.latest_updated_vane_angles)) < 1e-15):
                         self.allow_update = True
                     else:
                         self.allow_update = False
@@ -328,49 +335,7 @@ class sail_attitude_control_systems:
                     R_IB = bodies.get_body(self.sail_craft_name).inertial_to_body_fixed_frame
                     sunlight_vector_body_frame = np.dot(R_IB, sunlight_vector_inertial_frame)
 
-                    if (self.body_fixed_rotational_velocity_at_last_vane_angle_update[0] != None):
-                        # Check how much the rotational velocity vector orientation has changed
-                        c_rotational_velocity_vector_orientation_change = np.dot(
-                            bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity,
-                            self.body_fixed_rotational_velocity_at_last_vane_angle_update) / (np.linalg.norm(
-                            bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity) * np.linalg.norm(
-                            self.body_fixed_rotational_velocity_at_last_vane_angle_update))
-                        if (abs(c_rotational_velocity_vector_orientation_change - 1) < 1e-15):
-                            c_rotational_velocity_vector_orientation_change = 1.
-                        change_in_rotational_velocity_orientation_rad = np.arccos(
-                            c_rotational_velocity_vector_orientation_change)
-
-                        # Check how much the rotational velocity vector magnitude has changed
-                        relative_change_in_rotational_velocity_magnitude = (
-                                    (np.linalg.norm(bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity)
-                                     - np.linalg.norm(self.body_fixed_rotational_velocity_at_last_vane_angle_update)) /
-                                    np.linalg.norm(self.body_fixed_rotational_velocity_at_last_vane_angle_update))
-
-                        # Check how much the sunlight vector in the body frame has changed
-                        cos_sunlight_vector_orientation_change = np.dot(sunlight_vector_body_frame,
-                                                                        self.body_fixed_sunlight_vector_at_last_angle_update) / (
-                                                                             np.linalg.norm(
-                                                                                 sunlight_vector_body_frame) * np.linalg.norm(
-                                                                         self.body_fixed_sunlight_vector_at_last_angle_update))
-
-                        # handle special cases giving NaN's
-                        if (abs(cos_sunlight_vector_orientation_change - 1) < 1e-15):
-                            cos_sunlight_vector_orientation_change = 1.
-                        change_in_body_fixed_sunlight_vector_orientation_rad = np.arccos(
-                            cos_sunlight_vector_orientation_change)
-
-                    else:
-                        # dummy values to force update
-                        change_in_rotational_velocity_orientation_rad = 10.
-                        relative_change_in_rotational_velocity_magnitude = 2.
-                        change_in_body_fixed_sunlight_vector_orientation_rad = -1.
-                        self.latest_updated_vane_angles = np.zeros((self.number_of_vanes, 2))
-
-                    if ((np.rad2deg(change_in_rotational_velocity_orientation_rad) > self.tol_rotational_velocity_orientation_change_update_vane_angles_degrees
-                        or np.rad2deg(change_in_rotational_velocity_orientation_rad) < 0
-                        or np.rad2deg(change_in_body_fixed_sunlight_vector_orientation_rad) > self.tol_sunlight_vector_body_frame_orientation_change_update_vane_angles_degrees
-                        or np.rad2deg(change_in_body_fixed_sunlight_vector_orientation_rad) < 0
-                        or relative_change_in_rotational_velocity_magnitude > self.tol_relative_change_in_rotational_velocity_magnitude)):
+                    if ((self.allow_update and current_time-self.latest_updated_time >= 20) or current_time==self.start_sim_epoch):
                         controller_vane_angles = np.zeros((self.number_of_vanes, 2))
                         for vane_id in range(self.number_of_vanes):
                             if (current_time - self.time_of_jump[vane_id] > 0):
@@ -380,16 +345,21 @@ class sail_attitude_control_systems:
                                 avg_value_alpha_1 = self.average_value_alpha_1_start[vane_id]
                                 avg_value_alpha_2 = self.average_value_alpha_2_start[vane_id]
 
-                            controller_vane_angles[vane_id, 0] = avg_value_alpha_1 + self.amplitude_alpha_1[vane_id] * self.trig_function_alpha_1[vane_id]((2 * np.pi) * current_time / (self.period_alpha_1[vane_id]))
-                            controller_vane_angles[vane_id, 1] = avg_value_alpha_2 + self.amplitude_alpha_2[vane_id] * self.trig_function_alpha_2[vane_id]((2 * np.pi) * current_time / (self.period_alpha_2[vane_id]))
+                            controller_vane_angles[vane_id, 0] = avg_value_alpha_1 + self.amplitude_alpha_1[vane_id] * self.trig_function_alpha_1[vane_id]((2 * np.pi) * (current_time-self.start_sim_epoch) / (self.period_alpha_1[vane_id]))
+                            controller_vane_angles[vane_id, 1] = avg_value_alpha_2 + self.amplitude_alpha_2[vane_id] * self.trig_function_alpha_2[vane_id]((2 * np.pi) * (current_time-self.start_sim_epoch) / (self.period_alpha_2[vane_id]))
+
                         self.previous_vane_angles = self.latest_updated_vane_angles
                         self.latest_updated_vane_angles = controller_vane_angles
                         self.body_fixed_rotational_velocity_at_last_vane_angle_update = bodies.get_body(self.sail_craft_name).body_fixed_angular_velocity
                         self.body_fixed_sunlight_vector_at_last_angle_update = sunlight_vector_body_frame
                         self.latest_updated_time = current_time
 
-                    sig_vane_angles = sigmoid_transition(current_time, self.latest_updated_vane_angles, self.latest_updated_time, self.previous_vane_angles, scaling_parameter=3, shift_time_parameter=4)
-                    if (np.amax(100 * abs((sig_vane_angles-self.latest_updated_vane_angles)/(self.latest_updated_vane_angles-self.previous_vane_angles))) < 5.):
+                    sig_vane_angles = sigmoid_transition(current_time, self.latest_updated_vane_angles, self.latest_updated_time, self.previous_vane_angles, scaling_parameter=self.sigmoid_scaling_parameter, shift_time_parameter=self.sigmoid_time_shift_parameter)
+                    den = abs(self.latest_updated_vane_angles - self.previous_vane_angles)
+                    den[np.where(den < 1e-15)] = 1e-8
+                    sigmoids_convergence_bool = np.amax(100 * abs((sig_vane_angles - self.latest_updated_vane_angles) / (den))) < 1.
+                    if (sigmoids_convergence_bool
+                        or np.amax(abs(sig_vane_angles-self.latest_updated_vane_angles)) < 1e-15):
                         self.allow_update = True
                     else:
                         self.allow_update = False
