@@ -492,7 +492,7 @@ class vaneTorqueAllocationProblem:
         for vane_id in range(self.acs_object.number_of_vanes):
             R_VBi = np.linalg.inv(self.acs_object.vane_reference_frame_rotation_matrix_list[vane_id])
             alpha_s_rad_vane_reference_frame, beta_s_rad_vane_reference_frame = sun_angles_from_sunlight_vector(
-                R_VBi , n_s_body_frame)
+                R_VBi, n_s_body_frame)
             fourier_ellipse_coefficient = []
 
 

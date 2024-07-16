@@ -14,7 +14,7 @@ selected_combinations = [(5.0, 0.0, 0.0),
 for c_id, c in enumerate(selected_combinations):
     for plot_id in range(8):
         # Focus on
-
+        print(c_id, plot_id)
         if (plot_id == 0):
             comparison_name = "optical_model"
             states_history_datasets_list = [

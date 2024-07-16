@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from vaneDetumbling_ACS3Model import analysis_save_data_dir
 from pathlib import Path
 
+print('hello world')
 current_data_set = f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False'
 analysis_data_dir = analysis_save_data_dir + current_data_set
 thinning_factor = 1

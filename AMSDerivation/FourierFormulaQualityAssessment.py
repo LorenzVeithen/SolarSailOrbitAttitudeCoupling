@@ -10,14 +10,15 @@ from fullEllipseCoefficientsFunctions import ellipse_full_coefficients_function_
 from MiscFunctions import special_round
 
 coefficients_labels = ['A', 'B', 'C', 'D', 'E', 'F']
-vane_optical_model = "ACS3_optical_model"
+vane_optical_model = "single_ideal_optical_model"
 sh_comp = 1     # 0 if no shadow
 GENERATE_FOURIER_ELLIPSE_FUNCTIONS = True
 COMPUTE_SCALING = True
 GENERATE_ACCURACY_PLOTS = False
+PRINT_FUNCTIONS = False
 scaling = 1e-2      # necessary if COMPUTE_SCALING is False, disregarded otherwise
 desired_two_sigma_width = 2     # % relative difference in area 5.2 for ACS3 with shadow, 4 for ACS3 without shadow, 2 otherwise !!!
-
+print(f"starting: {vane_optical_model}, sh {sh_comp}")
 
 if (COMPUTE_SCALING):
     print_mode = "truncated"
@@ -92,11 +93,12 @@ def truncated_fourier_ellipse(relative_magnitude, optical_model_str, plot_bool=F
                 alpha=0.2)
         my_cmap = plt.get_cmap('jet')
         ax.scatter(alpha_sun_deg, beta_sun_deg, area_diff_rel, c=area_diff_rel, cmap=my_cmap, alpha=0.5, label="Data")
-        ax.set_xlabel(r'Sun cone angle, $\alpha_{s}$, [deg]', fontsize=14)
-        ax.set_ylabel(r'Sun clock angle, $\beta_{s}$, [deg]', fontsize=14)
-        ax.set_zlabel(r"Relative area difference, $\Delta A$, [%]")
-        plt.savefig(Project_directory + f'/0_FinalPlots/AMS/FourierFit/{optical_model_str}/area_diff_shadow_{sh_comp}.png',
-                    dpi=1200,
+        ax.set_xlabel(r'$\alpha_{s}$ [deg]', fontsize=20)
+        ax.set_ylabel(r'$\beta_{s}$ [deg]', fontsize=20)
+        ax.set_zlabel(r"$\Delta A_{\text{rel}}$ [%]", fontsize=20)
+        ax.tick_params(axis='both', labelsize=16)
+        plt.savefig(Project_directory + f'/0_FinalPlots/AMS/FourierFit/{optical_model_str}/{vane_optical_model}_area_diff_shadow_{sh_comp}.png',
+                    dpi=600,
                     bbox_inches="tight")
 
         for i in range(6):
@@ -106,34 +108,34 @@ def truncated_fourier_ellipse(relative_magnitude, optical_model_str, plot_bool=F
             z = (fourier_ellipse_coefficients[:, i + 2] - test_data[:, i + 2])
             id = z.argmax(axis=0)
             ax.scatter(alpha_sun_deg, beta_sun_deg, z, c=z, cmap=my_cmap, alpha=0.5, label="Data")
-            ax.set_xlabel(r'Sun cone angle, $\alpha_{s}$, [deg]', fontsize=14)
-            ax.set_ylabel(r'Sun clock angle, $\beta_{s}$, [deg]', fontsize=14)
-            ax.set_zlabel(f'{coefficients_labels[i]} coefficient error, [-]', fontsize=14)
+            ax.set_xlabel(r'$\alpha_{s}$ [deg]', fontsize=14)
+            ax.set_ylabel(r'$\beta_{s}$ [deg]', fontsize=14)
+            ax.set_zlabel(f'{coefficients_labels[i]} coefficient error [-]', fontsize=14)
             plt.savefig(
-                Project_directory + f'/0_FinalPlots/AMS/FourierFit/{optical_model_str}/{coefficients_labels[i]}_coeff_error_shadow_{sh_comp}_3D.png',
-                dpi=1200,
+                Project_directory + f'/0_FinalPlots/AMS/FourierFit/{optical_model_str}/{vane_optical_model}_{coefficients_labels[i]}_coeff_error_shadow_{sh_comp}_3D.png',
+                dpi=600,
                 bbox_inches="tight")
             plt.close()
 
             plt.figure()
             plt.scatter(alpha_sun_deg, z, s=1)
-            plt.xlabel(r'Sun cone angle, $\alpha_{s}$, [deg]', fontsize=14)
-            plt.ylabel(f'{coefficients_labels[i]} coefficient error, [-]', fontsize=14)
+            plt.xlabel(r'$\alpha_{s}$ [deg]', fontsize=14)
+            plt.ylabel(f'{coefficients_labels[i]} coefficient error [-]', fontsize=14)
             plt.grid(True)
             plt.savefig(
-                Project_directory + f'/0_FinalPlots/AMS/FourierFit/{optical_model_str}/{coefficients_labels[i]}_coeff_error_shadow_{sh_comp}_2D_alpha.png',
-                dpi=1200,
+                Project_directory + f'/0_FinalPlots/AMS/FourierFit/{optical_model_str}/{vane_optical_model}_{coefficients_labels[i]}_coeff_error_shadow_{sh_comp}_2D_alpha.png',
+                dpi=600,
                 bbox_inches="tight")
             plt.close()
 
             plt.figure()
             plt.scatter(beta_sun_deg, z, s=1)
-            plt.xlabel(r'Sun clock angle, $\beta_{s}$, [deg]', fontsize=14)
-            plt.ylabel(f'{coefficients_labels[i]} coefficient error, [-]', fontsize=14)
+            plt.xlabel(r'$\beta_{s}$ [deg]', fontsize=14)
+            plt.ylabel(f'{coefficients_labels[i]} coefficient error [-]', fontsize=14)
             plt.grid(True)
             plt.savefig(
-                Project_directory + f'/0_FinalPlots/AMS/FourierFit/{optical_model_str}/{coefficients_labels[i]}_coeff_error_shadow_{sh_comp}_2D_beta.png',
-                dpi=1200,
+                Project_directory + f'/0_FinalPlots/AMS/FourierFit/{optical_model_str}/{vane_optical_model}_{coefficients_labels[i]}_coeff_error_shadow_{sh_comp}_2D_beta.png',
+                dpi=600,
                 bbox_inches="tight")
             plt.close()
 
@@ -180,10 +182,10 @@ def plots_number_of_terms_Fourier_ellipse(selected_scaling):
     fig.set_size_inches(32, 18)  # set figure's size manually to your full screen (32x18)
     ax.boxplot(area_diff_rel_list)
     ax.set_xticklabels(special_round(scaling_list, 1), rotation=90)
-    ax.set_xlabel(r"Scaling factor, $t_{s}$, [-]")
-    ax.set_ylabel(r"Relative area difference, $\Delta A$, [%]")
+    ax.set_xlabel(r"$t_{\text{scaling}}$ [-]")
+    ax.set_ylabel(r"$\Delta A_{\text{rel}}$ [%]")
     plt.savefig(
-        Project_directory + f'/0_FinalPlots/AMS/FourierFit/{vane_optical_model}/area_error_dist_shadow_{sh_comp}.png',
+        Project_directory + f'/0_FinalPlots/AMS/FourierFit/{vane_optical_model}/{vane_optical_model}_area_error_dist_shadow_{sh_comp}.png',
         dpi=1200,
         bbox_inches="tight")
     plt.close()
@@ -193,53 +195,51 @@ if (GENERATE_FOURIER_ELLIPSE_FUNCTIONS):
     if (COMPUTE_SCALING):
         scaling = golden(golden_section_wrapper, brack=(1e-7, 1e-2), tol=1e-7)
         _, the_id_relevance_list = truncated_fourier_ellipse(scaling, vane_optical_model, plot_bool=True)[:2]
+        print('-------------')
         print(scaling)
         print(the_id_relevance_list)
         plots_number_of_terms_Fourier_ellipse(scaling)
     else:
         the_id_relevance_list = [1700, 1700, 1700, 1700, 1700, 1700]
 
-    for i in range(6):
-        filename = f'{AMS_directory}/Datasets/{vane_optical_model}/vane_1/dominantFitTerms/{["A", "B", "C", "D", "E", "F"][i]}_shadow_{bool(sh_comp)}.txt'
-        original_fourier_fit = np.genfromtxt(filename, delimiter=',', dtype=object)
-        coefficients_array = "np.array(["
-        expressions_array = "np.array(["
-        for j in range(the_id_relevance_list[i]):
-            coefficients_array += original_fourier_fit[j, 0].decode("utf-8") + ", "
-            current_expression = original_fourier_fit[j, 2]
-            expressions_array += current_expression.decode("utf-8") + ", "
+    if (PRINT_FUNCTIONS):
+        for i in range(6):
+            filename = f'{AMS_directory}/Datasets/{vane_optical_model}/vane_1/dominantFitTerms/{["A", "B", "C", "D", "E", "F"][i]}_shadow_{bool(sh_comp)}.txt'
+            original_fourier_fit = np.genfromtxt(filename, delimiter=',', dtype=object)
+            coefficients_array = "np.array(["
+            expressions_array = "np.array(["
+            for j in range(the_id_relevance_list[i]):
+                coefficients_array += original_fourier_fit[j, 0].decode("utf-8") + ", "
+                current_expression = original_fourier_fit[j, 2]
+                expressions_array += current_expression.decode("utf-8") + ", "
 
-        coefficients_array += "])"
-        expressions_array += "])"
+            coefficients_array += "])"
+            expressions_array += "])"
 
-        print("@jit(nopython=True, cache=True)")
-        if (COMPUTE_SCALING):
-            print(
-                f"def {coefficients_labels[i]}_coefficients_{print_mode}_shadow_{bool(sh_comp)}_{vane_optical_model}(alpha_s_rad, beta_s_rad):")
-        else:
-            print(f"def {coefficients_labels[i]}_coefficients_{print_mode}_shadow_{bool(sh_comp)}_{vane_optical_model}(alpha_s_rad, beta_s_rad, n_terms=10):")
+            print("@jit(nopython=True, cache=True)")
+            if (COMPUTE_SCALING):
+                print(
+                    f"def {coefficients_labels[i]}_coefficients_{print_mode}_shadow_{bool(sh_comp)}_{vane_optical_model}(alpha_s_rad, beta_s_rad):")
+            else:
+                print(f"def {coefficients_labels[i]}_coefficients_{print_mode}_shadow_{bool(sh_comp)}_{vane_optical_model}(alpha_s_rad, beta_s_rad, n_terms=10):")
 
-        print("    alpha_s = alpha_s_rad")
-        print("    beta_s = beta_s_rad")
+            print("    alpha_s = alpha_s_rad")
+            print("    beta_s = beta_s_rad")
 
-        print("    c_alpha_s = np.cos(alpha_s)")
-        print("    s_alpha_s = np.sin(alpha_s)")
-        print("    c_beta_s = np.cos(beta_s)")
-        print("    s_beta_s = np.sin(beta_s)")
+            print("    c_alpha_s = np.cos(alpha_s)")
+            print("    s_alpha_s = np.sin(alpha_s)")
+            print("    c_beta_s = np.cos(beta_s)")
+            print("    s_beta_s = np.sin(beta_s)")
 
-        print("    s_harmonics_alpha = [np.sin(j * alpha_s) for j in range(16)]")
-        print("    c_harmonics_alpha = [np.cos(j * alpha_s) for j in range(16)]")
-        print("    s_harmonics_beta = [np.sin(j * beta_s) for j in range(16)]")
-        print("    c_harmonics_beta = [np.cos(j * beta_s) for j in range(16)]")
-        print('    expressions_array = ' + expressions_array)
-        print('\n')
-        print('    coefficients_array = ' + coefficients_array)
-        print('\n')
-        if (COMPUTE_SCALING):
-            print('    return np.dot(coefficients_array, expressions_array)')
-        else:
-            print('    return np.dot(coefficients_array[:n_terms], expressions_array[:n_terms])')
-
-
-
-
+            print("    s_harmonics_alpha = [np.sin(j * alpha_s) for j in range(16)]")
+            print("    c_harmonics_alpha = [np.cos(j * alpha_s) for j in range(16)]")
+            print("    s_harmonics_beta = [np.sin(j * beta_s) for j in range(16)]")
+            print("    c_harmonics_beta = [np.cos(j * beta_s) for j in range(16)]")
+            print('    expressions_array = ' + expressions_array)
+            print('\n')
+            print('    coefficients_array = ' + coefficients_array)
+            print('\n')
+            if (COMPUTE_SCALING):
+                print('    return np.dot(coefficients_array, expressions_array)')
+            else:
+                print('    return np.dot(coefficients_array[:n_terms], expressions_array[:n_terms]]')

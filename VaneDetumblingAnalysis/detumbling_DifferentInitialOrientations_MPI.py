@@ -12,27 +12,27 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 n_processes = size
 
-number_of_portions = 3      # > 1
+number_of_portions = 1      # > 1
 portion = int(sys.argv[1])  # 0, 1, 2, 3,... depending on number of portions
 
 mode_combinations = list(itertools.product([0, 1, 2], [0], [1]))
 mode_combs_chunks = divide_list(mode_combinations, number_of_portions)
 current_chunk = mode_combs_chunks[portion]
 
-"""
-all_combinations = [(150, 0, 0),
+
+all_combinations = [#(150, 0, 0),
                     (75, 0, 0),
-                    (0, 150, 0),
+                    #(0, 150, 0),
                     (0, 75, 0),
-                    (0, 0, 150),
+                    #(0, 0, 150),
                     (0, 0, 75),
-                    (100, 100, 0),
+                    #(100, 100, 0),
                     (50, 50, 0),
-                    (0, 100, 100),
+                    #(0, 100, 100),
                     (0, 50, 50),
-                    (100, 0, 100),
+                    #(100, 0, 100),
                     (50, 0, 50),
-                    (85, 85, 85),
+                    #(85, 85, 85),
                     (40, 40, 40)]
 """
 all_combinations = [(5, 0, 0),
@@ -42,7 +42,7 @@ all_combinations = [(5, 0, 0),
                     (0, 5, 5),
                     (5, 0, 5),
                     (5, 5, 5)]
-
+"""
 print(f"hello from rank {rank}")
 
 chunks_list = divide_list(current_chunk, n_processes)

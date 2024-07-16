@@ -22,7 +22,7 @@ from tudatpy.interface import spice
 from tudatpy.kernel.interface import spice_interface
 
 
-algorithm_constants["max_vane_torque_orientation_error"] = -1.  # [deg]     - go to DIRECT algorithm
+algorithm_constants["max_vane_torque_orientation_error"] = 15.  # [deg]     - go to DIRECT algorithm
 algorithm_constants["max_vane_torque_relative_magnitude_error"] = 0.25  # [-]
 
 # Set simulation start and end epochs
@@ -109,8 +109,8 @@ t1 = time.time()
 
 rotations_per_hour = initial_rotational_velocity * 3600/(2*np.pi)
 sailProp.write_results_to_file(state_history,
-                               Project_directory + f'/0_GeneratedData/PropagationData/state_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}_direct.dat',
+                               Project_directory + f'/0_GeneratedData/PropagationData/state_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}_blabla.dat',
                                dependent_variable_history,
-                               Project_directory + f'/0_GeneratedData/PropagationData/dependent_variable_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}_direct.dat')
+                               Project_directory + f'/0_GeneratedData/PropagationData/dependent_variable_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}_blabla.dat')
 
 print(t1-t0)

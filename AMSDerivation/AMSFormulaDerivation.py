@@ -49,11 +49,11 @@ else:
     coefficients_file_differentiator = ''
 
 # Define solar sail - see constants file
-#vanes_optical_properties = [np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)
+vanes_optical_properties = [np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)
 #vanes_optical_properties = [np.array([0., 0., 1., 0., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)
-vanes_optical_properties = [np.array([0.1, 0.57, 0.74, 0.23, 0.16, 0.2, 2/3, 2/3, 0.03, 0.6])] * len(vanes_origin_list)
-vane_optical_model_str = "ACS3_optical_model"
-sh_comp = 0#  # Define whether to work with or without shadow effects
+#vanes_optical_properties = [np.array([0.1, 0.57, 0.74, 0.23, 0.16, 0.2, 2/3, 2/3, 0.03, 0.6])] * len(vanes_origin_list)
+vane_optical_model_str = "double_ideal_optical_model"
+sh_comp = 1 # Define whether to work with or without shadow effects
 vane_id = 1
 cdir = f"{AMS_directory}/Datasets/{vane_optical_model_str}/vane_{vane_id}"
 target_hull = "TyTz"
@@ -108,7 +108,7 @@ if (COMPUTE_DATA):
     vaneAngleProblem.update_vane_angle_determination_algorithm(np.array([0, 1, 0]), np.array([0, 0, -1]),
                                                                vane_variable_optical_properties=True, vane_optical_properties_list=vanes_optical_properties)  # and the next time you can put False
 
-    sun_angles_num, vane_angles_num = 11, 100
+    sun_angles_num, vane_angles_num = 21, 100
 
     if (not GENERATE_FOURIER_TEST_DATA):
         sun_angle_alpha_list = np.linspace(-180, 180, sun_angles_num)
@@ -170,20 +170,20 @@ if (COMPUTE_ELLIPSES):
                 AMS_points = np.hstack((Tx, Ty))
                 numerical_hull = ConvexHull(AMS_points)
                 numerical_hull_points = numerical_hull.points[numerical_hull.vertices]
-                plot_labels = [r'Non-dimensional $X_{\textit{B}}$ Torque, $T_{x}$, [-]',
-                               r'Non-dimensional $Y_{\textit{B}}$ Torque, $T_{y}$, [-]']
+                plot_labels = [r'$\tilde{T}_{x}$ [-]',
+                               r'$\tilde{T}_{y}$ [-]']
             case 'TxTz':
                 AMS_points = np.hstack((Tx, Tz))
                 numerical_hull = ConvexHull(AMS_points)
                 numerical_hull_points = numerical_hull.points[numerical_hull.vertices]
-                plot_labels = [r'Non-dimensional $X_{\textit{B}}$ Torque, $T_{x}$, [-]',
-                               r'Non-dimensional $Z_{\textit{B}}$ Torque, $T_{z}$, [-]']
+                plot_labels = [r'$\tilde{T}_{x}$ [-]',
+                               r'$\tilde{T}_{z}$ [-]']
             case 'TyTz':
                 AMS_points = np.hstack((Ty, Tz))
                 numerical_hull = ConvexHull(AMS_points)
                 numerical_hull_points = numerical_hull.points[numerical_hull.vertices]
-                plot_labels = [r'Non-dimensional $Y_{\textit{B}}$ Torque, $T_{y}$, [-]',
-                               r'Non-dimensional $Z_{\textit{B}}$ Torque, $T_{z}$, [-]']
+                plot_labels = [r'$\tilde{T}_{y}$ [-]',
+                               r'$\tilde{T}_{z}$ [-]']
             case 'TxyTz':
                 AMS_points = np.hstack((np.sqrt(Tx**2 + Ty**2), Tz))
                 numerical_hull = ConvexHull(AMS_points)
@@ -272,35 +272,38 @@ if (COMPUTE_ELLIPSES):
             # Plots
             plt.figure()
             plt.grid(True)
-            plt.scatter(AMS_points[:, 0], AMS_points[:, 1], s=1, label="Vane points")
+            plt.scatter(AMS_points[:, 0], AMS_points[:, 1], s=1, color='grey', label="Vane points")
             for simplex in numerical_hull.simplices:
                 plt.plot(AMS_points[simplex, 0], AMS_points[simplex, 1], 'k--')
             plt.plot([], [], 'k--', label="Convex Hull")
-            plt.plot(x_chosen_hull, y_chosen_hull, 'r', label="Fitted ellipse")
-            plt.plot(x_opt, y_opt, 'g', label="Optimised ellipse")
+            plt.plot(x_chosen_hull, y_chosen_hull, 'g', linewidth=2, linestyle=':', label="Fitted ellipse")
+            plt.plot(x_opt, y_opt, 'b', label="Optimised ellipse")
             if (FOURIER_ELLIPSE_AVAILABLE):
-                plt.plot(x_fourier, y_fourier, color='darkblue', label="Fourier ellipse")
-            plt.scatter(numerical_hull_points[:, 0], numerical_hull_points[:, 1], label='Hull points')
+                plt.plot(x_fourier, y_fourier, color='r', linestyle='-.', label="Fourier ellipse")
+            plt.scatter(numerical_hull_points[:, 0], numerical_hull_points[:, 1], color='orange', s=15, label='Hull points')
             plt.xlabel(plot_labels[0], fontsize=14)
             plt.ylabel(plot_labels[1], fontsize=14)
-            plt.title(r"$\alpha_{s}$=" + f'{round(alpha_sun_deg, 1)}°' + r" and $\beta_{s}$=" + f'{round(beta_sun_deg, 1)}°')
+            #plt.title(r"$\alpha_{s}$=" + f'{round(alpha_sun_deg, 1)}°' + r" and $\beta_{s}$=" + f'{round(beta_sun_deg, 1)}°')
             plt.legend()
             if (not FOURIER_ELLIPSE_AVAILABLE):
                 if (not COMPUTE_DATA):
-                    plt.savefig(f"{AMS_directory}/Plots/{vane_optical_model_str}/vane_{vane_id}/Fitted_Ellipses/{input[:-4]}_hull_{target_hull}.png",
-                               )
+                    plt.savefig(f"{AMS_directory}/Plots/{vane_optical_model_str}/vane_{vane_id}/Fitted_Ellipses/{input[:-4]}_{vane_optical_model_str}_hull_{target_hull}.png",
+                               bbox_inches='tight', dpi=600)
                 else:
-                    plt.savefig(f"{AMS_directory}/Plots/{vane_optical_model_str}/vane_{vane_id}/Fitted_Ellipses/AMS_alpha_{round(alpha_sun_deg, 1)}_beta_{round(beta_sun_deg, 1)}_shadow_{str(bool(sh_comp))}_hull_{target_hull}.png",
+                    plt.savefig(f"{AMS_directory}/Plots/{vane_optical_model_str}/vane_{vane_id}/Fitted_Ellipses/AMS_{vane_optical_model_str}_alpha_{round(alpha_sun_deg, 1)}_beta_{round(beta_sun_deg, 1)}_shadow_{str(bool(sh_comp))}_hull_{target_hull}.png",
+                                bbox_inches='tight', dpi=600
                                 )
 
             else:
                 if (not COMPUTE_DATA):
-                    plt.savefig(f"{AMS_directory}/Plots/{vane_optical_model_str}/vane_{vane_id}/Fourier_Ellipses/{input[:-4]}_hull_{target_hull}.png",
+                    plt.savefig(f"{AMS_directory}/Plots/{vane_optical_model_str}/vane_{vane_id}/Fourier_Ellipses/{input[:-4]}_{vane_optical_model_str}_hull_{target_hull}.png",
+                                bbox_inches='tight', dpi=600
                                 )
                 else:
                     plt.savefig(
-                        f"{AMS_directory}/Plots/{vane_optical_model_str}/vane_{vane_id}/Fourier_Ellipses/AMS_alpha_{round(alpha_sun_deg, 1)}_beta_{round(beta_sun_deg, 1)}_shadow_{str(bool(sh_comp))}_hull_{target_hull}.png",
-                                )
+                        f"{AMS_directory}/Plots/{vane_optical_model_str}/vane_{vane_id}/Fourier_Ellipses/AMS_{vane_optical_model_str}_alpha_{round(alpha_sun_deg, 1)}_beta_{round(beta_sun_deg, 1)}_shadow_{str(bool(sh_comp))}_hull_{target_hull}.png",
+                        bbox_inches='tight', dpi=600
+                    )
             #plt.show()
             plt.close()
 
