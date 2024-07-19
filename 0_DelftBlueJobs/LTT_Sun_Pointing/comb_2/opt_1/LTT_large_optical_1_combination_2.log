@@ -1,0 +1,42 @@
+hello from rank 9
+--- running (np.int64(-30), np.int64(-40), np.int64(0)), 100.0% ---
+7831.53527879715
+hello from rank 8
+--- running (np.int64(-40), np.int64(-85), np.int64(0)), 100.0% ---
+14166.676684379578
+hello from rank 4
+--- running (np.int64(-85), np.int64(40), np.int64(0)), 100.0% ---
+14389.655497789383
+hello from rank 6
+--- running (np.int64(-70), np.int64(-70), np.int64(0)), 100.0% ---
+14462.954143285751
+hello from rank 5
+--- running (np.int64(-70), np.int64(-85), np.int64(0)), 100.0% ---
+17068.83473420143
+hello from rank 10
+--- running (np.int64(85), np.int64(-85), np.int64(0)), 100.0% ---
+17852.679386377335
+hello from rank 2
+--- running (np.int64(-85), np.int64(-100), np.int64(0)), 100.0% ---
+19637.8331284523
+hello from rank 1
+--- running (np.int64(-100), np.int64(85), np.int64(0)), 100.0% ---
+19787.714022159576
+hello from rank 0
+--- running (np.int64(-100), np.int64(100), np.int64(0)), 100.0% ---
+21378.735909223557
+hello from rank 11
+--- running (np.int64(70), np.int64(55), np.int64(0)), 50.0% ---
+13879.845680475235
+--- running (np.int64(70), np.int64(40), np.int64(0)), 100.0% ---
+12360.501857995987
+hello from rank 7
+--- running (np.int64(-70), np.int64(-55), np.int64(0)), 50.0% ---
+13879.430003643036
+--- running (np.int64(-55), np.int64(-85), np.int64(0)), 100.0% ---
+15601.039902687073
+hello from rank 3
+--- running (np.int64(-85), np.int64(-85), np.int64(0)), 50.0% ---
+17976.280201911926
+--- running (np.int64(-85), np.int64(100), np.int64(0)), 100.0% ---
+18776.023102760315

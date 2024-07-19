@@ -575,7 +575,7 @@ class vaneTorqueAllocationProblem:
                                                                         case=0,
                                                                         default_alpha_1_deg=default_x_rotation_deg,
                                                                         default_alpha_2_deg=default_y_rotation_deg,
-                                                                        n_points=100)
+                                                                        n_points=150)
 
                     for j, fT_list in enumerate(tuple_fT_alpha_1):
                         for fT in fT_list:
@@ -595,7 +595,7 @@ class vaneTorqueAllocationProblem:
                                                                         case=1,
                                                                         default_alpha_1_deg=default_x_rotation_deg,
                                                                         default_alpha_2_deg=default_y_rotation_deg,
-                                                                        n_points=100)
+                                                                        n_points=150)
 
                     for j, fT_list in enumerate(tuple_fT_alpha_2):
                         for fT in fT_list:
@@ -623,7 +623,7 @@ class vaneTorqueAllocationProblem:
             [[inf_point[0] ** 2, inf_point[0] * inf_point[1], inf_point[1] ** 2, inf_point[0], inf_point[1], 1]])
         return np.dot(D_inf, weights)[0] > 0  # return True if infinity is outside, False if it is inside
 
-    def reducedDOFConstraintSplines(self, vaneAngleProblem_obj, case=0, default_alpha_1_deg=0, default_alpha_2_deg=0, n_points = 50):
+    def reducedDOFConstraintSplines(self, vaneAngleProblem_obj, case=0, default_alpha_1_deg=0, default_alpha_2_deg=0, n_points = 150):
         """
 
         :param: vaneAngleProblem_obj: object from the vaneAnglesAllocationProblem class used to compute the torque of

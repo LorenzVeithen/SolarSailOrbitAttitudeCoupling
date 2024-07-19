@@ -133,7 +133,7 @@ class sailCoupledDynamicsProblem:
 
         vehicle_target_settings = environment_setup.radiation_pressure.panelled_radiation_target(self.occulting_bodies_dict)
 
-        constant_orientation = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])  # TODO: check if this has any influence
+        constant_orientation = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
         # create rotation model settings and assign to body settings of "ACS3"
         body_settings.get("ACS3").rotation_model_settings = environment_setup.rotation_model.constant_rotation_model(
             self.global_frame_orientation,
@@ -274,7 +274,6 @@ class sailCoupledDynamicsProblem:
                                                                               termination_settings,
                                                                               output_variables=dependent_variables)
 
-        # TODO: Why does this not work ?
         combined_propagator_settings.processing_settings.results_save_frequency_in_steps = 0
         combined_propagator_settings.processing_settings.results_save_frequency_in_seconds = output_frequency_in_seconds
         return combined_propagator_settings

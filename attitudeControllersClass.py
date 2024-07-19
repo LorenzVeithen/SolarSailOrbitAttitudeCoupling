@@ -262,7 +262,7 @@ class sail_attitude_control_systems:
                                                                                                             previous_optimal_torque,
                                                                                                             sunlight_vector_body_frame,
                                                                                                             initial_vane_angles_guess_rad=self.latest_updated_vane_angles)
-
+                            controller_vane_angles = controller_vane_angles * self.vanes_rotational_dof_booleans    # Assume that if reduced DoF, the vane angle stays at zero TODO: generalise to any stuck position
                         else:
                             controller_vane_angles = np.zeros((self.number_of_vanes, 2))
                             vane_torques = np.zeros((self.number_of_vanes, 3))

@@ -37,7 +37,7 @@ if (rank==0):
                            overwrite_previous=False,
                            include_shadow_bool=False,
                            run_mode='keplerian_LTT',
-                           output_frequency_in_seconds_=100)
+                           output_frequency_in_seconds_=1)
 
 runPropagationAnalysis(all_combinations,
                           optical_mode_str,

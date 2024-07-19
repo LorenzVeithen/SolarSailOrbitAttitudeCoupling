@@ -2,7 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from generalConstants import Project_directory
 import os
-
+from cycler import cycler
+line_cycler = (cycler(color=["#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#F0E442"]))
+marker_cycler = (cycler(color=["#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#F0E442"]) +
+                 cycler(linestyle=["none", "none", "none", "none", "none", "none", "none"]) +
+                 cycler(marker=["4", "2", "3", "1", "+", "x", "."]))
+plt.rc("axes", prop_cycle=line_cycler)
+"""
 selected_combinations = [(5.0, 0.0, 0.0),
                     (0.0, 5.0, 0.0),
                     (0.0, 0.0, 5.0),
@@ -10,6 +16,15 @@ selected_combinations = [(5.0, 0.0, 0.0),
                     (0.0, 5.0, 5.0),
                     (5.0, 0.0, 5.0),
                     (5.0, 5.0, 5.0)]
+"""
+selected_combinations = [(75.0, 0.0, 0.0),
+                    (0.0, 75.0, 0.0),
+                    (0.0, 0.0, 75.0),
+                    (50.0, 50.0, 0.0),
+                    (0.0, 50.0, 50.0),
+                    (50.0, 0.0, 50.0),
+                    (40.0, 40.0, 40.0)]
+
 
 for c_id, c in enumerate(selected_combinations):
     for plot_id in range(8):
@@ -81,6 +96,25 @@ for c_id, c in enumerate(selected_combinations):
                 f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
             plot_label = ['Shadow constraint', 'No shadow constraint']
+        elif (plot_id == 8):
+            comparison_name = 'DoF_double_ideal'
+            states_history_datasets_list = [
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/1_stuck_vane/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/1_reduced/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/Wie2004/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/full_2D/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+            ]
+            plot_label = ['1 0-DoF vane', '1 y-reduced vane', 'Wie2004', 'full 2-DoF vanes']
+        elif (plot_id == 9):
+            comparison_name = 'DoF_single_ideal'
+            states_history_datasets_list = [
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/1_stuck_vane/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/1_reduced/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/Wie2004/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/full_2D/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+            ]
+            plot_label = ['1 0-DoF vane', '1 y-reduced vane', 'Wie2004', 'full 2-DoF vanes']
+
 
         # create plots directory
         if (not os.path.exists(f'{Project_directory}/0_FinalPlots/Detumbling/{comparison_name}/{str(c)}')):

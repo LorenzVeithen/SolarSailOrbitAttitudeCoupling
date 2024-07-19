@@ -1,0 +1,14 @@
+hello from rank 0
+hello from rank 1
+hello from rank 2
+hello from rank 3
+hello from rank 4
+hello from rank 5
+hello from rank 6
+hello from rank 7
+hello from rank 8
+hello from rank 9
+hello from rank 10
+hello from rank 11
+--- running (np.int64(10), np.int64(10), np.int64(0)), 100.0% ---
+2035.96639418602

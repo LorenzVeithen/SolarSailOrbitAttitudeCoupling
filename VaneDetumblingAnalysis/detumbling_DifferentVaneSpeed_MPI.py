@@ -12,10 +12,11 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 n_processes = size
 
-number_of_portions = 0      # > 1
+number_of_portions = 1      # > 1
 portion = int(sys.argv[1])  # 0, 1, 2, 3,... depending on number of portions
+vane_speed_rad_s_array = np.deg2rad([1440, 720, 360, 180, 90, 45, 22.5, 11.25])    # rad / s
 
-mode_combinations = list(itertools.product([0, 1, 2], [0], [1]))
+mode_combinations = list(itertools.product([0, 1, 2], [0], [1], vane_speed_rad_s_array))
 mode_combs_chunks = divide_list(mode_combinations, number_of_portions)
 current_chunk = mode_combs_chunks[portion]
 
@@ -48,14 +49,12 @@ print(f"hello from rank {rank}")
 chunks_list = divide_list(current_chunk, n_processes)
 selected_mode_combinations = chunks_list[rank]
 
-vane_speed_rad_s_array = np.deg2rad([1440, 720, 360, 180, 90, 45, 22.5, 11.25])    # rad / s
 
 for mode_comb in selected_mode_combinations:
-    for vane_speed in vane_speed_rad_s_array:
         optical_model_mode = mode_comb[0]
         sma_ecc_inc_combination_mode = mode_comb[1]
         include_shadow_b = mode_comb[2]
-
+        vane_speed = mode_comb[3]
         optical_mode_str = ["ACS3_optical_model", "double_ideal_optical_model", "single_ideal_optical_model"][
             optical_model_mode]
         # run keplerian

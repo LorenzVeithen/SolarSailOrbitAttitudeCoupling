@@ -33,20 +33,12 @@ def runPropagationAnalysis(all_combinations,
                           run_mode='vane_detumbling',
                           output_frequency_in_seconds_=1,
                           initial_orientation_str='identity_to_inertial',
-                          vane_speed_rad_s=2*np.pi):
+                          vane_speed_rad_s=2*np.pi,
+                          dof_mode='full_2D'):
 
     # import different models depending on the mode considered
-    if ('vane_detumbling' in run_mode):
-        import VaneDetumblingAnalysis.vaneDetumbling_ACS3Model as sail_model
-        acs_mode = 'vanes'
-        keplerian_bool = False
-        selected_wings_optical_properties = [np.array(ACS3_opt_model_coeffs_set)] * len(sail_model.wings_coordinates_list)
-    elif (run_mode == 'LTT'):
-        import LongTermTumblingAnalysis.longTermTumbling_ACS3Model as sail_model
-        acs_mode = 'None'
-        keplerian_bool = False
-        selected_vanes_optical_properties = []
-    elif ('keplerian' in run_mode):
+    max_LTT_case = False
+    if ('keplerian' in run_mode):
         if ('vane_detumbling' in run_mode):
             import VaneDetumblingAnalysis.vaneDetumbling_ACS3Model as sail_model
         elif ('LTT' in run_mode):
@@ -58,6 +50,19 @@ def runPropagationAnalysis(all_combinations,
         selected_wings_optical_properties = [np.array(double_ideal_opt_model_coeffs_set)] * len(
             sail_model.wings_coordinates_list)
         selected_vanes_optical_properties = []
+
+    elif ('vane_detumbling' in run_mode):
+        import VaneDetumblingAnalysis.vaneDetumbling_ACS3Model as sail_model
+        acs_mode = 'vanes'
+        keplerian_bool = False
+        selected_wings_optical_properties = [np.array(ACS3_opt_model_coeffs_set)] * len(sail_model.wings_coordinates_list)
+    elif ('LTT' in run_mode):
+        import LongTermTumblingAnalysis.longTermTumbling_ACS3Model as sail_model
+        acs_mode = 'None'
+        keplerian_bool = False
+        selected_vanes_optical_properties = []
+        if ('sun_pointing' in run_mode and all_combinations == [(0, 0, 0)]):
+            max_LTT_case = True
     else:
         raise Exception("Unknown run mode.")
 
@@ -95,6 +100,12 @@ def runPropagationAnalysis(all_combinations,
         analysis_dir = f'OrientationAnalysis/{initial_orientation_str}/'
     elif ('vane_speed' in run_mode):
         analysis_dir = f'VaneSpeedAnalysis/{np.rad2deg(vane_speed_rad_s)}/'
+    elif ('reduced_dof' in run_mode):
+        analysis_dir = f'ReducedDoFAnalysis/{dof_mode}/'
+    elif (max_LTT_case==False and 'sun_pointing' in run_mode):
+        if (not ('sun_pointing' in initial_orientation_str)):
+            raise Exception('Not sun pointing initial attitude for LTT Sun Pointing analysis')
+        analysis_dir = f'Sun_Pointing/'
     else:
         analysis_dir = ''
 
@@ -102,19 +113,19 @@ def runPropagationAnalysis(all_combinations,
     if (optical_model_mode_str == "ACS3_optical_model"):
         if ('vane_detumbling' in run_mode):
             selected_vanes_optical_properties = [np.array(ACS3_opt_model_coeffs_set)] * len(sail_model.vanes_coordinates_list)
-        elif (run_mode == 'LTT'):
+        elif ('LTT' in run_mode):
             selected_wings_optical_properties = [np.array(ACS3_opt_model_coeffs_set)] * len(sail_model.wings_coordinates_list)
         save_sub_dir = f'{analysis_dir}{sma_mode}_ecc_{np.round(ecc, 1)}_inc_{np.round(np.rad2deg(initial_inc))}/NoAsymetry_data_ACS3_opt_model_shadow_{bool(include_shadow_bool)}'
     elif (optical_model_mode_str == "double_ideal_optical_model"):
         if ('vane_detumbling' in run_mode):
             selected_vanes_optical_properties = [np.array(double_ideal_opt_model_coeffs_set)] * len(sail_model.vanes_coordinates_list)
-        elif (run_mode == 'LTT'):
+        elif ('LTT' in run_mode):
             selected_wings_optical_properties = [np.array(double_ideal_opt_model_coeffs_set)] * len(sail_model.wings_coordinates_list)
         save_sub_dir = f'{analysis_dir}{sma_mode}_ecc_{np.round(ecc, 1)}_inc_{np.round(np.rad2deg(initial_inc))}/NoAsymetry_data_double_ideal_opt_model_shadow_{bool(include_shadow_bool)}'
     elif (optical_model_mode_str == "single_ideal_optical_model"):
         if ('vane_detumbling' in run_mode):
             selected_vanes_optical_properties = [np.array(single_ideal_opt_model_coeffs_set)] * len(sail_model.vanes_coordinates_list)
-        elif (run_mode == 'LTT'):
+        elif ('LTT' in run_mode):
             selected_wings_optical_properties = [np.array(single_ideal_opt_model_coeffs_set)] * len(sail_model.wings_coordinates_list)
         save_sub_dir = f'{analysis_dir}{sma_mode}_ecc_{np.round(ecc, 1)}_inc_{np.round(np.rad2deg(initial_inc), 1)}/NoAsymetry_data_single_ideal_opt_model_shadow_{bool(include_shadow_bool)}'
     else:
@@ -125,7 +136,7 @@ def runPropagationAnalysis(all_combinations,
         os.makedirs(sail_model.analysis_save_data_dir + f'/{save_sub_dir}/dependent_variable_history')
     save_directory = sail_model.analysis_save_data_dir + f'/{save_sub_dir}'
     print(save_directory)
-    if (keplerian_bool == False):
+    if (keplerian_bool == False and max_LTT_case==False):
         # remove combinations which have already been done
         if (not overwrite_previous):
             new_combs = []
@@ -160,12 +171,25 @@ def runPropagationAnalysis(all_combinations,
     selected_combinations = sorted_temp_sort_array[:, 0]
 
     if (run_mode == 'vane_detumbling_vane_speed'):
+        # See paper associated for explanation on why these formulas are used
         sail_model.algorithm_constants["sigmoid_scaling_parameter"] = (np.log(1/sigmoid_start_tolerance - 1)
                                                                        * np.pi/(2*vane_speed_rad_s)) # [-] but is related to the rate of change of the vane angles
         sail_model.algorithm_constants["sigmoid_time_shift_parameter"] = vane_speed_rad_s * 2/np.pi  # [s]
         print(f'time shift: {sail_model.algorithm_constants["sigmoid_scaling_parameter"]}')
         print(f'sigmoid scaling: {sail_model.algorithm_constants["sigmoid_time_shift_parameter"]}')
 
+    if (run_mode == 'vane_detumbling_reduced_dof'):
+        #["full_2D", 'Wie2004', '1_stuck_vane']
+        if (dof_mode == 'full_2D'):
+            sail_model.vanes_rotational_dof = np.array([[True, True], [True, True], [True, True], [True, True]])
+        elif (dof_mode == '1_reduced_y'):
+            sail_model.vanes_rotational_dof = np.array([[True, False], [True, True], [True, True], [True, True]])
+        elif (dof_mode == 'Wie2004'):
+            sail_model.vanes_rotational_dof = np.array([[True, False], [False, True], [True, False], [False, True]])
+        elif (dof_mode == '1_stuck_vane'):
+            sail_model.vanes_rotational_dof = np.array([[False, False], [True, True], [True, True], [True, True]])
+        elif (dof_mode == '1_reduced_x'):
+            sail_model.vanes_rotational_dof = np.array([[False, True], [True, True], [True, True], [True, True]])
 
     for counter, combination in enumerate(selected_combinations):
         print(f"--- running {combination}, {100 * ((counter+1)/len(selected_combinations))}% ---")
@@ -218,7 +242,7 @@ def runPropagationAnalysis(all_combinations,
 
         rotations_per_hour = np.round(initial_rotational_velocity * 3600 / (2 * np.pi), 1)
         tentative_file = save_directory + f'/states_history/state_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}.dat'
-        if (os.path.isfile(tentative_file) and overwrite_previous==False and keplerian_bool==False):
+        if (os.path.isfile(tentative_file) and overwrite_previous==False and keplerian_bool==False and max_LTT_case==False):
             # if the file exists, skip this propagation
             continue
 
@@ -227,7 +251,8 @@ def runPropagationAnalysis(all_combinations,
         if (acs_mode == 'vanes'
                 or run_mode == 'keplerian_vane_detumbling'
                 or run_mode == 'keplerian_vane_detumbling_orientation'
-                or run_mode == 'keplerian_vane_detumbling_vane_speed'):
+                or run_mode == 'keplerian_vane_detumbling_vane_speed'
+                or run_mode == 'keplerian_vane_detumbling_reduced_dof'):
             acs_object.set_vane_characteristics(sail_model.vanes_coordinates_list,
                                                 sail_model.vanes_origin_list,
                                                 sail_model.vanes_rotation_matrices_list,
@@ -276,7 +301,13 @@ def runPropagationAnalysis(all_combinations,
         dependent_variables = sailProp.define_dependent_variables(acs_object, keplerian_bool=keplerian_bool)
         bodies, vehicle_target_settings = sailProp.define_simulation_bodies()
         sail.setBodies(bodies)
-        termination_settings, integrator_settings = sailProp.define_numerical_environment(integrator_coefficient_set=propagation_setup.integrator.rkf_56,
+        if (keplerian_bool):
+            termination_settings, integrator_settings = sailProp.define_numerical_environment(integrator_coefficient_set=propagation_setup.integrator.rkf_56,
+                                                                                                control_settings=propagation_setup.integrator.step_size_control_elementwise_scalar_tolerance(1.0E-12, 1.0E-12),
+                                                                                                validation_settings=propagation_setup.integrator.step_size_validation(
+                                                                                                  1E-5, 1))
+        else:
+            termination_settings, integrator_settings = sailProp.define_numerical_environment(integrator_coefficient_set=propagation_setup.integrator.rkf_56,
                                                                                           control_settings=propagation_setup.integrator.step_size_control_elementwise_scalar_tolerance(1.0E-12, 1.0E-12),)
         acceleration_models, torque_models = sailProp.define_dynamical_environment(bodies, acs_object, vehicle_target_settings,
                                                                                    keplerian_bool=keplerian_bool)
@@ -294,6 +325,11 @@ def runPropagationAnalysis(all_combinations,
                      save_directory + f'/keplerian_orbit_state_history.dat')
             save2txt(dependent_variable_history,
                      save_directory + f'/keplerian_orbit_dependent_variable_history.dat')
+        elif (max_LTT_case):
+            save2txt(state_history,
+                     save_directory + f'/sun_pointing_state_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}.dat')
+            save2txt(dependent_variable_history,
+                     save_directory + f'/sun_pointing_dependent_variable_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}.dat')
         else:
             save2txt(state_history, save_directory + f'/states_history/state_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}.dat')
             save2txt(dependent_variable_history, save_directory + f'/dependent_variable_history/dependent_variable_history_omega_x_{rotations_per_hour[0]}_omega_y_{rotations_per_hour[1]}_omega_z_{rotations_per_hour[2]}.dat')

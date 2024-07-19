@@ -16,13 +16,13 @@ quiver_widths = 1
 
 
 data_dir = Project_directory + '/0_GeneratedData/LTT_Data'
-current_data_set = f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False'
-target_combination = 'omega_x_30.0_omega_y_30.0_omega_z_0.0.dat'
+current_data_set = f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False'
+target_combination = 'omega_x_10.0_omega_y_0.0_omega_z_0.0.dat'
 
 #state_history_array = np.genfromtxt(data_dir + f'{current_data_set}/states_history/state_history_{target_combination}')
 #dependent_variable_history_array = np.genfromtxt(data_dir + f'{current_data_set}/dependent_variable_history/dependent_variable_history_{target_combination}')
-state_history_array = np.genfromtxt('/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/PropagationData/state_history_omega_x_0.0_omega_y_0.0_omega_z_0.0_1_year.dat')
-dependent_variable_history_array = np.genfromtxt('/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/PropagationData/dependent_variable_history_omega_x_0.0_omega_y_0.0_omega_z_0.0_1_year.dat')
+state_history_array = np.genfromtxt('/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/PropagationData/state_history_omega_x_10.0_omega_y_0.0_omega_z_0.0_SRP_acc_ACS3.dat')
+dependent_variable_history_array = np.genfromtxt('/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/PropagationData/dependent_variable_history_omega_x_10.0_omega_y_0.0_omega_z_0.0_SRP_acc_ACS3.dat')
 
 t_days = (state_history_array[:, 0] - state_history_array[0, 0]) / (3600 * 24)
 
@@ -53,7 +53,7 @@ optimal_torques= dependent_variable_history_array[:, 29:32]
 vane_torques = dependent_variable_history_array[:, 32:35]
 
 plt.figure()
-plt.plot(t_days, dependent_variable_history_array[:, 1])
+plt.plot(t_days, dependent_variable_history_array[:, 1]/1000)
 plt.xlabel("time")
 plt.ylabel("semi-major axis")
 
@@ -108,4 +108,10 @@ current_sail_srp_acceleration = ax_orbit.quiver(x_J2000[0], y_J2000[0], z_J2000[
                                                 length=quiver_length, label="SRP acceleration")
 set_axes_equal(ax_orbit)
 
+# SRP acceleration
+SRP_acceleration = np.sqrt(spacecraft_srp_acceleration_vector[:, 0]**2 + spacecraft_srp_acceleration_vector[:, 1]**2 + spacecraft_srp_acceleration_vector[:, 2]**2)
+plt.figure()
+plt.plot(t_days, SRP_acceleration, marker='+')
+plt.xlabel(r'$t$ [days]')
+plt.ylabel(r'$a$ [m/s/s]')
 plt.show()
