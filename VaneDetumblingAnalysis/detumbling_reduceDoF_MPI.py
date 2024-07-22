@@ -15,7 +15,7 @@ n_processes = size
 number_of_portions = 1      # > 1
 portion = int(sys.argv[1])  # 0, 1, 2, 3,... depending on number of portions
 
-reduced_dof_list = ["1_reduced_x"]     # full_2D
+reduced_dof_list = ["full_1_dof_x"]     # full_2D
 mode_combinations = list(itertools.product([0, 1, 2], [0], [0], reduced_dof_list))
 mode_combs_chunks = divide_list(mode_combinations, number_of_portions)
 current_chunk = mode_combs_chunks[portion]

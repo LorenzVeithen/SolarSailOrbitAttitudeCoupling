@@ -25,17 +25,29 @@ all_single_axis_combinations = (list(itertools.product(omega_list_single, [0], [
                                 + list(itertools.product([0], [0], omega_list_single)))
 
 # double axis
-omega_list_double = [-100, -85, -70, -55, -40, -30, -20, -10, 100, 85, 70, 55, 40, 30, 20, 10]
+omega_list_double = [100, 85, 70, 55, 40, 30, 20, 10]   # -100, -85, -70, -55, -40, -30, -20, -10,
 all_double_axis_combinations = []
 for omega in omega_list_double:
     all_double_axis_combinations.append((omega, omega, 0))
     all_double_axis_combinations.append((0, omega, omega))
     all_double_axis_combinations.append((omega, 0, omega))
+    all_double_axis_combinations.append((omega, -omega, 0))
+    all_double_axis_combinations.append((0, omega, -omega))
+    all_double_axis_combinations.append((omega, 0, -omega))
+    all_double_axis_combinations.append((-omega, omega, 0))
+    all_double_axis_combinations.append((0, -omega, omega))
+    all_double_axis_combinations.append((-omega, 0, omega))
+    all_double_axis_combinations.append((-omega, -omega, 0))
+    all_double_axis_combinations.append((0, -omega, -omega))
+    all_double_axis_combinations.append((-omega, 0, -omega))
 
 # triple axis
-omega_list_triple = [-85, -70, -55, -40, -30, -20, -10, 85, 70, 55, 40, 30, 20, 10]
+omega_list_triple = [-85, -70, -55, -40, -30, -20, -10, 0, 85, 70, 55, 40, 30, 20, 10]
 
 all_triple_axis_combinations = list(itertools.product(omega_list_triple, omega_list_triple, omega_list_triple))
+
+# Filter out combinations with exactly two zeros
+all_triple_axis_combinations = [comb for comb in all_triple_axis_combinations if not (comb.count(0) == 2)]
 
 all_combinations = all_single_axis_combinations + all_double_axis_combinations + all_triple_axis_combinations
 print(len(all_combinations))
@@ -50,7 +62,7 @@ if (rank==0):
                            overwrite_previous=False,
                            include_shadow_bool=bool(include_shadow_b),
                            run_mode='keplerian_vane_detumbling',
-                           output_frequency_in_seconds_=10,
+                           output_frequency_in_seconds_=500,
                            initial_orientation_str='sun_pointing')
 
 runPropagationAnalysis(all_combinations,
@@ -61,5 +73,5 @@ runPropagationAnalysis(all_combinations,
                           overwrite_previous=False,
                           include_shadow_bool=bool(include_shadow_b),
                           run_mode='vane_detumbling',
-                          output_frequency_in_seconds_=10,
+                          output_frequency_in_seconds_=500,
                           initial_orientation_str='sun_pointing')

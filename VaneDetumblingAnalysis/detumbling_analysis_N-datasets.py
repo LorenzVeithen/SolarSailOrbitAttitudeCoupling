@@ -4,11 +4,8 @@ from generalConstants import Project_directory
 import os
 from cycler import cycler
 line_cycler = (cycler(color=["#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#F0E442"]))
-marker_cycler = (cycler(color=["#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#F0E442"]) +
-                 cycler(linestyle=["none", "none", "none", "none", "none", "none", "none"]) +
-                 cycler(marker=["4", "2", "3", "1", "+", "x", "."]))
-plt.rc("axes", prop_cycle=line_cycler)
-"""
+color_list = ["#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#F0E442"]
+
 selected_combinations = [(5.0, 0.0, 0.0),
                     (0.0, 5.0, 0.0),
                     (0.0, 0.0, 5.0),
@@ -16,6 +13,7 @@ selected_combinations = [(5.0, 0.0, 0.0),
                     (0.0, 5.0, 5.0),
                     (5.0, 0.0, 5.0),
                     (5.0, 5.0, 5.0)]
+
 """
 selected_combinations = [(75.0, 0.0, 0.0),
                     (0.0, 75.0, 0.0),
@@ -24,12 +22,11 @@ selected_combinations = [(75.0, 0.0, 0.0),
                     (0.0, 50.0, 50.0),
                     (50.0, 0.0, 50.0),
                     (40.0, 40.0, 40.0)]
-
+"""
 
 for c_id, c in enumerate(selected_combinations):
-    for plot_id in range(8):
+    for plot_id in range(8, 11):
         # Focus on
-        print(c_id, plot_id)
         if (plot_id == 0):
             comparison_name = "optical_model"
             states_history_datasets_list = [
@@ -37,15 +34,17 @@ for c_id, c in enumerate(selected_combinations):
                 f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
                 f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
-            plot_label = ['ACS3 O-SRP', 'DI-SRP', 'SI-SRP']
+            plot_label = ['O-SRP', 'DI-SRP', 'SI-SRP']
+            num_legend_columns = 1
         elif (plot_id == 1):
             comparison_name = "inclination_LEO"
             states_history_datasets_list = [
-                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
-                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_45.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
-                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_45.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_0.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
             plot_label = ['i=98.0°', 'i=45.0°', 'i=0.0°']
+            num_legend_columns = 1
         elif (plot_id == 2):
             comparison_name = "inclination_MEO"
             states_history_datasets_list = [
@@ -54,6 +53,7 @@ for c_id, c in enumerate(selected_combinations):
                 f"0_GeneratedData/DetumblingAnalysis/MEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
             plot_label = ['i=98.0°', 'i=45.0°', 'i=0.0°']
+            num_legend_columns = 1
         elif (plot_id == 3):
             comparison_name = "inclination_GEO"
             states_history_datasets_list = [
@@ -62,14 +62,16 @@ for c_id, c in enumerate(selected_combinations):
                 f"0_GeneratedData/DetumblingAnalysis/GEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
             plot_label = ['i=98.0°', 'i=45.0°', 'i=0.0°']
+            num_legend_columns = 1
         elif (plot_id == 4):
             comparison_name = "orbital_regime"
             states_history_datasets_list = [
-                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
-                f"0_GeneratedData/DetumblingAnalysis/MEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
-                f"0_GeneratedData/DetumblingAnalysis/GEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_0.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/MEO_ecc_0.0_inc_0.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/GEO_ecc_0.0_inc_0.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
             plot_label = ['LEO', 'MEO', 'GEO']
+            num_legend_columns = 1
         elif (plot_id == 5):
             comparison_name = "sma"
             states_history_datasets_list = [
@@ -78,17 +80,19 @@ for c_id, c in enumerate(selected_combinations):
                 f"0_GeneratedData/DetumblingAnalysis/GEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
             plot_label = ['LEO', 'MEO', 'GEO']
+            num_legend_columns = 1
         elif (plot_id == 6):
             comparison_name = "orientation"
             states_history_datasets_list = [
-                f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/sun_pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
-                f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/edge-on-x/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
-                f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/edge-on-y/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
-                f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/identity_to_inertial/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
-                f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/alpha_45_beta_90/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
-                f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/alpha_45_beta_0/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/sun_pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/edge-on-x/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/edge-on-y/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                #f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/identity_to_inertial/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/alpha_45_beta_90/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/OrientationAnalysis/alpha_45_beta_0/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
-            plot_label = ['sun-pointing', 'edge-on-x', 'edge-on-y', 'identity_to_inertial', r'$\alpha_{s} = 45$°, $\beta_{s} = 90$°', r'$\alpha_{s} = 45$°, $\beta_{s} = 0$°']
+            plot_label = ['sun-pointing', 'edge-on-x', 'edge-on-y', r'$\alpha_{s} = 45$°, $\beta_{s} = 90$°', r'$\alpha_{s} = 45$°, $\beta_{s} = 0$°']  # identity_to_inertial
+            num_legend_columns = 1
         elif (plot_id == 7):
             comparison_name = 'vane_shadow'
             states_history_datasets_list = [
@@ -96,26 +100,65 @@ for c_id, c in enumerate(selected_combinations):
                 f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
             plot_label = ['Shadow constraint', 'No shadow constraint']
+            num_legend_columns = 1
         elif (plot_id == 8):
             comparison_name = 'DoF_double_ideal'
             states_history_datasets_list = [
-                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/1_stuck_vane/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
-                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/1_reduced/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
-                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/Wie2004/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
-                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/full_2D/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/Wie2004/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/1_stuck_vane/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/1_reduced_x/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/1_reduced_y/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/full_2D/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
-            plot_label = ['1 0-DoF vane', '1 y-reduced vane', 'Wie2004', 'full 2-DoF vanes']
+            plot_label = ['Wie2004 - A', 'One 0-DoF vane - B', 'One Y-DoF vane - C', 'One X-DoF vane - D', 'Full 2-DoFs vanes']
+            num_legend_columns = 1
         elif (plot_id == 9):
             comparison_name = 'DoF_single_ideal'
             states_history_datasets_list = [
-                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/1_stuck_vane/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
-                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/1_reduced/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
                 f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/Wie2004/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/1_stuck_vane/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/1_reduced_x/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/1_reduced_y/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
                 f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/full_2D/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
-            plot_label = ['1 0-DoF vane', '1 y-reduced vane', 'Wie2004', 'full 2-DoF vanes']
+            plot_label = ['Wie2004 - A', 'One 0-DoF vane - B', 'One Y-DoF vane - C', 'One X-DoF vane - D', 'Full 2-DoFs vanes']
+            num_legend_columns = 1
+        elif (plot_id == 10):
+            comparison_name = 'DoF_single_ideal_bis'
+            states_history_datasets_list = [
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/Wie2004/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/full_1_dof_x/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/full_2D/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+            ]
+            plot_label = ['Wie2004', 'Full X-DoF', 'Full 2-DoFs vanes']
+            num_legend_columns = 1
+        elif (plot_id == 11):
+            comparison_name = 'VaneSpeed'
+            states_history_datasets_list = [
+                f"0_GeneratedData/DetumblingAnalysis/VaneSpeedAnalysis/11.25/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/VaneSpeedAnalysis/22.5/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/VaneSpeedAnalysis/45.0/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/VaneSpeedAnalysis/90.0/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/VaneSpeedAnalysis/180.0/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/VaneSpeedAnalysis/360.0/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/VaneSpeedAnalysis/720.0/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/VaneSpeedAnalysis/1440.0/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+            ]
+            plot_label = [r'$\dot{\xi}_{max}=11.25°/s$', r'$\dot{\xi}_{max}=22.5°/s$', r'$\dot{\xi}_{max}=45°/s$', r'$\dot{\xi}_{max}=90°/s$', r'$\dot{\xi}_{max}=180°/s$',
+                          r'$\dot{\xi}_{max}=360°/s$', r'$\dot{\xi}_{max}=720°/s$', r'$\dot{\xi}_{max}=1440°/s$']
+            num_legend_columns = 2
+        elif (plot_id == 12):
+            comparison_name = "ACS3_shadow"
+            states_history_datasets_list = [
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+            ]
+            plot_label = ['Without self-shadowing constraint', 'With self-shadowing constraint']
+            num_legend_columns = 1
 
-
+        if (comparison_name == 'orbital_regime'):
+            print('------')
+            print(c)
         # create plots directory
         if (not os.path.exists(f'{Project_directory}/0_FinalPlots/Detumbling/{comparison_name}/{str(c)}')):
             os.makedirs(f'{Project_directory}/0_FinalPlots/Detumbling/{comparison_name}/{str(c)}')
@@ -175,6 +218,14 @@ for c_id, c in enumerate(selected_combinations):
             current_vanes_y_rotations = np.rad2deg(current_dependent_variable_history_array[:,
                                            25:29])
 
+            # Solar irradiance
+            received_irradiance_shadow_function = current_dependent_variable_history_array[:, 7]
+            received_irradiance_shadow_function[received_irradiance_shadow_function < 1] = 0    # remove any part where it is not
+            difference_irradiance = np.diff(received_irradiance_shadow_function)
+            t_start_eclipse = current_time_array[np.where(np.diff(received_irradiance_shadow_function) == -1)[0]]
+            t_end_eclipse = current_time_array[np.where(np.diff(received_irradiance_shadow_function) == 1)[0]]
+            eclipse_fraction = np.sum(t_end_eclipse-t_start_eclipse)/(current_time_array[-1]-current_time_array[0])
+            print(eclipse_fraction)
             # get detumbling time
             list_indices_zero_angles = np.where(np.sum(current_dependent_variable_history_array[:, 21:29], axis=1) == 0)[0]
             if (len(list_indices_zero_angles) != 0):
@@ -195,38 +246,41 @@ for c_id, c in enumerate(selected_combinations):
         # Compare the rotational velocity change
         for i, (time_array, om_array) in enumerate(zip(time_arrays_list, omega_deg_s_arrays_list)):
             plt.figure(plot_id*1000 + c_id*100 + 1)
-            plt.plot(time_array, om_array[:, 0], label=f'{plot_label[i]}')
+            plt.plot(time_array, om_array[:, 0], label=f'{plot_label[i]}', color=color_list[i])
             plt.figure(plot_id*1000 + c_id*100 + 2)
-            plt.plot(time_array, om_array[:, 1], label=f'{plot_label[i]}')
+            plt.plot(time_array, om_array[:, 1], label=f'{plot_label[i]}', color=color_list[i])
             plt.figure(plot_id*1000 + c_id*100 + 3)
-            plt.plot(time_array, om_array[:, 2], label=f'{plot_label[i]}')
+            plt.plot(time_array, om_array[:, 2], label=f'{plot_label[i]}', color=color_list[i])
 
         plt.figure(plot_id*1000 + c_id*100 + 1)
-        plt.title(f'{str(c)}: {comparison_name}')
+
+        #plt.title(f'{str(c)}: {comparison_name}')
         plt.grid(True)
-        plt.xlabel(r"Time, $t$, [days]", fontsize=14)
-        plt.ylabel(r"Rotational velocity X-component, $\omega_{x}$, [deg/s]", fontsize=14)
-        plt.legend()
+        plt.xlabel(r"$t$ [days]", fontsize=14)
+        plt.ylabel(r"$\omega_{x}$ [deg/s]", fontsize=14)
+        plt.legend(ncol=num_legend_columns)
         plt.xlim(custom_xlim)
         plt.savefig(f'{save_plots_dir}/omega_x.png', bbox_inches='tight')
         plt.close()
 
         plt.figure(plot_id*1000 + c_id*100 + 2)
-        plt.title(f'{str(c)}: {comparison_name}')
+
+        #plt.title(f'{str(c)}: {comparison_name}')
         plt.grid(True)
-        plt.xlabel(r"Time, $t$, [days]", fontsize=14)
-        plt.ylabel(r"Rotational velocity Y-component, $\omega_{y}$, [deg/s]", fontsize=14)
-        plt.legend()
+        plt.xlabel(r"$t$ [days]", fontsize=14)
+        plt.ylabel(r"$\omega_{y}$ [deg/s]", fontsize=14)
+        plt.legend(ncol=num_legend_columns)
         plt.xlim(custom_xlim)
         plt.savefig(f'{save_plots_dir}/omega_y.png', bbox_inches='tight')
         plt.close()
 
         plt.figure(plot_id*1000 + c_id*100 + 3)
-        plt.title(f'{str(c)}: {comparison_name}')
+
+        #plt.title(f'{str(c)}: {comparison_name}')
         plt.grid(True)
-        plt.xlabel(r"Time, $t$, [days]", fontsize=14)
-        plt.ylabel(r"Rotational velocity Z-component, $\omega_{z}$, [deg/s]", fontsize=14)
-        plt.legend()
+        plt.xlabel(r"$t$ [days]", fontsize=14)
+        plt.ylabel(r"$\omega_{z}$ [deg/s]", fontsize=14)
+        plt.legend(ncol=num_legend_columns)
         plt.xlim(custom_xlim)
         plt.savefig(f'{save_plots_dir}/omega_z.png', bbox_inches='tight')
         plt.close()
@@ -235,29 +289,39 @@ for c_id, c in enumerate(selected_combinations):
         for vane_id in range(4):
             for i, (time_array, vane_x_rotation_array, vane_y_rotation_array) in enumerate(zip(time_arrays_list, vanes_x_rotation_list, vanes_y_rotation_list)):
                 plt.figure(plot_id*1000 + c_id*100 + 4 + vane_id)
-                plt.plot(time_array, vane_x_rotation_array[:, vane_id], label=f'{plot_label[i]}')
+                plt.plot(time_array, vane_x_rotation_array[:, vane_id], label=f'{plot_label[i]}', color=color_list[i])
                 plt.figure(plot_id*1000 + c_id*100 + 5 + vane_id)
-                plt.plot(time_array, vane_y_rotation_array[:, vane_id], label=f'{plot_label[i]}')
+                plt.plot(time_array, vane_y_rotation_array[:, vane_id], label=f'{plot_label[i]}', color=color_list[i])
 
             plt.figure(plot_id*1000 + c_id*100 + 4 + vane_id)
-            plt.title(f'{str(c)}: {comparison_name}')
+            plt.rc("axes", prop_cycle=line_cycler)
+
+            #plt.title(f'{str(c)}: {comparison_name}')
             plt.grid(True)
-            plt.xlabel(r"Time, $t$, [days]", fontsize=14)
-            plt.ylabel(fr"Vane {vane_id} x-rotation history, $\theta_1$, [deg]", fontsize=14)
-            plt.legend()
+            plt.xlabel(r"$t$ [days]", fontsize=14)
+            plt.ylabel(fr"Vane {vane_id} $\theta_v$ [deg]", fontsize=14)
+            plt.legend(ncol=num_legend_columns)
             plt.xlim(custom_xlim)
             plt.savefig(f'{save_plots_dir}/vane_{vane_id}_x_hist.png', bbox_inches='tight')
             plt.close()
 
             plt.figure(plot_id*1000 + c_id*100 + 5 + vane_id)
-            plt.title(f'{str(c)}: {comparison_name}')
+            plt.rc("axes", prop_cycle=line_cycler)
+
+            #plt.title(f'{str(c)}: {comparison_name}')
             plt.grid(True)
-            plt.xlabel(r"Time, $t$, [days]", fontsize=14)
-            plt.ylabel(fr"Vane {vane_id} y-rotation history, $\theta_2$, [deg]", fontsize=14)
-            plt.legend()
+            plt.xlabel(r"$t$ [days]", fontsize=14)
+            plt.ylabel(fr"Vane {vane_id} $\phi_v$ [deg]", fontsize=14)
+            plt.legend(ncol=num_legend_columns)
             plt.xlim(custom_xlim)
             plt.savefig(f'{save_plots_dir}/vane_{vane_id}_y_hist.png', bbox_inches='tight')
             plt.close()
+
+            # Print table if it is the orientation analysis
+        if (comparison_name == 'orientation'):
+            print(f"{selected_combinations[c_id][0]} & {selected_combinations[c_id][1]} & {selected_combinations[c_id][2]} " +
+                  f"& {round(detumbling_time_list[0], 2)} & {round(detumbling_time_list[1], 2)} & {round(detumbling_time_list[2], 2)} & "
+                  f"{round(detumbling_time_list[3], 2)} & {round(detumbling_time_list[4], 2)}")
 
 
 plt.show()

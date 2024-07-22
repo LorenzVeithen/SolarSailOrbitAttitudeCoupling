@@ -190,6 +190,10 @@ def runPropagationAnalysis(all_combinations,
             sail_model.vanes_rotational_dof = np.array([[False, False], [True, True], [True, True], [True, True]])
         elif (dof_mode == '1_reduced_x'):
             sail_model.vanes_rotational_dof = np.array([[False, True], [True, True], [True, True], [True, True]])
+        elif (dof_mode == 'full_1_dof_x'):
+            sail_model.vanes_rotational_dof = np.array([[True, False], [True, False], [True, False], [True, False]])
+        elif (dof_mode == 'full_1_dof_y'):
+            sail_model.vanes_rotational_dof = np.array([[False, True], [False, True], [False, True], [False, True]])
 
     for counter, combination in enumerate(selected_combinations):
         print(f"--- running {combination}, {100 * ((counter+1)/len(selected_combinations))}% ---")

@@ -20,8 +20,8 @@ plt.rcParams['animation.ffmpeg_path'] ='/opt/homebrew/bin/ffmpeg'
 #plt.subplots_adjust(left=0.09, bottom=0.89, right=0.1, top=0.9, wspace=0.2, hspace=0.2 )    # Not really sure if this is doing anything
 
 generate_mp4 = False
-PLOTS = True
-ANIMATION = False
+PLOTS = False
+ANIMATION = True
 
 fps = 40
 time = 25
@@ -33,9 +33,9 @@ thr_previous_spacecraft_positions_fade_down = 1
 thr_sun_rays = 1 * 24 * 3600
 
 # Load data
-state_history_array = np.loadtxt("/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_-55.0_omega_y_-85.0_omega_z_-30.0.dat")
+state_history_array = np.loadtxt("/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False/states_history/state_history_omega_x_0.0_omega_y_0.0_omega_z_75.0.dat")
 dependent_variable_history_array = np.loadtxt(
-    "/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/dependent_variable_history/dependent_variable_history_omega_x_-55.0_omega_y_-85.0_omega_z_-30.0.dat")
+    "/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False/dependent_variable_history/dependent_variable_history_omega_x_0.0_omega_y_0.0_omega_z_75.0.dat")
 
 # Extract state history
 #state_history_array = state_history_array[::25]
@@ -210,6 +210,7 @@ if (ANIMATION):
     ax_torque.set_xlabel('Time [hours]')
     ax_torque.set_ylabel('Torque Magnitude [Nm]')
     ax_torque.grid()
+    ax_torque.legend()
 
     omega_x_plot = ax_rotational_velocity.plot([t_hours[0]], [omega_x[0]], label="omega_x")[0]
     omega_y_plot = ax_rotational_velocity.plot([t_hours[0]], [omega_y[0]], label="omega_y")[0]
@@ -321,6 +322,11 @@ if (ANIMATION):
             vstack_centroid_surface_normal_in_inertial_frame = np.vstack(
                 (vstack_centroid_surface_normal_in_inertial_frame, hstack_centroid_surface_normal_in_inertial_frame))
 
+            print(np.rad2deg(np.arccos(
+                np.dot(current_vane_surface_normal_in_inertial_frame, spacecraft_sun_relative_position[frame, :]) /
+                (np.linalg.norm(current_vane_surface_normal_in_inertial_frame) * np.linalg.norm(
+                    spacecraft_sun_relative_position[frame, :])))))
+
         vanes_normals_in_inertial_frame.remove()
         vanes_normals_in_inertial_frame = ax_attitude.quiver(vstack_centroid_surface_normal_in_inertial_frame[:, 0],
                                                              vstack_centroid_surface_normal_in_inertial_frame[:, 1],
@@ -342,14 +348,14 @@ if (ANIMATION):
         for wing in wings_coordinates_in_inertial_frame:
             current_wing_centroid_inertial_frame, _, current_wing_surface_normal_in_inertial_frame = compute_panel_geometrical_properties(
                 wing)
-            print(np.rad2deg(np.arccos(
-                np.dot(current_wing_surface_normal_in_inertial_frame, spacecraft_sun_relative_position[frame, :]) /
-                (np.linalg.norm(current_wing_surface_normal_in_inertial_frame) * np.linalg.norm(
-                    spacecraft_sun_relative_position[frame, :])))))
-            print(np.dot(R_BI, spacecraft_sun_relative_position[frame, :] / np.linalg.norm(
-                spacecraft_sun_relative_position[frame, :])))
-            print(np.rad2deg(sun_angles_from_sunlight_vector(np.eye(3), np.dot(R_BI, spacecraft_sun_relative_position[frame, :] / np.linalg.norm(
-                spacecraft_sun_relative_position[frame, :])))))
+            #print(np.rad2deg(np.arccos(
+            #    np.dot(current_wing_surface_normal_in_inertial_frame, spacecraft_sun_relative_position[frame, :]) /
+            #    (np.linalg.norm(current_wing_surface_normal_in_inertial_frame) * np.linalg.norm(
+            #        spacecraft_sun_relative_position[frame, :])))))
+            #print(np.dot(R_BI, spacecraft_sun_relative_position[frame, :] / np.linalg.norm(
+            #    spacecraft_sun_relative_position[frame, :])))
+            #print(np.rad2deg(sun_angles_from_sunlight_vector(np.eye(3), np.dot(R_BI, spacecraft_sun_relative_position[frame, :] / np.linalg.norm(
+            #    spacecraft_sun_relative_position[frame, :])))))
             hstack_centroid_surface_normal_in_inertial_frame = np.hstack(
                 (current_wing_centroid_inertial_frame, current_wing_surface_normal_in_inertial_frame))
             vstack_centroid_surface_normal_in_inertial_frame = np.vstack(
@@ -418,6 +424,7 @@ if (PLOTS):
     plt.plot(t_hours, spacecraft_srp_torque_vector[:, 0], label='Tx')
     plt.plot(t_hours, spacecraft_srp_torque_vector[:, 1], label='Ty')
     plt.plot(t_hours, spacecraft_srp_torque_vector[:, 2], label='Tz')
+    plt.plot(t_hours, spacecraft_total_torque_norm, label='Total')
     plt.legend()
 
     plt.figure()
@@ -446,6 +453,13 @@ if (PLOTS):
     plt.plot(t_hours, spacecraft_srp_acceleration_vector[:, 1], label="ay")
     plt.plot(t_hours, spacecraft_srp_acceleration_vector[:, 2], label="az")
     plt.legend()
+
+    fig, ax = plt.subplots()
+    ax.plot(t_hours, spacecraft_srp_torque_norm, label='SRP Torque')
+    ax.plot(t_hours, spacecraft_total_torque_norm, label='Total Torque')
+    ax.set_xlim((0, 180))
+    ax.set_yscale('log')
+    ax.legend()
     plt.show()
 
 
