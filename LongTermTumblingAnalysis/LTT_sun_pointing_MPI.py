@@ -37,7 +37,7 @@ if (rank==0):
                            overwrite_previous=False,
                            include_shadow_bool=False,
                            run_mode='keplerian_LTT_sun_pointing',
-                           output_frequency_in_seconds_=1,
+                           output_frequency_in_seconds_=100,
                            initial_orientation_str='sun_pointing')
 
 runPropagationAnalysis(all_combinations,

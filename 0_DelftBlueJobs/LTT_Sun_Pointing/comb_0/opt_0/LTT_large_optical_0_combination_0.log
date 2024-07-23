@@ -1,71 +1,25 @@
 hello from rank 4
---- running (np.int64(-20), np.int64(-40), np.int64(0)), 33.33333333333333% ---
-5889.834087133408
---- running (np.int64(-20), np.int64(-30), np.int64(0)), 66.66666666666666% ---
-4768.928015470505
---- running (np.int64(100), np.int64(85), np.int64(0)), 100.0% ---
-17087.073222398758
+/scratch/lveithen/SourceCode/0_GeneratedData/LTT_Data/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False
+hello from rank 5
+/scratch/lveithen/SourceCode/0_GeneratedData/LTT_Data/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False
 hello from rank 9
---- running (np.int64(70), np.int64(55), np.int64(0)), 33.33333333333333% ---
-11267.951758146286
---- running (np.int64(70), np.int64(40), np.int64(0)), 66.66666666666666% ---
-10248.099519252777
---- running (np.int64(70), np.int64(30), np.int64(0)), 100.0% ---
-9600.820890426636
-hello from rank 11
---- running (np.int64(55), np.int64(30), np.int64(0)), 25.0% ---
-8011.923881292343
---- running (np.int64(55), np.int64(20), np.int64(0)), 50.0% ---
-7467.669453620911
---- running (np.int64(30), np.int64(-85), np.int64(0)), 75.0% ---
-11281.724710226059
---- running (np.int64(10), np.int64(70), np.int64(0)), 100.0% ---
-8857.90754032135
-hello from rank 2
---- running (np.int64(-70), np.int64(85), np.int64(0)), 33.33333333333333% ---
-14336.239144325256
---- running (np.int64(-70), np.int64(70), np.int64(0)), 66.66666666666666% ---
-12849.09376692772
---- running (np.int64(-70), np.int64(55), np.int64(0)), 100.0% ---
-11073.336086034775
+/scratch/lveithen/SourceCode/0_GeneratedData/LTT_Data/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False
+hello from rank 6
+/scratch/lveithen/SourceCode/0_GeneratedData/LTT_Data/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False
 hello from rank 7
---- running (np.int64(85), np.int64(70), np.int64(0)), 33.33333333333333% ---
-14007.303836584091
---- running (np.int64(85), np.int64(55), np.int64(0)), 66.66666666666666% ---
-12789.582894086838
---- running (np.int64(85), np.int64(40), np.int64(0)), 100.0% ---
-11781.038481473923
-hello from rank 10
---- running (np.int64(70), np.int64(20), np.int64(0)), 25.0% ---
-9428.243367671967
---- running (np.int64(55), np.int64(70), np.int64(0)), 50.0% ---
-11382.193495750427
---- running (np.int64(55), np.int64(55), np.int64(0)), 75.0% ---
-9742.113013505936
---- running (np.int64(55), np.int64(40), np.int64(0)), 100.0% ---
-8547.23153090477
+/scratch/lveithen/SourceCode/0_GeneratedData/LTT_Data/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False
 hello from rank 3
---- running (np.int64(-40), np.int64(-100), np.int64(0)), 25.0% ---
-14015.740907907486
---- running (np.int64(-40), np.int64(-85), np.int64(0)), 50.0% ---
-12281.204741954803
---- running (np.int64(-40), np.int64(-70), np.int64(0)), 75.0% ---
-9997.04866528511
---- running (np.int64(-20), np.int64(-55), np.int64(0)), 100.0% ---
-7232.773760318756
-hello from rank 0
---- running (np.int64(-100), np.int64(85), np.int64(0)), 33.33333333333333% ---
-17302.562995910645
---- running (np.int64(-100), np.int64(70), np.int64(0)), 66.66666666666666% ---
-15775.20516204834
---- running (np.int64(-100), np.int64(55), np.int64(0)), 100.0% ---
-14340.245029211044
+/scratch/lveithen/SourceCode/0_GeneratedData/LTT_Data/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False
+hello from rank 10
+/scratch/lveithen/SourceCode/0_GeneratedData/LTT_Data/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False
 hello from rank 8
---- running (np.int64(70), np.int64(-30), np.int64(0)), 25.0% ---
-10543.702257156372
---- running (np.int64(70), np.int64(100), np.int64(0)), 50.0% ---
-16733.30939722061
---- running (np.int64(70), np.int64(85), np.int64(0)), 75.0% ---
-13977.600462913513
---- running (np.int64(70), np.int64(70), np.int64(0)), 100.0% ---
-12286.37455868721
+/scratch/lveithen/SourceCode/0_GeneratedData/LTT_Data/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False
+hello from rank 1
+/scratch/lveithen/SourceCode/0_GeneratedData/LTT_Data/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False
+hello from rank 2
+/scratch/lveithen/SourceCode/0_GeneratedData/LTT_Data/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False
+hello from rank 0
+/scratch/lveithen/SourceCode/0_GeneratedData/LTT_Data/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False
+--- running (0, 0, 0), 100.0% ---
+(0, 0, 0): 249.391126871109
+/scratch/lveithen/SourceCode/0_GeneratedData/LTT_Data/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False

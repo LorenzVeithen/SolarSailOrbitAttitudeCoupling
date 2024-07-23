@@ -6,6 +6,7 @@ from pathlib import Path
 from plottingRoutines import absolute_evolution_plot_LTT, relative_evolution_plot_LTT
 import os
 from tudatpy.util import compare_results, result2array
+import time
 
 BIG_PLOTS = False
 Maps_2D = False
@@ -52,7 +53,7 @@ colour_bar_label = [r'$||\vec{\omega}||$ [deg/s]',
 save_fig_cb_label = ["magnitude", "x", "y", "z", "xy_magnitude"]
 
 multiplying_factors = [1./1000, 1., 180./np.pi, 180./np.pi, 180./np.pi, 180./np.pi, 1./1000, 1./1000, 1./1000, 1./1000]
-variables_list = ['sma', 'ecc', "inc", "aop", "raan", "tranom", "apo", "peri", 'r', 'v']
+variables_list = ['sma', 'ecc', "inc", "aop", "raan", "tranom", "apo", "peri"]  # 'r', 'v'
 
 def get_dataset_data(current_dataset):
     analysis_data_dir = analysis_save_data_dir + current_dataset
@@ -63,8 +64,11 @@ def get_dataset_data(current_dataset):
     p = Path(states_history_dir)
     state_history_files = [x for x in p.iterdir() if (not x.is_dir())]#[:10]
 
-    # Add sun_pointing one
-    state_history_files += [analysis_data_dir + '/sun_pointing_state_history_omega_x_0.0_omega_y_0.0_omega_z_0.0.dat']
+    if ('Sun_Pointing' in current_dataset):
+        pass
+    else:
+        # Add sun_pointing one
+        state_history_files += [analysis_data_dir + '/sun_pointing_state_history_omega_x_0.0_omega_y_0.0_omega_z_0.0.dat']
 
     # add the path with zero rotational velocity in case it was not in the original bundle
     omega_is_zero_vector_data = Path(f'{analysis_data_dir}/states_history/state_history_omega_x_0.0_omega_y_0.0_omega_z_0.0.dat')
@@ -79,14 +83,14 @@ def get_dataset_data(current_dataset):
     keplerian_state_history_array = np.loadtxt(f'{analysis_data_dir}/keplerian_orbit_state_history.dat')
 
     keplerian_state_history_dict, keplerian_dependent_variables_dict = {}, {}
-    for j, time in enumerate(keplerian_state_history_array[:, 0]):
-        keplerian_state_history_dict[time] = keplerian_state_history_array[j, 1:]
-        keplerian_dependent_variables_dict[time] = keplerian_dependent_variable_history_array[j, 1:]
+    for j, c_time in enumerate(keplerian_state_history_array[:, 0]):
+        keplerian_state_history_dict[c_time] = keplerian_state_history_array[j, 1:]
+        keplerian_dependent_variables_dict[c_time] = keplerian_dependent_variable_history_array[j, 1:]
 
 
     LTT_results_dict["keplerian" + "_time_array"] = (keplerian_state_history_array[:, 0] - keplerian_state_history_array[0, 0]) / (24 * 3600)
-    for i in range(6):
-        LTT_results_dict["keplerian" + f"_{keplerian_keys[i]}_array"] = keplerian_dependent_variable_history_array[:, i+1]
+    for counter in range(6):
+        LTT_results_dict["keplerian" + f"_{keplerian_keys[counter]}_array"] = keplerian_dependent_variable_history_array[:, counter+1]
     LTT_results_dict["keplerian" + "_apo_array"] = keplerian_dependent_variable_history_array[:, 1] * (1 + keplerian_dependent_variable_history_array[:, 2])
     LTT_results_dict["keplerian" + "_peri_array"] = keplerian_dependent_variable_history_array[:, 1] * (1 - keplerian_dependent_variable_history_array[:, 2])
     LTT_results_dict[f"keplerian" + "_initial_omega_vector_array"] = np.array([0, 0, 0])
@@ -95,8 +99,8 @@ def get_dataset_data(current_dataset):
 
     # Initialise some dictionary entries
     LTT_results_dict["all" + "_time_array"] = []
-    for i in range(6):
-        LTT_results_dict["all" + f"_{keplerian_keys[i]}_array"] = []
+    for counter in range(6):
+        LTT_results_dict["all" + f"_{keplerian_keys[counter]}_array"] = []
     LTT_results_dict["all" + "_apo_array"] = []
     LTT_results_dict["all" + "_peri_array"] = []
     LTT_results_dict["all" + "_initial_omega_vector_array"] = []
@@ -110,8 +114,8 @@ def get_dataset_data(current_dataset):
     LTT_results_dict["all" + "_a_z_array"] = []
 
     # diffs
-    for i in range(6):
-        LTT_results_dict["all" + f"_{keplerian_keys[i]}_diff_array"] = []
+    for counter in range(6):
+        LTT_results_dict["all" + f"_{keplerian_keys[counter]}_diff_array"] = []
     LTT_results_dict["all" + "_apo_diff_array"] = []
     LTT_results_dict["all" + "_peri_diff_array"] = []
     LTT_results_dict["all" + "_r_diff_array"] = []
@@ -123,15 +127,15 @@ def get_dataset_data(current_dataset):
         print(str(current_state_history_path).split('/')[-1])
 
         # get the initial rotational velocity vector of the propagation
-        l = str(current_state_history_path)[:-4].split('_')
-        omega_z_rph = float(l[-1])
-        omega_y_rph = float(l[-4])
-        omega_x_rph = float(l[-7])
+        l_str = str(current_state_history_path)[:-4].split('_')
+        omega_z_rph = float(l_str[-1])
+        omega_y_rph = float(l_str[-4])
+        omega_x_rph = float(l_str[-7])
 
         current_state_history_array = np.loadtxt(current_state_history_path)
-        current_state_history_array = current_state_history_array[::thinning_factor]
 
-        if ('sun_pointing' in str(current_state_history_path)):
+        current_state_history_array = current_state_history_array[::thinning_factor]
+        if ('sun_pointing' in str(current_state_history_path) and (not ('Sun_Pointing' in current_dataset))):
             current_dependent_variable_history_path = analysis_data_dir + '/sun_pointing_dependent_variable_history_omega_x_0.0_omega_y_0.0_omega_z_0.0.dat'
             sun_pointing_bool = True
         else:
@@ -142,16 +146,16 @@ def get_dataset_data(current_dataset):
         current_dependent_variable_history_array = current_dependent_variable_history_array[::thinning_factor]
 
         current_state_history_dict, current_dependent_variables_dict = {}, {}
-        for j, time in enumerate(current_state_history_array[:, 0]):
-            current_state_history_dict[time] = current_state_history_array[j, 1:]
-            current_dependent_variables_dict[time] = current_dependent_variable_history_array[j, 1:]
+        for j, c_time in enumerate(current_state_history_array[:, 0]):
+            current_state_history_dict[c_time] = current_state_history_array[j, 1:]
+            current_dependent_variables_dict[c_time] = current_dependent_variable_history_array[j, 1:]
 
-        # Difference between the current propagation and Kepelerian
-        diff_to_kep_states_array = result2array(
-                                    compare_results(keplerian_state_history_dict, current_state_history_dict, current_state_history_array[:, 0]))
+        # Difference between the current propagation and Keplerian
+        #diff_to_kep_states_array = result2array(
+        #                            compare_results(keplerian_state_history_dict, current_state_history_dict, current_state_history_array[:, 0]))
 
-        diff_to_kep_dep_var_array = result2array(
-            compare_results(keplerian_state_history_dict, current_state_history_dict, current_state_history_array[:, 0]))
+        #diff_to_kep_dep_var_array = result2array(
+        #    compare_results(keplerian_state_history_dict, current_state_history_dict, current_state_history_array[:, 0]))
 
 
         omega_vector_deg_per_sec = np.array([omega_x_rph, omega_y_rph, omega_z_rph])/10
@@ -184,9 +188,9 @@ def get_dataset_data(current_dataset):
         current_a_z = spacecraft_srp_acceleration_vector[:, 2]
 
         # Difference in Cartesian elements
-        current_r_diff_array = np.sqrt(diff_to_kep_states_array[:, 1]**2 + diff_to_kep_states_array[:, 2]**2 + diff_to_kep_states_array[:, 3]**2)
-        current_v_diff_array = np.sqrt(diff_to_kep_states_array[:, 4] ** 2 + diff_to_kep_states_array[:,
-                                                                   5] ** 2 + diff_to_kep_states_array[:, 6] ** 2)
+        #current_r_diff_array = np.sqrt(diff_to_kep_states_array[:, 1]**2 + diff_to_kep_states_array[:, 2]**2 + diff_to_kep_states_array[:, 3]**2)
+        #current_v_diff_array = np.sqrt(diff_to_kep_states_array[:, 4] ** 2 + diff_to_kep_states_array[:,
+        #                                                          5] ** 2 + diff_to_kep_states_array[:, 6] ** 2)
 
         # Difference in Keplerian elements
         current_kep_diff_array = current_kep_array - current_kep_array[0, :]
@@ -201,8 +205,8 @@ def get_dataset_data(current_dataset):
             else:
                 key = 'default'
             LTT_results_dict[key + "_time_array"] = current_time_array
-            for i in range(6):
-                LTT_results_dict[key + f"_{keplerian_keys[i]}_array"] = current_kep_array[:, i]
+            for counter in range(6):
+                LTT_results_dict[key + f"_{keplerian_keys[counter]}_array"] = current_kep_array[:, counter]
             LTT_results_dict[key + "_apo_array"] = current_apo_array
             LTT_results_dict[key + "_peri_array"] = current_peri_array
             LTT_results_dict[key + "_omega_x_array"] = omega_x_array_deg_s
@@ -215,12 +219,12 @@ def get_dataset_data(current_dataset):
             LTT_results_dict[key + "_a_z_array"] = current_a_z
 
             # diffs
-            for i in range(6):
-                LTT_results_dict[key + f"_{keplerian_keys[i]}_diff_array"] = current_kep_diff_array[:, i]
+            for counter in range(6):
+                LTT_results_dict[key + f"_{keplerian_keys[counter]}_diff_array"] = current_kep_diff_array[:, counter]
             LTT_results_dict[key + "_apo_diff__array"] = current_apo_diff_array
             LTT_results_dict[key + "_peri_diff_array"] = current_peri_diff_array
-            LTT_results_dict[key + "_r_diff_array"] = current_r_diff_array
-            LTT_results_dict[key + "_v_diff_array"] = current_v_diff_array
+            #LTT_results_dict[key + "_r_diff_array"] = current_r_diff_array
+            #LTT_results_dict[key + "_v_diff_array"] = current_v_diff_array
 
         else:
             LTT_results_dict["all" + "_time_array"].append(current_time_array)
@@ -243,16 +247,30 @@ def get_dataset_data(current_dataset):
                 LTT_results_dict["all" + f"_{keplerian_keys[i]}_diff_array"].append(current_kep_diff_array[:, i])
             LTT_results_dict["all" + "_apo_diff_array"].append(current_apo_diff_array)
             LTT_results_dict["all" + "_peri_diff_array"].append(current_peri_diff_array)
-            LTT_results_dict[f"all" + "_r_diff_array"].append(current_r_diff_array)
-            LTT_results_dict[f"all" + "_v_diff_array"].append(current_v_diff_array)
+            #LTT_results_dict[f"all" + "_r_diff_array"].append(current_r_diff_array)
+            #LTT_results_dict[f"all" + "_v_diff_array"].append(current_v_diff_array)
 
+    if ('Sun_Pointing' in current_dataset):
+        LTT_results_dict['sun_pointing' + "_time_array"] = LTT_results_dict['default' + "_time_array"]
+        for counter in range(6):
+            LTT_results_dict['sun_pointing' + f"_{keplerian_keys[counter]}_array"] = LTT_results_dict['default' + f"_{keplerian_keys[counter]}_array"]
+        LTT_results_dict['sun_pointing' + "_apo_array"] = LTT_results_dict['default' + "_apo_array"]
+        LTT_results_dict['sun_pointing' + "_peri_array"] = LTT_results_dict['default' + "_peri_array"]
+        LTT_results_dict['sun_pointing' + "_omega_x_array"] = LTT_results_dict['default' + "_omega_x_array"]
+        LTT_results_dict['sun_pointing' + "_omega_y_array"] = LTT_results_dict['default' + "_omega_y_array"]
+        LTT_results_dict['sun_pointing' + "_omega_z_array"] = LTT_results_dict['default' + "_omega_z_array"]
+        #LTT_results_dict['sun_pointing' + "_r_array"] = LTT_results_dict['default' + "_r_array"]
+        #LTT_results_dict['sun_pointing' + "_v_array"] = LTT_results_dict['default' + "_v_array"]
+        LTT_results_dict['sun_pointing' + "_a_x_array"] = LTT_results_dict['default' + "_a_x_array"]
+        LTT_results_dict['sun_pointing' + "_a_y_array"] = LTT_results_dict['default' + "_a_y_array"]
+        LTT_results_dict['sun_pointing' + "_a_z_array"] = LTT_results_dict['default' + "_a_z_array"]
     processed_array_dict = LTT_results_dict
     # scale variables as desired
     for i in range(len(variables_list)):
         processed_array_dict["default" + f"_{variables_list[i]}_array"] = (
                 np.array(processed_array_dict["default" + f"_{variables_list[i]}_array"]) * multiplying_factors[i])
         processed_array_dict["sun_pointing" + f"_{variables_list[i]}_array"] = (
-                np.array(processed_array_dict["default" + f"_{variables_list[i]}_array"]) * multiplying_factors[i])
+                np.array(processed_array_dict["sun_pointing" + f"_{variables_list[i]}_array"]) * multiplying_factors[i])
         processed_array_dict["keplerian" + f"_{variables_list[i]}_array"] = (
                 np.array(processed_array_dict["keplerian" + f"_{variables_list[i]}_array"]) * multiplying_factors[i])
         for j in range(len(processed_array_dict["all" + f"_{variables_list[i]}_array"])):
@@ -287,51 +305,59 @@ def get_dataset_data(current_dataset):
     all_data_array[:, 6] = processed_array_dict["all" + "_omega_y_array"]
     all_data_array[:, 7] = processed_array_dict["all" + "_omega_z_array"]
     all_data_array[:, 8] = processed_array_dict["all" + "_time_array"]
-    all_data_array[:, 9] = processed_array_dict["all" + "_r_array"]
-    all_data_array[:, 10] = processed_array_dict["all" + "_v_array"]
+    #all_data_array[:, 9] = processed_array_dict["all" + "_r_array"]
+    #all_data_array[:, 10] = processed_array_dict["all" + "_v_array"]
     all_data_array[:, 11] = processed_array_dict["all" + f"_sma_array"]
     all_data_array[:, 12] = processed_array_dict["all" + f"_ecc_array"]
     all_data_array[:, 13] = processed_array_dict["all" + f"_inc_array"]
     all_data_array[:, 14] = processed_array_dict["all" + f"_aop_array"]
     all_data_array[:, 15] = processed_array_dict["all" + f"_raan_array"]
     all_data_array[:, 16] = processed_array_dict["all" + f"_tranom_diff_array"]
-    all_data_array[:, 17] = processed_array_dict["all" + "_peri_array"]
-    all_data_array[:, 18] = processed_array_dict["all" + "_apo_array"]
+    all_data_array[:, 17] = processed_array_dict["all" + "_apo_array"]
+    all_data_array[:, 18] = processed_array_dict["all" + "_peri_array"]
 
-    all_data_array[:, 19] = processed_array_dict["all" + "_r_diff_array"]
-    all_data_array[:, 20] = processed_array_dict["all" + "_v_diff_array"]
+    #all_data_array[:, 19] = processed_array_dict["all" + "_r_diff_array"]
+    #all_data_array[:, 20] = processed_array_dict["all" + "_v_diff_array"]
     all_data_array[:, 21] = processed_array_dict["all" + f"_sma_diff_array"]
     all_data_array[:, 22] = processed_array_dict["all" + f"_ecc_diff_array"]
     all_data_array[:, 23] = processed_array_dict["all" + f"_inc_diff_array"]
     all_data_array[:, 24] = processed_array_dict["all" + f"_aop_diff_array"]
     all_data_array[:, 25] = processed_array_dict["all" + f"_raan_diff_array"]
     all_data_array[:, 26] = processed_array_dict["all" + f"_tranom_diff_array"]
-    all_data_array[:, 27] = processed_array_dict["all" + "_peri_diff_array"]
-    all_data_array[:, 28] = processed_array_dict["all" + "_apo_diff_array"]
+    all_data_array[:, 27] = processed_array_dict["all" + "_apo_diff_array"]
+    all_data_array[:, 28] = processed_array_dict["all" + "_peri_diff_array"]
 
     all_data_array[:, 29] = processed_array_dict["all" + "_a_x_array"]
     all_data_array[:, 30] = processed_array_dict["all" + "_a_y_array"]
     all_data_array[:, 31] = processed_array_dict["all" + "_a_z_array"]
+
+
     return processed_array_dict, all_data_array
 
 color_list = ["#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#F0E442"]
 my_cmap = plt.get_cmap('plasma')
 cmap = plt.colormaps["plasma"]
-plot_mode = 3
+plot_mode = 1
 percentage_bool = False
-if (plot_mode == 1):
+if (plot_mode == 1): # Just a single dataset
+    datasets_list = [f'/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False',
+                     f'/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
+                     f'/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False']
+    labels_optical_list = ['O-SRP', 'DI-SRP', 'SI-SRP']
+    Comparison_label = 'optical_sun_pointing'
+elif (plot_mode == 2):
     datasets_list = [f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
                  f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False',
                  f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False',]
     labels_optical_list = ['DI-SRP', 'SI-SRP', 'O-SRP']
     Comparison_label = 'optical'
-elif (plot_mode == 2):
+elif (plot_mode == 3):
     datasets_list = [f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
                  f'/LEO_ecc_0.0_inc_45.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
                  f'/LEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',]
     labels_optical_list = [r'$i=98$°', r'$i=45$°', r'$i=0$°']
     Comparison_label = 'inclination'
-elif (plot_mode == 3):
+elif (plot_mode == 4):
     datasets_list = [f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
                  f'/MEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
                  f'/GEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',]
@@ -363,23 +389,58 @@ for data_id, dataset in enumerate(datasets_list):
         current_last_comp_array[i, 9] = current_all_data_array[i, 28][-1]
 
     for i in range(8):
+        current_save_plot_dir = save_plot_dir + '/' + variables_list[i]
         if (not os.path.exists(current_save_plot_dir)):
             os.mkdir(current_save_plot_dir)
 
+        # The (0, 0, 0)
         plt.figure()
         plt.plot(current_processed_dict['sun_pointing_time_array'], current_processed_dict[f'sun_pointing_{variables_list[i]}_array'])
-        current_save_plot_dir = save_plot_dir + '/' + variables_list[i]
-        plt.savefig(current_save_plot_dir + '/sun_pointing_' + variables_list[i] + '.png')
-        if (Maps_2D):
+        plt.xlabel(r'$t$ [days]', fontsize=14)
+        plt.ylabel(labels_list[i], fontsize=14)
+        plt.grid(True)
+        plt.savefig(current_save_plot_dir + '/sun_pointing_0_0_0_' + variables_list[i] + '.png')
+        plt.close()
+
+
+        # Only single axis
+        nonzero_omega_x_data = current_all_data_array[np.where((current_all_data_array[:, 1] != 0)
+                                                             & (np.all(current_all_data_array[:, 2:4] == 0, axis=1)))[0],
+                               :]
+        nonzero_omega_y_data = current_all_data_array[np.where((current_all_data_array[:, 2] != 0)
+                                                             & (current_all_data_array[:, 1] == 0)
+                                                             & (current_all_data_array[:, 3] == 0))[0], :]
+        plt.figure()
+        plt.plot(current_processed_dict['sun_pointing_time_array'],
+                 current_processed_dict[f'sun_pointing_{variables_list[i]}_array'], label='Sun-pointing', linestyle='-', color=color_list[0])
+        for p_id in range(len(nonzero_omega_x_data[:, 0])):
+            plt.plot(nonzero_omega_x_data[p_id, 8], nonzero_omega_x_data[p_id, 11 + i], alpha=0.2, linestyle='-', color=color_list[1])
+        plt.plot([], [], alpha=1, linestyle='-', color=color_list[1], label=r'$\omega_{x, 0} \neq 0, \omega_{y, 0} = 0, \omega_{z, 0} = 0$')
+        for p_id in range(len(nonzero_omega_y_data[:, 0])):
+            plt.plot(nonzero_omega_y_data[p_id, 8], nonzero_omega_y_data[p_id, 11 + i], alpha=0.2, linestyle='-', color=color_list[2])
+        plt.plot([], [], alpha=1, linestyle='-', color=color_list[2], label=r'$\omega_{y, 0} \neq 0, \omega_{x, 0} = 0, \omega_{z, 0} = 0$')
+        plt.legend()
+        plt.xlabel(r'$t$ [days]', fontsize=14)
+        plt.ylabel(labels_list[i], fontsize=14)
+        plt.grid(True)
+        plt.savefig(current_save_plot_dir + '/' + variables_list[i] + '_single_axis_history_comparison_to_initial.png',
+                    dpi=600,
+                    bbox_inches='tight')
+        plt.close()
+        print(len(nonzero_omega_x_data[:, 0]))
+        print(len(nonzero_omega_y_data[:, 0]))
+
+        if (Maps_2D):   # of the current dataset, not of a comparison
             print('2D Maps and Density maps')
             f, ax = plt.subplots()
             ax.set_xlabel(r'$\omega_{x}$ [deg/s]', fontsize=14)
             ax.set_ylabel(r'$\omega_{y}$ [deg/s]', fontsize=14)
             tpc = ax.tripcolor(current_last_comp_array[:, 0], current_last_comp_array[:, 1], current_last_comp_array[:, i + 2],
-                               shading='gouraud', cmap=my_cmap)
+                               shading='flat', cmap=my_cmap)
             cbar = f.colorbar(tpc)
             cbar.set_label(labels_change_list[i], rotation=270, labelpad=13, fontsize=14)
-            plt.savefig(current_save_plot_dir + '/' + variables_list[i] + '_2D.png', dpi=300)
+            plt.savefig(current_save_plot_dir + '/' + variables_list[i] + '_2D.png',
+                        dpi=600, bbox_inches='tight')
             plt.close()
 
             fig, ax = plt.subplots()
@@ -393,7 +454,7 @@ for data_id, dataset in enumerate(datasets_list):
             fig.colorbar(pcm, ax=ax, label="# points", pad=0)
             ax.set_xlabel(r'$t$ [days]')
             ax.set_ylabel(labels_change_list[i])
-            plt.savefig(current_save_plot_dir + '/' + variables_list[i] + '_point_density.png', dpi=300)
+            plt.savefig(current_save_plot_dir + '/' + variables_list[i] + '_point_density.png', dpi=300, bbox_inches='tight')
             plt.close()
 
         if (BIG_PLOTS):
@@ -485,8 +546,8 @@ for i in range(8):
         plt.ylabel(labels_change_percent_list[i], fontsize=14)
     else:
         plt.ylabel(labels_change_list[i], fontsize=14)
-    plt.savefig(Project_directory + f'/0_FinalPlots/LTT/Comparisons/{Comparison_label}/{variables_list[i]}_{Comparison_label}.png', dpi=600)
-
+    plt.savefig(Project_directory + f'/0_FinalPlots/LTT/Comparisons/{Comparison_label}/{variables_list[i]}_{Comparison_label}.png', dpi=600, bbox_inches='tight')
+    plt.close()
 
 
 

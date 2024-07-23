@@ -479,7 +479,7 @@ class sail_attitude_control_systems:
             ellipse_coefficient_functions_list = []
 
         else:
-            raise Exception("Non-ideal model ellipse coefficients have not been explicitly implemented yet")
+            raise Exception("Requested set of ellipse coefficients have not been explicitly implemented yet")
 
         # vane torque allocation problem
         self.vane_torque_allocation_problem_object = vaneTorqueAllocationProblem(self,

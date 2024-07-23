@@ -1,11 +1,11 @@
 #!/bin/bash
 
 #SBATCH --job-name="LTT_SP_1_2"
-#SBATCH --time=15:00:00
-#SBATCH --ntasks=12
+#SBATCH --time=24:00:00
+#SBATCH --ntasks=18
 #SBATCH --cpus-per-task=1
 #SBATCH --partition=compute
-#SBATCH --mem-per-cpu=15GB
+#SBATCH --mem-per-cpu=10GB
 #SBATCH --account=education-ae-msc-ae
 
 module load 2023r1

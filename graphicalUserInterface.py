@@ -33,9 +33,9 @@ thr_previous_spacecraft_positions_fade_down = 1
 thr_sun_rays = 1 * 24 * 3600
 
 # Load data
-state_history_array = np.loadtxt("/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False/states_history/state_history_omega_x_0.0_omega_y_0.0_omega_z_75.0.dat")
+state_history_array = np.loadtxt("/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/LTT_Data/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_10.0_omega_y_50.0_omega_z_0.0.dat")
 dependent_variable_history_array = np.loadtxt(
-    "/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False/dependent_variable_history/dependent_variable_history_omega_x_0.0_omega_y_0.0_omega_z_75.0.dat")
+    "/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/LTT_Data/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/dependent_variable_history/dependent_variable_history_omega_x_10.0_omega_y_50.0_omega_z_0.0.dat")
 
 # Extract state history
 #state_history_array = state_history_array[::25]
@@ -61,10 +61,15 @@ spacecraft_srp_torque_vector = dependent_variable_history_array[:, 11:14]
 spacecraft_sun_relative_position = dependent_variable_history_array[:, 14:17]
 earth_sun_relative_position = dependent_variable_history_array[:, 17:20]
 spacecraft_total_torque_norm = dependent_variable_history_array[:, 20]
-vanes_x_rotations = np.rad2deg(dependent_variable_history_array[:, 21:25])  # Note: this might need to be changed; is there a way to make this automatic?
-vanes_y_rotations = np.rad2deg(dependent_variable_history_array[:, 25:29])  # Note: this might need to be changed; is there a way to make this automatic?
-optimal_torques = dependent_variable_history_array[:, 29:32]
-vane_torques = dependent_variable_history_array[:, 32:35]
+#vanes_x_rotations = np.rad2deg(dependent_variable_history_array[:, 21:25])  # Note: this might need to be changed; is there a way to make this automatic?
+#vanes_y_rotations = np.rad2deg(dependent_variable_history_array[:, 25:29])  # Note: this might need to be changed; is there a way to make this automatic?
+#optimal_torques = dependent_variable_history_array[:, 29:32]
+#vane_torques = dependent_variable_history_array[:, 32:35]
+
+vanes_x_rotations = np.zeros((len(t_dependent_variables_hours), 4))  # Note: this might need to be changed; is there a way to make this automatic?
+vanes_y_rotations = np.zeros((len(t_dependent_variables_hours), 4))  # Note: this might need to be changed; is there a way to make this automatic?
+optimal_torques = np.zeros((len(t_dependent_variables_hours), 3))
+vane_torques = np.zeros((len(t_dependent_variables_hours), 3))
 
 spacecraft_sun_relative_position_in_body_fixed_frame = np.zeros(np.shape(spacecraft_sun_relative_position))
 for i in range(np.shape(t_dependent_variables_hours)[0]):

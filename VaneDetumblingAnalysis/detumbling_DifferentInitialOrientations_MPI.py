@@ -16,7 +16,7 @@ number_of_portions = 1      # > 1
 portion = int(sys.argv[1])  # 0, 1, 2, 3,... depending on number of portions
 orientation_strings = ["sun_pointing", "edge-on-x", "edge-on-y",
                        "identity_to_inertial", "alpha_45_beta_90", "alpha_45_beta_0"]
-mode_combinations = list(itertools.product([0, 1, 2], [0], [1], orientation_strings))
+mode_combinations = list(itertools.product([2], [0], [0], orientation_strings))
 mode_combs_chunks = divide_list(mode_combinations, number_of_portions)
 current_chunk = mode_combs_chunks[portion]
 

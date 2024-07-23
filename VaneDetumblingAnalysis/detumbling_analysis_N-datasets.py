@@ -6,6 +6,7 @@ from cycler import cycler
 line_cycler = (cycler(color=["#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#F0E442"]))
 color_list = ["#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#F0E442"]
 
+"""
 selected_combinations = [(5.0, 0.0, 0.0),
                     (0.0, 5.0, 0.0),
                     (0.0, 0.0, 5.0),
@@ -13,19 +14,21 @@ selected_combinations = [(5.0, 0.0, 0.0),
                     (0.0, 5.0, 5.0),
                     (5.0, 0.0, 5.0),
                     (5.0, 5.0, 5.0)]
-
 """
-selected_combinations = [(75.0, 0.0, 0.0),
+
+
+selected_combinations = [(5.0, 5.0, 5.0),
+                    (75.0, 0.0, 0.0),
                     (0.0, 75.0, 0.0),
                     (0.0, 0.0, 75.0),
                     (50.0, 50.0, 0.0),
                     (0.0, 50.0, 50.0),
                     (50.0, 0.0, 50.0),
                     (40.0, 40.0, 40.0)]
-"""
+
 
 for c_id, c in enumerate(selected_combinations):
-    for plot_id in range(8, 11):
+    for plot_id in range(4, 5):
         # Focus on
         if (plot_id == 0):
             comparison_name = "optical_model"
@@ -66,9 +69,9 @@ for c_id, c in enumerate(selected_combinations):
         elif (plot_id == 4):
             comparison_name = "orbital_regime"
             states_history_datasets_list = [
-                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_0.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
-                f"0_GeneratedData/DetumblingAnalysis/MEO_ecc_0.0_inc_0.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
-                f"0_GeneratedData/DetumblingAnalysis/GEO_ecc_0.0_inc_0.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_0.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/MEO_ecc_0.0_inc_0.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/GEO_ecc_0.0_inc_0.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
             plot_label = ['LEO', 'MEO', 'GEO']
             num_legend_columns = 1
@@ -224,8 +227,8 @@ for c_id, c in enumerate(selected_combinations):
             difference_irradiance = np.diff(received_irradiance_shadow_function)
             t_start_eclipse = current_time_array[np.where(np.diff(received_irradiance_shadow_function) == -1)[0]]
             t_end_eclipse = current_time_array[np.where(np.diff(received_irradiance_shadow_function) == 1)[0]]
-            eclipse_fraction = np.sum(t_end_eclipse-t_start_eclipse)/(current_time_array[-1]-current_time_array[0])
-            print(eclipse_fraction)
+            #eclipse_fraction = np.sum(t_end_eclipse-t_start_eclipse)/(current_time_array[-1]-current_time_array[0])
+            #print(eclipse_fraction)
             # get detumbling time
             list_indices_zero_angles = np.where(np.sum(current_dependent_variable_history_array[:, 21:29], axis=1) == 0)[0]
             if (len(list_indices_zero_angles) != 0):
