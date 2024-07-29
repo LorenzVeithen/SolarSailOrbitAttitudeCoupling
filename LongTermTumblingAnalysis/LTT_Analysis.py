@@ -9,8 +9,8 @@ from tudatpy.util import compare_results, result2array
 import time
 
 BIG_PLOTS = False
-Maps_2D = False
-COMPARISON_PLOTS = False
+Maps_2D = True
+COMPARISON_PLOTS = True
 
 thinning_factor = 1
 keplerian_keys = ['sma', 'ecc', "inc", "aop", "raan", "tranom"]
@@ -187,6 +187,22 @@ def get_dataset_data(current_dataset):
         current_a_y = spacecraft_srp_acceleration_vector[:, 1]
         current_a_z = spacecraft_srp_acceleration_vector[:, 2]
 
+        # Solar irradiance
+        received_irradiance_shadow_function = current_dependent_variable_history_array[:, 7]
+        received_irradiance_shadow_function[
+            received_irradiance_shadow_function < 1] = 0  # remove any part where it is not
+        difference_irradiance = np.diff(received_irradiance_shadow_function)
+        t_start_eclipse = current_time_array[np.where(np.diff(received_irradiance_shadow_function) == -1)[0]]
+        t_end_eclipse = current_time_array[np.where(np.diff(received_irradiance_shadow_function) == 1)[0]]
+
+        if (len(t_start_eclipse) > len(t_end_eclipse)):
+            t_start_eclipse = t_start_eclipse[:-1]
+        elif (len(t_end_eclipse) > len(t_start_eclipse)):
+            t_end_eclipse = np.append(t_end_eclipse, [current_time_array[-1]])
+
+        eclipse_fraction = np.sum(t_end_eclipse - t_start_eclipse) / (current_time_array[-1] - current_time_array[0])
+        print(eclipse_fraction)
+
         # Difference in Cartesian elements
         #current_r_diff_array = np.sqrt(diff_to_kep_states_array[:, 1]**2 + diff_to_kep_states_array[:, 2]**2 + diff_to_kep_states_array[:, 3]**2)
         #current_v_diff_array = np.sqrt(diff_to_kep_states_array[:, 4] ** 2 + diff_to_kep_states_array[:,
@@ -337,7 +353,7 @@ def get_dataset_data(current_dataset):
 color_list = ["#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#F0E442"]
 my_cmap = plt.get_cmap('plasma')
 cmap = plt.colormaps["plasma"]
-plot_mode = 1
+plot_mode = 3
 percentage_bool = False
 if (plot_mode == 1): # Just a single dataset
     datasets_list = [f'/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False',
@@ -352,15 +368,15 @@ elif (plot_mode == 2):
     labels_optical_list = ['DI-SRP', 'SI-SRP', 'O-SRP']
     Comparison_label = 'optical'
 elif (plot_mode == 3):
-    datasets_list = [f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
-                 f'/LEO_ecc_0.0_inc_45.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
-                 f'/LEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',]
+    datasets_list = [f'/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
+                 f'/Sun_Pointing/LEO_ecc_0.0_inc_45.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
+                 f'/Sun_Pointing/LEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',]
     labels_optical_list = [r'$i=98$°', r'$i=45$°', r'$i=0$°']
     Comparison_label = 'inclination'
 elif (plot_mode == 4):
-    datasets_list = [f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
-                 f'/MEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
-                 f'/GEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',]
+    datasets_list = [f'/Sun_Pointing/LEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
+                 f'/Sun_Pointing/MEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
+                 f'/Sun_Pointing/GEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',]
     percentage_bool = True
     labels_optical_list = [r'LEO', r'MEO', r'GEO']
     Comparison_label = 'orbital_regime'
@@ -520,7 +536,7 @@ for data_id, dataset in enumerate(datasets_list):
                 start_val = current_all_data_array[0, 11+i][0]
                 min_list = 100 * min_list/start_val
                 max_list = 100 * max_list / start_val
-                median_list = 100 * min_list / start_val
+                median_list = 100 * median_list / start_val
                 sigma_1_plus_list = 100 * sigma_1_plus_list / start_val
                 sigma_1_minus_list = 100 * sigma_1_minus_list / start_val
             plt.figure(1000 + i)
@@ -532,22 +548,23 @@ for data_id, dataset in enumerate(datasets_list):
             #plt.plot(t_fine_moving, sigma_1_minus_list, linestyle='-', dashes=[8, 4, 2, 4, 2, 4], color=color_list[data_id])
             plt.plot([], [], linestyle='-', linewidth=7, color=color_list[data_id], label=labels_optical_list[data_id])
 
-for i in range(8):
-    plt.figure(1000 + i)
-    plt.plot([], [], color='k', linestyle='-', label='min')
-    plt.plot([], [], color='k', linestyle='--', label='max')
-    plt.plot([], [], color='k', linestyle='-.', label='median')
-    #plt.plot([], [], color='k', linestyle=':', label=r'$+1-\sigma$')
-    #plt.plot([], [], color='k', linestyle='-', dashes=[8, 4, 2, 4, 2, 4], label=r'$-1-\sigma$')
-    plt.legend(ncol=2)
-    plt.grid(True)
-    plt.xlabel(r'$t$ [days]', fontsize=14)
-    if (percentage_bool and variables_list[i] != 'ecc'):
-        plt.ylabel(labels_change_percent_list[i], fontsize=14)
-    else:
-        plt.ylabel(labels_change_list[i], fontsize=14)
-    plt.savefig(Project_directory + f'/0_FinalPlots/LTT/Comparisons/{Comparison_label}/{variables_list[i]}_{Comparison_label}.png', dpi=600, bbox_inches='tight')
-    plt.close()
+if (COMPARISON_PLOTS):
+    for i in range(8):
+        plt.figure(1000 + i)
+        plt.plot([], [], color='k', linestyle='-', label='min')
+        plt.plot([], [], color='k', linestyle='--', label='max')
+        plt.plot([], [], color='k', linestyle='-.', label='median')
+        #plt.plot([], [], color='k', linestyle=':', label=r'$+1-\sigma$')
+        #plt.plot([], [], color='k', linestyle='-', dashes=[8, 4, 2, 4, 2, 4], label=r'$-1-\sigma$')
+        plt.legend(ncol=2)
+        plt.grid(True)
+        plt.xlabel(r'$t$ [days]', fontsize=14)
+        if (percentage_bool and variables_list[i] != 'ecc'):
+            plt.ylabel(labels_change_percent_list[i], fontsize=14)
+        else:
+            plt.ylabel(labels_change_list[i], fontsize=14)
+        plt.savefig(Project_directory + f'/0_FinalPlots/LTT/Comparisons/{Comparison_label}/{variables_list[i]}_{Comparison_label}.png', dpi=600, bbox_inches='tight')
+        plt.close()
 
 
 

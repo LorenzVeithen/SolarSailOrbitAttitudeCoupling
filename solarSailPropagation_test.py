@@ -91,10 +91,13 @@ constant_cartesian_position_Sun = spice_interface.get_body_cartesian_state_at_ep
 #inertial_to_body_initial[:, 2] = new_z
 #inertial_to_body_initial = np.dot(np.dot(inertial_to_body_initial, R.from_euler('x', 45., degrees=True).as_matrix()), R.from_euler('y', 0., degrees=True).as_matrix())    # rotate by 45 deg around x
 
+# actually is body to inertial but it works so don't touch it
 inertial_to_body_initial = np.dot(np.dot(R.from_euler('y', 0, degrees=True).as_matrix(), R.from_euler('x', 0, degrees=True).as_matrix()), R.from_euler('z', 0, degrees=True).as_matrix())
 initial_quaternions = rotation_matrix_to_quaternion_entries(inertial_to_body_initial)
 initial_rotational_velocity = np.array([10 * 2 * np.pi / 3600., 0 * 2 * np.pi / 3600, 0 * 2 * np.pi / 3600])
 initial_rotational_state = np.concatenate((initial_quaternions, initial_rotational_velocity))
+
+sun_dir = constant_cartesian_position_Sun / np.linalg.norm(constant_cartesian_position_Sun)
 
 sailProp = sailCoupledDynamicsProblem(sail,
                initial_translational_state,
