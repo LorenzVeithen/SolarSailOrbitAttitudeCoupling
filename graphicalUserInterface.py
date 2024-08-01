@@ -33,9 +33,9 @@ thr_previous_spacecraft_positions_fade_down = 1
 thr_sun_rays = 1 * 24 * 3600
 
 # Load data
-state_history_array = np.loadtxt("/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/LTT_Data/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_10.0_omega_y_50.0_omega_z_0.0.dat")
+state_history_array = np.loadtxt("/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/DetumblingAnalysis/SingleOrbit/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_350.0_omega_y_350.0_omega_z_350.0.dat")
 dependent_variable_history_array = np.loadtxt(
-    "/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/LTT_Data/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/dependent_variable_history/dependent_variable_history_omega_x_10.0_omega_y_50.0_omega_z_0.0.dat")
+    "/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/DetumblingAnalysis/SingleOrbit/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/dependent_variable_history/dependent_variable_history_omega_x_350.0_omega_y_350.0_omega_z_350.0.dat")
 
 # Extract state history
 #state_history_array = state_history_array[::25]

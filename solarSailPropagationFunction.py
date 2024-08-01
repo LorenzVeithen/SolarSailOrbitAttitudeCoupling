@@ -109,6 +109,9 @@ def runPropagationAnalysis(all_combinations,
     else:
         analysis_dir = ''
 
+    if ('few_orbits' in run_mode):
+        analysis_dir = f'SingleOrbit/{analysis_dir}'
+
     # get directory and correct optical properties
     if (optical_model_mode_str == "ACS3_optical_model"):
         if ('vane_detumbling' in run_mode):
@@ -159,8 +162,12 @@ def runPropagationAnalysis(all_combinations,
         selected_combinations = all_combinations
 
     # Set simulation start and end epochs
-    simulation_start_epoch = DateTime(2024, 6, 1, 0).epoch()
-    simulation_end_epoch = DateTime(2024, 6, 30, 0).epoch()  # 30 days into the future but the simulation will likely finish way earlier
+    if ('few_orbits' in run_mode):
+        simulation_start_epoch = DateTime(2024, 6, 1, 0).epoch()
+        simulation_end_epoch = DateTime(2024, 6, 1, 9).epoch()  # 90 minutes into the future but the simulation will likely finish way earlier
+    else:
+        simulation_start_epoch = DateTime(2024, 6, 1, 0).epoch()
+        simulation_end_epoch = DateTime(2024, 6, 30, 0).epoch()  # 30 days into the future but the simulation will likely finish way earlier
 
     # sort the combinations by magnitude to start with the easiest
     temp_sort_array = np.empty((len(selected_combinations), 2), dtype=object)
