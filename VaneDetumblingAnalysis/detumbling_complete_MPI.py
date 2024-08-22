@@ -4,6 +4,7 @@ import numpy as np
 import itertools
 import sys
 import random
+from MiscFunctions import divide_list
 
 random.seed(42)
 comm = MPI.COMM_WORLD
@@ -15,6 +16,7 @@ n_processes = size
 optical_model_mode = int(sys.argv[1])  # 0: ACS3 optical model, 1: double-sided  ideal model, 2: single-sided ideal model
 sma_ecc_inc_combination_mode = int(sys.argv[2])    # see below for the combinations
 include_shadow_b = int(sys.argv[3])     #0: False (no shadow), 1: True (with shadow)
+partition = int(sys.argv[4])     #0: False (no shadow), 1: True (with shadow)
 
 optical_mode_str = ["ACS3_optical_model", "double_ideal_optical_model", "single_ideal_optical_model"][optical_model_mode]
 
@@ -50,7 +52,9 @@ all_triple_axis_combinations = list(itertools.product(omega_list_triple, omega_l
 all_triple_axis_combinations = [comb for comb in all_triple_axis_combinations if not (comb.count(0) == 2)]
 
 all_combinations = all_single_axis_combinations + all_double_axis_combinations + all_triple_axis_combinations
-print(len(all_combinations))
+partitions_chunks = divide_list(all_combinations, 8)
+selected_chunk = partitions_chunks[partition]
+print(len(selected_chunk))
 
 print(f"hello from rank {rank}")
 if (rank==0):
@@ -65,7 +69,7 @@ if (rank==0):
                            output_frequency_in_seconds_=500,
                            initial_orientation_str='sun_pointing')
 
-runPropagationAnalysis(all_combinations,
+runPropagationAnalysis(selected_chunk,
                           optical_mode_str,
                           sma_ecc_inc_combination_mode,
                           rank,

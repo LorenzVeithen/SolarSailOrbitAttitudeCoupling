@@ -131,13 +131,16 @@ for mp_id, mp in enumerate(projectile_mass_list):
 
 
 plt.grid(True)
-plt.xlabel(r'$V_{p}$ [km/s]', fontsize=14)
-plt.ylabel(r'$||\omega_{0}||$ [deg/s]', fontsize=14)
-plt.axhline(y=0.1, color='k', linestyle='--', label='Significance level')
-plt.axhline(y=15, color='k', linestyle=':', label='Capability level')
+plt.xlabel(r'$\vec{v}_{p}$ [km/s]', fontsize=14)
+plt.ylabel(r'$||\vec{\omega}_{0, \mathcal{B}}||$ [deg/s]', fontsize=14)
+plt.axhline(y=0.01*np.sqrt(3), color='k', linestyle='--', label='Significance level')
+plt.axhline(y=26, color='k', linestyle=':', label='Capability level')
 plt.yscale('log')
 plt.legend(ncol=3, loc='lower left', prop={'size': 8})
 plt.ylim(1e-18, np.rad2deg(max(HVI_data_arr[:, 10]))*2)
+plt.savefig("/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_FinalPlots/HVI_Plots/HVI_proj_diam_speed.png",
+            dpi=600,
+            bbox_inches='tight')
 
 # Second figure: linear momentum and beta
 plt.figure()
@@ -158,12 +161,15 @@ for beta_id, beta in enumerate(beta_list):
              color=colors_list[beta_id], label=rf'$\beta$ = {beta}')
 plt.grid(True)
 plt.xlabel(r'$p_{p}$ [kg m/s]', fontsize=14)
-plt.ylabel(r'$||\omega_{0}||$ [deg/s]', fontsize=14)
-plt.axhline(y=0.1, color='k', linestyle='--', label='Significance level')
+plt.ylabel(r'$||\vec{\omega}_{0, \mathcal{B}}||$ [deg/s]', fontsize=14)
+plt.axhline(y=0.01*np.sqrt(3), color='k', linestyle='--', label='Significance level')
 plt.axhline(y=26, color='k', linestyle=':', label='Capability level')
 plt.yscale('log')
 plt.xscale('log')
 plt.legend(ncol=1, prop={'size': 8})
+plt.savefig("/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_FinalPlots/HVI_Plots/HVI_beta.png",
+            dpi=600,
+            bbox_inches='tight')
 
 # Third figure: dependence of the initial rotational velocity on the moment arm
 plt.figure()
@@ -196,11 +202,14 @@ for mp_id, mp in enumerate(projectile_mass_list):
                      label=r'$d_{p}$ = ' + f"{'{:0.0e}'.format(projectile_diameter[mp_id])} m")
 plt.grid(True)
 plt.xlabel(r'$r_{arm}$ [m]', fontsize=14)
-plt.ylabel(r'$||\omega_{0}||$ [deg/s]', fontsize=14)
-plt.axhline(y=0.1, color='k', linestyle='--', label='Significance level')
+plt.ylabel(r'$||\vec{\omega}_{0, \mathcal{B}}||$ [deg/s]', fontsize=14)
+plt.axhline(y=0.01*np.sqrt(3), color='k', linestyle='--', label='Significance level')
 plt.axhline(y=26, color='k', linestyle=':', label='Capability level')
 plt.yscale('log')
 plt.legend(ncol=1, prop={'size': 8})
+plt.savefig("/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_FinalPlots/HVI_Plots/HVI_proj_diam_arm.png",
+            dpi=600,
+            bbox_inches='tight')
 
 # Fourth figure: dependence of the initial rotational velocity on the angles
 orientation_HVI_data_arr = HVI_data_arr[HVI_data_arr[:, 3] == 0]     # Focus on the 'x' axis
@@ -216,7 +225,7 @@ tpc = ax.tripcolor(np.rad2deg(orientation_HVI_data_arr[:, 5]),
                    np.rad2deg(orientation_HVI_data_arr[:, 10]),
                    shading='flat', cmap=my_cmap)
 cbar = f.colorbar(tpc)
-cbar.set_label(r'$||\omega_{0}|| [deg/s]$', rotation=270, labelpad=13, fontsize=14)
+cbar.set_label(r'$||\vec{\omega}_{0, \mathcal{B}}||$ [deg/s]', rotation=270, labelpad=15, fontsize=14)
 # Generate a grid for interpolation
 grid_x, grid_y = np.mgrid[-180:180:10000j, -180:180:10000j]
 
@@ -228,6 +237,8 @@ grid_z = griddata((np.rad2deg(contour_data[:, 5]), np.rad2deg(contour_data[:, 6]
 
 CS = ax.contour(grid_x, grid_y, grid_z, 10, colors='k')
 ax.clabel(CS, inline=1, fontsize=8)
-
+plt.savefig("/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_FinalPlots/HVI_Plots/HVI_col_geom.png",
+            dpi=600,
+            bbox_inches='tight')
 plt.show()
 

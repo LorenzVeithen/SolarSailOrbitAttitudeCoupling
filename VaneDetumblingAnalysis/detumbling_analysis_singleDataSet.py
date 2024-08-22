@@ -19,9 +19,9 @@ keplerian_keys = ['sma', 'ecc', "inc", "aop", "raan", "tranom"]
 omega_components_id = ['x', 'y', 'z']
 
 # get all data together in gray to be able to point out specific ones to be analysed
-rotational_velocity_labels_list = [r"$\omega_{x}$ [deg/s]",
-                                   r"$\omega_{y}$ [deg/s]",
-                                   r"$\omega_{z}$ [deg/s]"]
+rotational_velocity_labels_list = [r"$\omega_{x, \mathcal{B}}$ [deg/s]",
+                                   r"$\omega_{y, \mathcal{B}}$ [deg/s]",
+                                   r"$\omega_{z, \mathcal{B}}$ [deg/s]"]
 
 thinning_factor = 1
 selected_combinations = [(-40.0, -20.0, -40.0),
@@ -236,34 +236,34 @@ marker_list = ["4", "2", "3", "1", "+", "x", "."]
 color_list = ["#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#F0E442"]
 plt.rc("axes", prop_cycle=marker_cycler)
 plt.figure()
-plt.scatter(no_zero_element[:, 0], no_zero_element[:, 4]/24, s=100, label=r'$\omega_{x, 0} \neq 0, \omega_{y, 0} \neq 0, \omega_{z, 0} \neq 0$',
+plt.scatter(no_zero_element[:, 0], no_zero_element[:, 4]/24, s=100, label=r'$\vec{\omega}_{0, \mathcal{B}} \in X_{\text{DT-3}}$',
                                                                     marker=marker_list[0],
-                                                                    color=color_list[0])
-plt.scatter(zero_omega_x_data[:, 0], zero_omega_x_data[:, 4]/24, s=100, label=r'$\omega_{x, 0} = 0, \omega_{y, 0} \neq 0, \omega_{z, 0} \neq 0$',
+                                                                    color=color_list[0])# r'$\omega_{x_{0}, \mathcal{B}} \neq 0, \omega_{y_{0}, \mathcal{B}} \neq 0, \omega_{z_{0}, \mathcal{B}} \neq 0$'
+plt.scatter(zero_omega_x_data[:, 0], zero_omega_x_data[:, 4]/24, s=100, label=r'$\vec{\omega}_{0, \mathcal{B}} \in X_{\text{DT-2}}: \omega_{y_{0}, \mathcal{B}} \neq 0, \omega_{z_{0}, \mathcal{B}} \neq 0$',
                                                                     marker=marker_list[1],
-                                                                    color=color_list[1])
-plt.scatter(zero_omega_y_data[:, 0], zero_omega_y_data[:, 4]/24, s=100, label=r'$\omega_{y, 0} = 0, \omega_{x, 0} \neq 0, \omega_{z, 0} \neq 0$',
+                                                                    color=color_list[1]) #  \omega_{x_{0}, \mathcal{B}} = 0, \omega_{y_{0}, \mathcal{B}} \neq 0, \omega_{z_{0}, \mathcal{B}} \neq 0
+plt.scatter(zero_omega_y_data[:, 0], zero_omega_y_data[:, 4]/24, s=100, label=r'$\vec{\omega}_{0, \mathcal{B}} \in X_{\text{DT-2}}: \omega_{x_{0}, \mathcal{B}} \neq 0, \omega_{z_{0}, \mathcal{B}} \neq 0$',
                                                                     marker=marker_list[2],
-                                                                    color=color_list[2])
-plt.scatter(zero_omega_z_data[:, 0], zero_omega_z_data[:, 4]/24, s=100, label=r'$\omega_{z, 0} = 0, \omega_{x, 0} \neq 0, \omega_{y, 0} \neq 0$',
+                                                                    color=color_list[2])# \omega_{x_{0}, \mathcal{B}} \neq 0, \omega_{y_{0}, \mathcal{B}} = 0, \omega_{z_{0}, \mathcal{B}} \neq 0
+plt.scatter(zero_omega_z_data[:, 0], zero_omega_z_data[:, 4]/24, s=100, label=r'$\vec{\omega}_{0, \mathcal{B}} \in X_{\text{DT-2}}: \omega_{x_{0}, \mathcal{B}} \neq 0, \omega_{y_{0}, \mathcal{B}} \neq 0$',
                                                                     marker=marker_list[3],
-                                                                    color=color_list[3])
-plt.scatter(nonzero_omega_x_data[:, 0], nonzero_omega_x_data[:, 4]/24, s=100, label=r'$\omega_{x, 0} \neq 0, \omega_{y, 0} = 0, \omega_{z, 0} = 0$',
+                                                                    color=color_list[3])# \omega_{x_{0}, \mathcal{B}} \neq 0, \omega_{y_{0}, \mathcal{B}} \neq 0, \omega_{z_{0}, \mathcal{B}} = 0
+plt.scatter(nonzero_omega_x_data[:, 0], nonzero_omega_x_data[:, 4]/24, s=100, label=r'$\vec{\omega}_{0, \mathcal{B}} \in X_{\text{DT-1}}: \omega_{x_{0}, \mathcal{B}} \neq 0$',
                                                                     marker=marker_list[4],
-                                                                    color=color_list[4])
-plt.scatter(nonzero_omega_y_data[:, 0], nonzero_omega_y_data[:, 4]/24, s=100, label=r'$\omega_{y, 0} \neq 0, \omega_{x, 0} = 0, \omega_{z, 0} = 0$',
+                                                                    color=color_list[4])# \omega_{x_{0}, \mathcal{B}} \neq 0, \omega_{y_{0}, \mathcal{B}} = 0, \omega_{z_{0}, \mathcal{B}} = 0
+plt.scatter(nonzero_omega_y_data[:, 0], nonzero_omega_y_data[:, 4]/24, s=100, label=r'$\vec{\omega}_{0, \mathcal{B}} \in X_{\text{DT-1}}: \omega_{y_{0}, \mathcal{B}} \neq 0$',
                                                                     marker=marker_list[5],
-                                                                    color=color_list[5])
-plt.scatter(nonzero_omega_z_data[:, 0], nonzero_omega_z_data[:, 4]/24, s=100, label=r'$\omega_{z, 0} \neq 0, \omega_{x, 0} = 0, \omega_{y, 0} = 0$',
+                                                                    color=color_list[5])# \omega_{x_{0}, \mathcal{B}} = 0, \omega_{y_{0}, \mathcal{B}} \neq 0, \omega_{z_{0}, \mathcal{B}} = 0
+plt.scatter(nonzero_omega_z_data[:, 0], nonzero_omega_z_data[:, 4]/24, s=100, label=r'$\vec{\omega}_{0, \mathcal{B}} \in X_{\text{DT-1}}: \omega_{z_{0}, \mathcal{B}} \neq 0$',
                                                                     marker=marker_list[6],
-                                                                    color=color_list[6])
+                                                                    color=color_list[6])#\omega_{x_{0}, \mathcal{B}} = 0, \omega_{y_{0}, \mathcal{B}} = 0, \omega_{z_{0}, \mathcal{B}} \neq 0
 
 x_trend = np.linspace(0, 15, 10)
 y_trend = m * x_trend + b
 plt.grid(True)
-plt.xlabel(r"$||\vec{\omega_{0}}||$ [deg/s]", fontsize=14)
+plt.xlabel(r"$||\vec{\omega}_{0, \mathcal{B}}||$ [deg/s]", fontsize=14)
 plt.ylabel(r'$\Delta t_{\text{detumbling}}$ [days]', fontsize=14)
-plt.plot(x_trend, y_trend/24, linestyle='--', color='k', label='Linear trend')
+plt.plot(x_trend, y_trend/24, linestyle='--', color='k', label=f'Linear trend: {round(m/24, 1)}' + r'$||\vec{\omega}_{0, \mathcal{B}}||$' + f' - {abs(round(b/24, 1))}')
 plt.legend()
 plt.savefig(save_plots_dir +'/general_scatter_detumbling.png',
             dpi=600,
@@ -272,15 +272,20 @@ plt.savefig(save_plots_dir +'/general_scatter_detumbling.png',
 heatmaps_data = np.empty((len(first_all_data_array[:, 0]), 5), dtype='float64')
 heatmaps_data[:, 0] = first_all_data_array[:, 0]
 heatmaps_data[:, 1:5] = first_all_data_array[:, 1:5]
+
+ht_zero_omega_x_data = heatmaps_data[np.where(heatmaps_data[:, 1] == 0)[0], :]
+ht_zero_omega_y_data = heatmaps_data[np.where(heatmaps_data[:, 2] == 0)[0], :]
+ht_zero_omega_z_data = heatmaps_data[np.where(heatmaps_data[:, 3] == 0)[0], :]
+
 color_data = heatmaps_data[:, 4] / 24
 vmin = np.min(color_data)
 vmax = np.max(color_data)
 
 my_cmap = plt.get_cmap('plasma')
 f, ax = plt.subplots()
-ax.set_xlabel(r'$\omega_{x, 0}$ [deg/s]', fontsize=14)
-ax.set_ylabel(r'$\omega_{y, 0}$ [deg/s]', fontsize=14)
-tpc = ax.tripcolor(heatmaps_data[:, 1], heatmaps_data[:, 2], heatmaps_data[:, 4]/24,
+ax.set_xlabel(r'$\omega_{x_{0}, \mathcal{B}}$ [deg/s]', fontsize=14)
+ax.set_ylabel(r'$\omega_{y_{0}, \mathcal{B}}$ [deg/s]', fontsize=14)
+tpc = ax.tripcolor(ht_zero_omega_z_data[:, 1], ht_zero_omega_z_data[:, 2], ht_zero_omega_z_data[:, 4]/24,
                    shading='flat', cmap=my_cmap, vmin=vmin, vmax=vmax)
 cbar = f.colorbar(tpc)
 cbar.set_label(r'$\Delta t_{\text{detumbling}}$ [days]', rotation=270, labelpad=15, fontsize=14)
@@ -289,9 +294,9 @@ plt.savefig(save_plots_dir +'/xy_2D_heatmap_detumbling.png',
             bbox_inches='tight')
 
 f, ax = plt.subplots()
-ax.set_xlabel(r'$\omega_{x, 0}$ [deg/s]', fontsize=14)
-ax.set_ylabel(r'$\omega_{z, 0}$ [deg/s]', fontsize=14)
-tpc = ax.tripcolor(heatmaps_data[:, 1], heatmaps_data[:, 3], heatmaps_data[:, 4]/24,
+ax.set_xlabel(r'$\omega_{x_{0}, \mathcal{B}}$ [deg/s]', fontsize=14)
+ax.set_ylabel(r'$\omega_{z_{0}, \mathcal{B}}$ [deg/s]', fontsize=14)
+tpc = ax.tripcolor(ht_zero_omega_y_data[:, 1], ht_zero_omega_y_data[:, 3], ht_zero_omega_y_data[:, 4]/24,
                    shading='flat', cmap=my_cmap, vmin=vmin, vmax=vmax)
 cbar = f.colorbar(tpc)
 cbar.set_label(r'$\Delta t_{\text{detumbling}}$ [days]', rotation=270, labelpad=15, fontsize=14)
@@ -300,9 +305,9 @@ plt.savefig(save_plots_dir +'/xz_2D_heatmap_detumbling.png',
             bbox_inches='tight')
 
 f, ax = plt.subplots()
-ax.set_xlabel(r'$\omega_{y, 0}$ [deg/s]', fontsize=14)
-ax.set_ylabel(r'$\omega_{z, 0}$ [deg/s]', fontsize=14)
-tpc = ax.tripcolor(heatmaps_data[:, 2], heatmaps_data[:, 3], heatmaps_data[:, 4]/24,
+ax.set_xlabel(r'$\omega_{y_{0}, \mathcal{B}}$ [deg/s]', fontsize=14)
+ax.set_ylabel(r'$\omega_{z_{0}, \mathcal{B}}$ [deg/s]', fontsize=14)
+tpc = ax.tripcolor(ht_zero_omega_x_data[:, 2], ht_zero_omega_x_data[:, 3], ht_zero_omega_x_data[:, 4]/24,
                    shading='flat', cmap=my_cmap, vmin=vmin, vmax=vmax)
 cbar = f.colorbar(tpc)
 cbar.set_label(r'$\Delta t_{\text{detumbling}}$ [days]', rotation=270, labelpad=15, fontsize=14)
@@ -311,171 +316,176 @@ plt.savefig(save_plots_dir +'/yz_2D_heatmap_detumbling.png',
             bbox_inches='tight')
 
 # 3D scatter plot with heatmap according to detumbling times
+ht_scatter3D = heatmaps_data#[heatmaps_data[:, 4]/24 > 6]
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-withcolormap = ax.scatter(heatmaps_data[:, 1], heatmaps_data[:, 2], heatmaps_data[:, 3], c = heatmaps_data[:, 4]/24, cmap='plasma')
-cbar = fig.colorbar(withcolormap)
+withcolormap = ax.scatter(ht_scatter3D[:, 1], ht_scatter3D[:, 2], ht_scatter3D[:, 3], c = ht_scatter3D[:, 4]/24, cmap=my_cmap, vmin=vmin, vmax=vmax)
+cbar = fig.colorbar(withcolormap, ax=ax, pad=0.1)
 cbar.set_label(r'$\Delta t_{\text{detumbling}}$ [days]', rotation=270, labelpad=15, fontsize=14)
-ax.set_xlabel(r'$\omega_{x, 0}$ [deg/s]', fontsize=14)
-ax.set_ylabel(r'$\omega_{y, 0}$ [deg/s]', fontsize=14)
-ax.set_zlabel(r'$\omega_{z, 0}$ [deg/s]', fontsize=14)
+ax.set_xlabel(r'$\omega_{x_{0}, \mathcal{B}}$ [deg/s]', fontsize=14)
+ax.set_ylabel(r'$\omega_{y_{0}, \mathcal{B}}$ [deg/s]', fontsize=14)
+ax.set_zlabel(r'$\omega_{z_{0}, \mathcal{B}}$ [deg/s]', fontsize=14)
 plt.savefig(save_plots_dir +'/3D_heatmap_detumbling.png',
             dpi=600,
             bbox_inches='tight')
 
 # Single axis detumbling only
 plt.figure()
-plt.scatter(nonzero_omega_x_data[:, 0], nonzero_omega_x_data[:, 4]/24, s=100, label=r'$\omega_{x, 0} \neq 0, \omega_{y, 0}, \omega_{z, 0} = 0$',
+plt.scatter(nonzero_omega_x_data[:, 0], nonzero_omega_x_data[:, 4]/24, s=100, label=r'$\omega_{x_{0}, \mathcal{B}} \neq 0, \omega_{y_{0}, \mathcal{B}}, \omega_{z_{0}, \mathcal{B}} = 0$',
                                                                     marker=marker_list[4],
                                                                     color=color_list[4])
-plt.scatter(nonzero_omega_y_data[:, 0], nonzero_omega_y_data[:, 4]/24, s=100, label=r'$\omega_{y, 0} \neq 0, \omega_{x, 0}, \omega_{z, 0} = 0$',
+plt.scatter(nonzero_omega_y_data[:, 0], nonzero_omega_y_data[:, 4]/24, s=100, label=r'$\omega_{y_{0}, \mathcal{B}} \neq 0, \omega_{x_{0}, \mathcal{B}}, \omega_{z_{0}, \mathcal{B}} = 0$',
                                                                     marker=marker_list[5],
                                                                     color=color_list[5])
-plt.scatter(nonzero_omega_z_data[:, 0], nonzero_omega_z_data[:, 4]/24, s=100, label=r'$\omega_{z, 0} \neq 0, \omega_{x, 0}, \omega_{y, 0} = 0$',
+plt.scatter(nonzero_omega_z_data[:, 0], nonzero_omega_z_data[:, 4]/24, s=100, label=r'$\omega_{z_{0}, \mathcal{B}} \neq 0, \omega_{x_{0}, \mathcal{B}}, \omega_{y_{0}, \mathcal{B}} = 0$',
                                                                     marker=marker_list[6],
                                                                     color=color_list[6])
 plt.grid(True)
-plt.xlabel(r"$||\vec{\omega_{0}}||$ [deg/s]", fontsize=14)
+plt.xlabel(r"$||\vec{\omega}_{0, \mathcal{B}}||$ [deg/s]", fontsize=14)
 plt.ylabel(r'$\Delta t_{\text{detumbling}}$ [days]', fontsize=14)
 plt.legend()
 plt.savefig(save_plots_dir +'/scatter_single_axis_detumbling.png',
             dpi=600,
             bbox_inches='tight')
 
-# Combined general scatter plot for different optical properties
-for mode in range(4):
-    if (mode==0):
-        dataset_labels = ['O-SRP', 'DI-SRP', 'SI-SRP']
-        comparison_label = 'optical_sh_False'
-        files_list = [f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False',
-                    f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
-                    f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False',
-                    ]
-        reference_dataset_id = 2
+ALL_COMBINED = True
+if (ALL_COMBINED):
+    # Combined general scatter plot for different optical properties
+    for mode in range(2):
+        if (mode==0):
+            dataset_labels = ['SI-SRP', 'DI-SRP', 'O-SRP']
+            comparison_label = 'optical_sh_False'
+            files_list = [f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False',
+                            f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
+                            f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False',
+                            ]
+            reference_dataset_id = 2
 
-    elif (mode==1):
-        dataset_labels = ['O-SRP', 'DI-SRP', 'SI-SRP']
-        comparison_label = 'optical_sh_True'
-        files_list = [f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_True',
-                    f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True',
-                    f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True',
-                    ]
-        reference_dataset_id = 2
-    elif (mode==2):
-        dataset_labels = ['Without self-shadowing constraint', 'With self-shadowing constraint']
-        comparison_label = 'shadow_SI'
-        files_list = [f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False',
-                    f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True',
-                    ]
-        reference_dataset_id = 0
-    elif (mode==3):
-        dataset_labels = ['Without self-shadowing constraint', 'With self-shadowing constraint']
-        comparison_label = 'shadow_ACS3'
-        files_list = [f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False',
-                    f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_True',
-                    ]
-        reference_dataset_id = 0
+        elif (mode==1):
+            dataset_labels = ['SI-SRP', 'DI-SRP', 'O-SRP']
+            comparison_label = 'optical_sh_True'
+            files_list = [f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True',
+                            f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True',
+                            f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_True',
+                        ]
+            reference_dataset_id = 2
+        elif (mode==2):
+            dataset_labels = ['Without self-shadowing constraint', 'With self-shadowing constraint']
+            comparison_label = 'shadow_SI'
+            files_list = [f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False',
+                        f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True',
+                        ]
+            reference_dataset_id = 0
+        elif (mode==3):
+            dataset_labels = ['Without self-shadowing constraint', 'With self-shadowing constraint']
+            comparison_label = 'shadow_ACS3'
+            files_list = [f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False',
+                        f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_True',
+                        ]
+            reference_dataset_id = 0
 
-    datasets_array_list = []
-    datasets_array_sizes_list = []
-    for cd_id, current_data_set_filter in enumerate(files_list):
-        if current_data_set_filter == first_dataset:
-            current_processed_dict_filter, current_all_array_filter = first_processed_array_dict, first_all_data_array
-        else:
-            current_processed_dict_filter, current_all_array_filter, _, _ = get_dataset_data(current_data_set_filter)
+        datasets_array_list = []
+        datasets_array_sizes_list = []
+        for cd_id, current_data_set_filter in enumerate(files_list):
+            if current_data_set_filter == first_dataset:
+                current_processed_dict_filter, current_all_array_filter = first_processed_array_dict, first_all_data_array
+            else:
+                current_processed_dict_filter, current_all_array_filter, _, _ = get_dataset_data(current_data_set_filter)
 
-        datasets_array_sizes_list.append(len(current_all_array_filter[:, 0]))
-        datasets_array_list.append(current_all_array_filter)
+            datasets_array_sizes_list.append(len(current_all_array_filter[:, 0]))
+            datasets_array_list.append(current_all_array_filter)
 
-    # Find the dataset with the smallest size (most constraining dataset)
-    most_constraining_dataset = datasets_array_list[datasets_array_sizes_list.index(min(datasets_array_sizes_list))]
-    key_to_mc_row = {tuple(row[:4]): row for row in datasets_array_list[reference_dataset_id]}
-    print(datasets_array_sizes_list)
-    print(min(datasets_array_sizes_list))
+        # Find the dataset with the smallest size (most constraining dataset)
+        most_constraining_dataset = datasets_array_list[datasets_array_sizes_list.index(min(datasets_array_sizes_list))]
+        key_to_mc_row = {tuple(row[:4]): row for row in datasets_array_list[reference_dataset_id]}
+        print(datasets_array_sizes_list)
+        print(min(datasets_array_sizes_list))
 
-    filtered_datasets_list = []
-    # Filter each dataset in datasets_array_list
-    for dataset in datasets_array_list:
-        filtered_dataset = np.array([row for row in dataset if
-                                     any(np.array_equal(row[:4], mc_row[:4]) for mc_row in most_constraining_dataset)])
-        filtered_datasets_list.append(filtered_dataset)
-
-
-    # Optionally, verify the sizes of filtered datasets
-    for idx, filtered_dataset in enumerate(filtered_datasets_list):
-        print(f"Filtered dataset {idx} size: {filtered_dataset.shape}")
-
-    percentage_differences_lists = []
-    omega_lists_diffs = []
-    for cd_id, current_all_array in enumerate(filtered_datasets_list):
-        percentage_diff_list_to_mc = []
-        percentage_diff_to_mc_omega_list = []
-        for row in current_all_array:
-            key = tuple(row[:4])
-            if key in key_to_mc_row:
-                percentage_diff_to_mc_omega_list.append(row[0])
-                percentage_diff_list_to_mc.append(100*(row[4]-key_to_mc_row[key][4])/key_to_mc_row[key][4])
-                # filter to only use the datasets available in the first one
-        omega_lists_diffs.append(percentage_diff_to_mc_omega_list)
-        percentage_differences_lists.append(percentage_diff_list_to_mc)
-        plt.figure(111+mode*100)     # General scatter
-        plt.scatter(current_all_array[:, 0], current_all_array[:, 4]/24, s=25, label=dataset_labels[cd_id],
-                                                                            marker=marker_list[-3 + cd_id],
-                                                                            color=color_list[cd_id])
-        plt.figure(112+mode*100)     # Only with single axis
-        nonzero_omega_x_data = current_all_array[np.where((current_all_array[:, 1] != 0)
-                                                             & (np.all(current_all_array[:, 2:4] == 0, axis=1)))[0], :]
-        nonzero_omega_y_data = current_all_array[np.where((current_all_array[:, 2] != 0)
-                                                             & (current_all_array[:, 1] == 0)
-                                                             & (current_all_array[:, 3] == 0))[0], :]
-        nonzero_omega_z_data = current_all_array[np.where((current_all_array[:, 3] != 0)
-                                                             & (np.all(current_all_array[:, 1:3] == 0, axis=1)))[0], :]
-
-        plt.scatter(nonzero_omega_x_data[:, 0], nonzero_omega_x_data[:, 4] / 24, s=25,
-                    marker='v',
-                    color=color_list[cd_id])
-        plt.scatter(nonzero_omega_y_data[:, 0], nonzero_omega_y_data[:, 4] / 24, s=25,
-                    marker='1',
-                    color=color_list[cd_id])
-        plt.scatter(nonzero_omega_z_data[:, 0], nonzero_omega_z_data[:, 4] / 24, s=25,
-                    marker='d',
-                    color=color_list[cd_id])
-        plt.plot([], [], linestyle='-', linewidth=7, label=dataset_labels[cd_id], color=color_list[cd_id])
-
-        if (cd_id != reference_dataset_id):
-            plt.figure(113 + mode * 100)
-            plt.scatter(percentage_diff_to_mc_omega_list, percentage_diff_list_to_mc,
-                        label=dataset_labels[cd_id],
-                        color=color_list[cd_id],
-                        marker=marker_list[-3 + cd_id])
+        filtered_datasets_list = []
+        # Filter each dataset in datasets_array_list
+        for dataset in datasets_array_list:
+            filtered_dataset = np.array([row for row in dataset if
+                                         any(np.array_equal(row[:4], mc_row[:4]) for mc_row in most_constraining_dataset)])
+            filtered_datasets_list.append(filtered_dataset)
 
 
-    plt.figure(111+mode*100)
-    plt.grid(True)
-    plt.xlabel(r"$||\vec{\omega_{0}}||$ [deg/s]", fontsize=14)
-    plt.ylabel(r'$\Delta t_{\text{detumbling}}$ [days]', fontsize=14)
-    plt.legend()
-    plt.savefig(Project_directory + f'/0_FinalPlots/Detumbling/General/{comparison_label}_general_scatter_detumbling.png',
-                dpi=600,
-                bbox_inches='tight')
+        # Optionally, verify the sizes of filtered datasets
+        for idx, filtered_dataset in enumerate(filtered_datasets_list):
+            print(f"Filtered dataset {idx} size: {filtered_dataset.shape}")
 
-    plt.figure(112+mode*100)
-    plt.scatter([], [], marker='v', label=r'$\omega_{x, 0} \neq 0$', color='k')
-    plt.scatter([], [], marker='1', label=r'$\omega_{y, 0} \neq 0$', color='k')
-    plt.scatter([], [], marker='d', label=r'$\omega_{z, 0} \neq 0$', color='k')
-    plt.grid(True)
-    plt.xlabel(r"$||\vec{\omega_{0}}||$ [deg/s]", fontsize=14)
-    plt.ylabel(r'$\Delta t_{\text{detumbling}}$ [days]', fontsize=14)
-    plt.legend(ncol=2)
-    plt.savefig(Project_directory + f'/0_FinalPlots/Detumbling/General/{comparison_label}_single_scatter_detumbling.png',
-                dpi=600,
-                bbox_inches='tight')
+        percentage_differences_lists = []
+        omega_lists_diffs = []
+        for cd_id, current_all_array in enumerate(filtered_datasets_list):
+            percentage_diff_list_to_mc = []
+            percentage_diff_to_mc_omega_list = []
+            for row in current_all_array:
+                key = tuple(row[:4])
+                if key in key_to_mc_row:
+                    percentage_diff_to_mc_omega_list.append(row[0])
+                    percentage_diff_list_to_mc.append(100*(row[4]-key_to_mc_row[key][4])/key_to_mc_row[key][4])
+                    # filter to only use the datasets available in the first one
+            omega_lists_diffs.append(percentage_diff_to_mc_omega_list)
+            percentage_differences_lists.append(percentage_diff_list_to_mc)
+            plt.figure(111+mode*100)     # General scatter
+            plt.scatter(current_all_array[:, 0], current_all_array[:, 4]/24, s=25, label=dataset_labels[cd_id],
+                                                                                marker=marker_list[-3 + cd_id],
+                                                                                color=color_list[cd_id])
+            plt.figure(112+mode*100)     # Only with single axis
+            nonzero_omega_x_data = current_all_array[np.where((current_all_array[:, 1] != 0)
+                                                                 & (np.all(current_all_array[:, 2:4] == 0, axis=1)))[0], :]
+            nonzero_omega_y_data = current_all_array[np.where((current_all_array[:, 2] != 0)
+                                                                 & (current_all_array[:, 1] == 0)
+                                                                 & (current_all_array[:, 3] == 0))[0], :]
+            nonzero_omega_z_data = current_all_array[np.where((current_all_array[:, 3] != 0)
+                                                                 & (np.all(current_all_array[:, 1:3] == 0, axis=1)))[0], :]
 
-    plt.figure(113 + mode * 100)
-    plt.grid(True)
-    plt.xlabel(r"$||\vec{\omega_{0}}||$ [deg/s]", fontsize=14)
-    plt.ylabel(r'$\Delta t_{\text{detumbling}}$ Difference [%]', fontsize=14)
-    plt.legend()
+            plt.scatter(nonzero_omega_x_data[:, 0], nonzero_omega_x_data[:, 4] / 24, s=25,
+                        marker='v',
+                        color=color_list[cd_id])
+            plt.scatter(nonzero_omega_y_data[:, 0], nonzero_omega_y_data[:, 4] / 24, s=25,
+                        marker='1',
+                        color=color_list[cd_id])
+            plt.scatter(nonzero_omega_z_data[:, 0], nonzero_omega_z_data[:, 4] / 24, s=25,
+                        marker='d',
+                        color=color_list[cd_id])
+            plt.plot([], [], linestyle='-', linewidth=7, label=dataset_labels[cd_id], color=color_list[cd_id])
+
+            if (cd_id != reference_dataset_id):
+                plt.figure(113 + mode * 100)
+                plt.scatter(percentage_diff_to_mc_omega_list, percentage_diff_list_to_mc,
+                            label=dataset_labels[cd_id],
+                            color=color_list[cd_id],
+                            marker=marker_list[-3 + cd_id])
+                print('HERE')
+                print(np.min(percentage_diff_list_to_mc), np.mean(percentage_diff_list_to_mc), np.max(percentage_diff_list_to_mc))
+
+
+        plt.figure(111+mode*100)
+        plt.grid(True)
+        plt.xlabel(r"$||\vec{\omega}_{0, \mathcal{B}}||$ [deg/s]", fontsize=14)
+        plt.ylabel(r'$\Delta t_{\text{detumbling}}$ [days]', fontsize=14)
+        plt.legend()
+        plt.savefig(Project_directory + f'/0_FinalPlots/Detumbling/General/{comparison_label}_general_scatter_detumbling.png',
+                    dpi=600,
+                    bbox_inches='tight')
+
+        plt.figure(112+mode*100)
+        plt.scatter([], [], marker='v', label=r'$\omega_{x_{0}, \mathcal{B}} \neq 0$', color='k')
+        plt.scatter([], [], marker='1', label=r'$\omega_{y_{0}, \mathcal{B}} \neq 0$', color='k')
+        plt.scatter([], [], marker='d', label=r'$\omega_{z_{0}, \mathcal{B}} \neq 0$', color='k')
+        plt.grid(True)
+        plt.xlabel(r"$||\vec{\omega}_{0, \mathcal{B}}||$ [deg/s]", fontsize=14)
+        plt.ylabel(r'$\Delta t_{\text{detumbling}}$ [days]', fontsize=14)
+        plt.legend(ncol=2)
+        plt.savefig(Project_directory + f'/0_FinalPlots/Detumbling/General/{comparison_label}_single_scatter_detumbling.png',
+                    dpi=600,
+                    bbox_inches='tight')
+
+        plt.figure(113 + mode * 100)
+        plt.grid(True)
+        plt.xlabel(r"$||\vec{\omega}_{0, \mathcal{B}}||$ [deg/s]", fontsize=14)
+        plt.ylabel(r'$\Delta t_{\text{detumbling}}$ Difference [%]', fontsize=14)
+        plt.legend()
 
 
 ALL_PLOTS = False
@@ -485,19 +495,19 @@ if (ALL_PLOTS):
     plt.figure()
     plt.scatter(first_all_data_array[:, 1], first_all_data_array[:, 4], s=3)
     plt.grid(True)
-    plt.xlabel(r"$\omega_{x, 0}$ [deg/s]", fontsize=14)
+    plt.xlabel(r"$\omega_{x_{0}, \mathcal{B}}$ [deg/s]", fontsize=14)
     plt.ylabel(r"$\Delta t_{detumbling}$ [hours]", fontsize=14)
 
     plt.figure()
     plt.scatter(first_all_data_array[:, 2], first_all_data_array[:, 4], s=3)
     plt.grid(True)
-    plt.xlabel(r"$\omega_{y, 0}$ [deg/s]", fontsize=14)
+    plt.xlabel(r"$\omega_{y_{0}, \mathcal{B}}$ [deg/s]", fontsize=14)
     plt.ylabel(r"$\Delta t_{detumbling}$ [hours]", fontsize=14)
 
     plt.figure()
     plt.scatter(first_all_data_array[:, 3], first_all_data_array[:, 4], s=3)
     plt.grid(True)
-    plt.xlabel(r"$\omega_{z, 0}$ [deg/s]", fontsize=14)
+    plt.xlabel(r"$\omega_{z_{0}, \mathcal{B}}$ [deg/s]", fontsize=14)
     plt.ylabel(r"$\Delta t_{detumbling}$ [hours]", fontsize=14)
 
     ordered_selected_combinations_temp = np.array(first_ordered_selected_combinations)
@@ -536,15 +546,15 @@ if (ALL_PLOTS):
     dataset_singleAxisOmegaZ = first_all_data_array[(first_all_data_array[:, 3] == first_all_data_array[:, 0]), :]
 
     plt.figure()
-    plt.scatter(dataset_singleAxisOmegaX[:, 0], dataset_singleAxisOmegaX[:, 4], label=r'$\omega_{y, 0} = \omega_{z, 0} = 0$')
-    plt.scatter(dataset_singleAxisOmegaY[:, 0], dataset_singleAxisOmegaY[:, 4], label=r'$\omega_{x, 0} = \omega_{z, 0} = 0$')
-    plt.scatter(dataset_singleAxisOmegaZ[:, 0], dataset_singleAxisOmegaZ[:, 4], label=r'$\omega_{x, 0} = \omega_{y, 0} = 0$')
+    plt.scatter(dataset_singleAxisOmegaX[:, 0], dataset_singleAxisOmegaX[:, 4], label=r'$\omega_{y_{0}, \mathcal{B}} = \omega_{z_{0}, \mathcal{B}} = 0$')
+    plt.scatter(dataset_singleAxisOmegaY[:, 0], dataset_singleAxisOmegaY[:, 4], label=r'$\omega_{x_{0}, \mathcal{B}} = \omega_{z_{0}, \mathcal{B}} = 0$')
+    plt.scatter(dataset_singleAxisOmegaZ[:, 0], dataset_singleAxisOmegaZ[:, 4], label=r'$\omega_{x_{0}, \mathcal{B}} = \omega_{y_{0}, \mathcal{B}} = 0$')
     plt.grid(True)
     plt.legend()
-    plt.xlabel(r"$||\vec{\omega_{0}}||$ [deg/s]", fontsize=14)
+    plt.xlabel(r"$||\vec{\omega}_{0, \mathcal{B}}||$ [deg/s]", fontsize=14)
     plt.ylabel(r"$\Delta t_{detumbling}$ [hours]", fontsize=14)
 
-    suptitles_list = [r'$\omega_{x, 0} \neq 0$', r'$\omega_{y, 0} \neq 0$', r'$\omega_{z, 0} \neq 0$']
+    suptitles_list = [r'$\omega_{x_{0}, \mathcal{B}} \neq 0$', r'$\omega_{y_{0}, \mathcal{B}} \neq 0$', r'$\omega_{z_{0}, \mathcal{B}} \neq 0$']
     for j, dataset in enumerate([dataset_singleAxisOmegaX, dataset_singleAxisOmegaY, dataset_singleAxisOmegaZ]):
         max_detumbling_time_days = max(dataset[:, 4] / 24.)
 
@@ -558,15 +568,15 @@ if (ALL_PLOTS):
 
         ax1.grid(True)
         ax1.set_xlabel(r"$t$ [days]", fontsize=14)
-        ax1.set_ylabel(r"$\omega_{x}$ [deg/s]", fontsize=14)
+        ax1.set_ylabel(r"$\omega_{x, \mathcal{B}}$ [deg/s]", fontsize=14)
 
         ax2.grid(True)
         ax2.set_xlabel(r"$t$ [days]", fontsize=14)
-        ax2.set_ylabel(r"$\omega_{y}$ [deg/s]", fontsize=14)
+        ax2.set_ylabel(r"$\omega_{y, \mathcal{B}}$ [deg/s]", fontsize=14)
 
         ax3.grid(True)
         ax3.set_xlabel(r"$t$ [days]", fontsize=14)
-        ax3.set_ylabel(r"$\omega_{z}$ [deg/s]", fontsize=14)
+        ax3.set_ylabel(r"$\omega_{z, \mathcal{B}}$ [deg/s]", fontsize=14)
         fig.tight_layout()
         custom_xlim = (0, max_detumbling_time_days * 1.05)
         plt.setp(axs, xlim=custom_xlim)

@@ -20,8 +20,8 @@ plt.rcParams['animation.ffmpeg_path'] ='/opt/homebrew/bin/ffmpeg'
 #plt.subplots_adjust(left=0.09, bottom=0.89, right=0.1, top=0.9, wspace=0.2, hspace=0.2 )    # Not really sure if this is doing anything
 
 generate_mp4 = False
-PLOTS = False
-ANIMATION = True
+PLOTS = True
+ANIMATION = False
 
 fps = 40
 time = 25
@@ -33,9 +33,9 @@ thr_previous_spacecraft_positions_fade_down = 1
 thr_sun_rays = 1 * 24 * 3600
 
 # Load data
-state_history_array = np.loadtxt("/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/DetumblingAnalysis/SingleOrbit/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/states_history/state_history_omega_x_350.0_omega_y_350.0_omega_z_350.0.dat")
+state_history_array = np.loadtxt("/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/PropagationData/state_history_omega_x_0.0_omega_y_0.0_omega_z_0.0_reduced_area_LTT.dat")
 dependent_variable_history_array = np.loadtxt(
-    "/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/DetumblingAnalysis/SingleOrbit/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_True/dependent_variable_history/dependent_variable_history_omega_x_350.0_omega_y_350.0_omega_z_350.0.dat")
+    "/Users/lorenz_veithen/Desktop/Education/03-Master/01_TU Delft/02_Year2/Thesis/02_ResearchProject/MSc_Thesis_Source_Python/0_GeneratedData/PropagationData/dependent_variable_history_omega_x_0.0_omega_y_0.0_omega_z_0.0_reduced_area_LTT.dat")
 
 # Extract state history
 #state_history_array = state_history_array[::25]
@@ -65,6 +65,9 @@ spacecraft_total_torque_norm = dependent_variable_history_array[:, 20]
 #vanes_y_rotations = np.rad2deg(dependent_variable_history_array[:, 25:29])  # Note: this might need to be changed; is there a way to make this automatic?
 #optimal_torques = dependent_variable_history_array[:, 29:32]
 #vane_torques = dependent_variable_history_array[:, 32:35]
+
+pericenter = keplerian_state[:, 0] * (1 - keplerian_state[:, 1])/1000
+apocenter = keplerian_state[:, 0] * (1 + keplerian_state[:, 1])/1000
 
 vanes_x_rotations = np.zeros((len(t_dependent_variables_hours), 4))  # Note: this might need to be changed; is there a way to make this automatic?
 vanes_y_rotations = np.zeros((len(t_dependent_variables_hours), 4))  # Note: this might need to be changed; is there a way to make this automatic?
@@ -398,7 +401,7 @@ if (ANIMATION):
 
 
 if (PLOTS):
-    plt.figure()
+    """   plt.figure()
     for i in range(4):
         plt.plot(t_dependent_variables_hours, vanes_x_rotations[:, i], label=f"vane {i}")
     plt.xlabel("Time [hours]")
@@ -462,9 +465,30 @@ if (PLOTS):
     fig, ax = plt.subplots()
     ax.plot(t_hours, spacecraft_srp_torque_norm, label='SRP Torque')
     ax.plot(t_hours, spacecraft_total_torque_norm, label='Total Torque')
-    ax.set_xlim((0, 180))
-    ax.set_yscale('log')
     ax.legend()
+
+    plt.figure()
+    plt.plot(t_hours, np.sqrt(spacecraft_srp_acceleration_vector[:, 0]**2
+             + spacecraft_srp_acceleration_vector[:, 1]**2
+             + spacecraft_srp_acceleration_vector[:, 2]**2))
+    plt.xlabel('time')
+    plt.ylabel('Acceleration')
+    plt.legend()
+
+    plt.figure()
+    plt.plot(t_hours, keplerian_state[:, 0])
+    plt.xlabel('time')
+    plt.ylabel('sma')
+    """
+    plt.figure()
+    plt.plot(t_hours, pericenter)
+    plt.xlabel('time')
+    plt.ylabel('Pericenter')
+
+    plt.figure()
+    plt.plot(t_hours, apocenter)
+    plt.xlabel('time')
+    plt.ylabel('Apocenter')
     plt.show()
 
 

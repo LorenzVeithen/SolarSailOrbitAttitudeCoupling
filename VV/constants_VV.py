@@ -3,12 +3,12 @@ from scipy.spatial.transform import Rotation as R
 from generalConstants import R_E
 
 # initial orbit
-a_0 = R_E + 1000e3           # [m] initial spacecraft semi-major axis
-e_0 = 4.03294322e-03         # [-] initial spacecraft eccentricity
-i_0 = np.deg2rad(98.0131)    # [deg] initial spacecraft inclination
-w_0 = np.deg2rad(120.0)      # [deg] initial spacecraft argument of pericentre
-raan_0 = np.deg2rad(27.0)    # [deg] initial spacecraft RAAN
-theta_0 = np.deg2rad(275.0)  # [deg] initial spacecraft true anomaly
+a_0 = 42300e3           # [m] initial spacecraft semi-major axis
+e_0 = 0         # [-] initial spacecraft eccentricity
+i_0 = np.deg2rad(0)    # [deg] initial spacecraft inclination
+w_0 = np.deg2rad(0)      # [deg] initial spacecraft argument of pericentre
+raan_0 = np.deg2rad(0)    # [deg] initial spacecraft RAAN
+theta_0 = np.deg2rad(0)  # [deg] initial spacecraft true anomaly
 
 # Sail characteristics - using ACS3 as baseline for initial testing
 sail_mass = 16  # kg
@@ -59,16 +59,16 @@ wings_rotation_matrices_list = [R.from_euler('z', -45., degrees=True).as_matrix(
 
 vane_angle = np.deg2rad(30.)
 vane_side_length = 0.5
-vanes_rotation_matrices_list = [R.from_euler('z', 90., degrees=True).as_matrix(),
-                                R.from_euler('z', 0., degrees=True).as_matrix(),
-                                R.from_euler('z', 270., degrees=True).as_matrix(),
-                                R.from_euler('z', 180., degrees=True).as_matrix(),
+vanes_rotation_matrices_list = [#R.from_euler('z', 90., degrees=True).as_matrix(),
+                                #R.from_euler('z', 0., degrees=True).as_matrix(),
+                                #R.from_euler('z', 270., degrees=True).as_matrix(),
+                                #R.from_euler('z', 180., degrees=True).as_matrix(),
                                 ]   # R.from_euler('z', 45., degrees=True).as_matrix()
 
-vanes_origin_list = [np.array([0., boom_length, 0.]),
-                     np.array([boom_length, 0., 0.]),
-                     np.array([0, -boom_length, 0.]),
-                     np.array([-boom_length, 0., 0.]),
+vanes_origin_list = [#np.array([0., boom_length, 0.]),
+                     #np.array([boom_length, 0., 0.]),
+                     #np.array([0, -boom_length, 0.]),
+                     #np.array([-boom_length, 0., 0.]),
                      ]  # np.array([np.cos(np.pi/4) * boom_length/np.sqrt(2), np.sin(np.pi/4) * boom_length/np.sqrt(2), 0.])
 
 vanes_coordinates_list = []
@@ -88,9 +88,9 @@ for i in range(len(vanes_origin_list)):
     current_vane_coords_body_frame_coords = np.vstack((current_vane_coords_body_frame_coords, second_point_body_frame, third_point_body_frame))
     vanes_coordinates_list.append(current_vane_coords_body_frame_coords)
 
-vanes_optical_properties = [np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)
+vanes_optical_properties = [np.array([0., 0., 1., 0., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)
 
-vanes_rotational_dof = np.array([[True, True], [True, True], [True, True], [True, True]])   #
+vanes_rotational_dof = np.array([])   # np.array([[True, True], [True, True], [True, True], [True, True]])
 
 algorithm_constants = {}
 algorithm_constants["tol_vane_angle_determination_start_golden_section"] = 1e-3

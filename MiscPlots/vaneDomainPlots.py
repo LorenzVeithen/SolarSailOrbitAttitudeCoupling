@@ -79,7 +79,7 @@ for k, (alpha_s, beta_s) in enumerate(zip(alpha_s_list, beta_s_list)):
 plt.grid(True)
 for k, (alpha_s, beta_s) in enumerate(zip(alpha_s_list, beta_s_list)):
     plt.plot([], [], linewidth=7, linestyle='-', color=color_loop[k],
-             label=fr'$\alpha_s = {alpha_s}$° $\beta_s = {beta_s}$°')
+             label=r'$\alpha_{s, \mathcal{B}}' + f'= {alpha_s}$°' + r', $\beta_{s, \mathcal{B}}' + f'= {beta_s}$°')
 plt.plot([], [], linestyle="-", label='upper bounds', color='k')
 plt.plot([], [], linestyle="--", label='lower bounds', color='k')
 plt.legend(ncol=2, prop={'size': 8})

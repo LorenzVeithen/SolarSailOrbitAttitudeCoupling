@@ -10,10 +10,10 @@ from fullEllipseCoefficientsFunctions import ellipse_full_coefficients_function_
 from MiscFunctions import special_round
 
 coefficients_labels = ['A', 'B', 'C', 'D', 'E', 'F']
-vane_optical_model = "single_ideal_optical_model"
+vane_optical_model = "ACS3_optical_model"
 sh_comp = 1     # 0 if no shadow
 GENERATE_FOURIER_ELLIPSE_FUNCTIONS = True
-COMPUTE_SCALING = True
+COMPUTE_SCALING = False
 GENERATE_ACCURACY_PLOTS = False
 PRINT_FUNCTIONS = False
 scaling = 1e-2      # necessary if COMPUTE_SCALING is False, disregarded otherwise
@@ -201,6 +201,7 @@ if (GENERATE_FOURIER_ELLIPSE_FUNCTIONS):
         plots_number_of_terms_Fourier_ellipse(scaling)
     else:
         the_id_relevance_list = [1700, 1700, 1700, 1700, 1700, 1700]
+        _, the_id_relevance_list = truncated_fourier_ellipse(0, vane_optical_model, plot_bool=False)[:2]
 
     if (PRINT_FUNCTIONS):
         for i in range(6):

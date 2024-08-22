@@ -17,28 +17,30 @@ selected_combinations = [(5.0, 0.0, 0.0),
 """
 
 
-selected_combinations = [
-                    (75.0, 0.0, 0.0),
-                    (0.0, 75.0, 0.0),
-                    (0.0, 0.0, 75.0),
-                    (50.0, 50.0, 0.0),
-                    (0.0, 50.0, 50.0),
-                    (50.0, 0.0, 50.0),
-                    (40.0, 40.0, 40.0)]
+selected_combinations = [(5.0, 5.0, 5.0),
+                    #(75.0, 0.0, 0.0),
+                    #(0.0, 75.0, 0.0),
+                    #(0.0, 0.0, 75.0),
+                    #(50.0, 50.0, 0.0),
+                    #(0.0, 50.0, 50.0),
+                    #(50.0, 0.0, 50.0),
+                    #(40.0, 40.0, 40.0)
+                    ]
 
 
 for c_id, c in enumerate(selected_combinations):
-    for plot_id in range(6, 7):
+    for plot_id in range(9, 10):
         # Focus on
         if (plot_id == 0):
             comparison_name = "optical_model"
             states_history_datasets_list = [
-                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
-                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
                 f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
-            plot_label = ['O-SRP', 'DI-SRP', 'SI-SRP']
+            plot_label = ['SI-SRP', 'DI-SRP', 'O-SRP']
             num_legend_columns = 1
+            z_orders = [0, 1, 2]
         elif (plot_id == 1):
             comparison_name = "inclination_LEO"
             states_history_datasets_list = [
@@ -48,6 +50,7 @@ for c_id, c in enumerate(selected_combinations):
             ]
             plot_label = ['i=98.0°', 'i=45.0°', 'i=0.0°']
             num_legend_columns = 1
+            z_orders = [0, 1, 2]
         elif (plot_id == 2):
             comparison_name = "inclination_MEO"
             states_history_datasets_list = [
@@ -57,6 +60,7 @@ for c_id, c in enumerate(selected_combinations):
             ]
             plot_label = ['i=98.0°', 'i=45.0°', 'i=0.0°']
             num_legend_columns = 1
+            z_orders = [0, 1, 2]
         elif (plot_id == 3):
             comparison_name = "inclination_GEO"
             states_history_datasets_list = [
@@ -66,6 +70,7 @@ for c_id, c in enumerate(selected_combinations):
             ]
             plot_label = ['i=98.0°', 'i=45.0°', 'i=0.0°']
             num_legend_columns = 1
+            z_orders = [0, 1, 2]
         elif (plot_id == 4):
             comparison_name = "orbital_regime"
             states_history_datasets_list = [
@@ -75,6 +80,7 @@ for c_id, c in enumerate(selected_combinations):
             ]
             plot_label = ['LEO', 'MEO', 'GEO']
             num_legend_columns = 1
+            z_orders = [0, 1, 2]
         elif (plot_id == 5):
             comparison_name = "sma"
             states_history_datasets_list = [
@@ -84,6 +90,7 @@ for c_id, c in enumerate(selected_combinations):
             ]
             plot_label = ['LEO', 'MEO', 'GEO']
             num_legend_columns = 1
+            z_orders = [0, 1, 2]
         elif (plot_id == 6):
             comparison_name = "orientation"
             states_history_datasets_list = [
@@ -96,14 +103,16 @@ for c_id, c in enumerate(selected_combinations):
             ]
             plot_label = ['sun-pointing', 'edge-on-x', 'edge-on-y', r'$\alpha_{s} = 45$°, $\beta_{s} = 90$°', r'$\alpha_{s} = 45$°, $\beta_{s} = 0$°']  # identity_to_inertial
             num_legend_columns = 1
+            z_orders = [0, 1, 2, 3, 4]
         elif (plot_id == 7):
             comparison_name = 'vane_shadow'
             states_history_datasets_list = [
-                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
                 f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
+                f"0_GeneratedData/DetumblingAnalysis/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_True/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
-            plot_label = ['Shadow constraint', 'No shadow constraint']
+            plot_label = ['Without self-shadowing constraint', 'With self-shadowing constraint']
             num_legend_columns = 1
+            z_orders = [0, 1]
         elif (plot_id == 8):
             comparison_name = 'DoF_double_ideal'
             states_history_datasets_list = [
@@ -113,8 +122,9 @@ for c_id, c in enumerate(selected_combinations):
                 f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/1_reduced_y/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
                 f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/full_2D/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
-            plot_label = ['Wie2004 - A', 'One 0-DoF vane - B', 'One Y-DoF vane - C', 'One X-DoF vane - D', 'Full 2-DoFs vanes']
+            plot_label = ['D-1', 'D-2', 'D-3', 'D-4', 'D-0']
             num_legend_columns = 1
+            z_orders = [0, 1, 2, 3, 4]
         elif (plot_id == 9):
             comparison_name = 'DoF_single_ideal'
             states_history_datasets_list = [
@@ -124,7 +134,8 @@ for c_id, c in enumerate(selected_combinations):
                 f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/1_reduced_y/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
                 f"0_GeneratedData/DetumblingAnalysis/ReducedDoFAnalysis/full_2D/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False/states_history/state_history_omega_x_{c[0]}_omega_y_{c[1]}_omega_z_{c[2]}.dat",
             ]
-            plot_label = ['Wie2004 - A', 'One 0-DoF vane - B', 'One Y-DoF vane - C', 'One X-DoF vane - D', 'Full 2-DoFs vanes']
+            plot_label = ['System D-1', 'System D-2', 'System D-3', 'System D-4', 'Baseline']
+            z_orders = [0, 5, 10, 20, 15, 20]
             num_legend_columns = 1
         elif (plot_id == 10):
             comparison_name = 'DoF_single_ideal_bis'
@@ -135,6 +146,7 @@ for c_id, c in enumerate(selected_combinations):
             ]
             plot_label = ['Wie2004', 'Full X-DoF', 'Full 2-DoFs vanes']
             num_legend_columns = 1
+            z_orders = [0, 1, 2]
         elif (plot_id == 11):
             comparison_name = 'VaneSpeed'
             states_history_datasets_list = [
@@ -150,6 +162,7 @@ for c_id, c in enumerate(selected_combinations):
             plot_label = [r'$\dot{\xi}_{max}=11.25°/s$', r'$\dot{\xi}_{max}=22.5°/s$', r'$\dot{\xi}_{max}=45°/s$', r'$\dot{\xi}_{max}=90°/s$', r'$\dot{\xi}_{max}=180°/s$',
                           r'$\dot{\xi}_{max}=360°/s$', r'$\dot{\xi}_{max}=720°/s$', r'$\dot{\xi}_{max}=1440°/s$']
             num_legend_columns = 2
+            z_orders = [0, 1, 2, 3, 4, 5, 6, 7]
         elif (plot_id == 12):
             comparison_name = "ACS3_shadow"
             states_history_datasets_list = [
@@ -158,6 +171,7 @@ for c_id, c in enumerate(selected_combinations):
             ]
             plot_label = ['Without self-shadowing constraint', 'With self-shadowing constraint']
             num_legend_columns = 1
+            z_orders = [0, 1]
 
         if (comparison_name == 'orbital_regime'):
             print('------')
@@ -222,13 +236,13 @@ for c_id, c in enumerate(selected_combinations):
                                            25:29])
 
             # Solar irradiance
-            received_irradiance_shadow_function = current_dependent_variable_history_array[:, 7]
-            received_irradiance_shadow_function[received_irradiance_shadow_function < 1] = 0    # remove any part where it is not
-            difference_irradiance = np.diff(received_irradiance_shadow_function)
-            t_start_eclipse = current_time_array[np.where(np.diff(received_irradiance_shadow_function) == -1)[0]]
-            t_end_eclipse = current_time_array[np.where(np.diff(received_irradiance_shadow_function) == 1)[0]]
-            eclipse_fraction = np.sum(t_end_eclipse-t_start_eclipse)/(current_time_array[-1]-current_time_array[0])
-            print(eclipse_fraction)
+            #received_irradiance_shadow_function = current_dependent_variable_history_array[:, 7]
+            #received_irradiance_shadow_function[received_irradiance_shadow_function < 1] = 0    # remove any part where it is not
+            #difference_irradiance = np.diff(received_irradiance_shadow_function)
+            #t_start_eclipse = current_time_array[np.where(np.diff(received_irradiance_shadow_function) == -1)[0]]
+            #t_end_eclipse = current_time_array[np.where(np.diff(received_irradiance_shadow_function) == 1)[0]]
+            #eclipse_fraction = np.sum(t_end_eclipse-t_start_eclipse)/(current_time_array[-1]-current_time_array[0])     # Sometimes fails
+            #print(eclipse_fraction)
 
             # get detumbling time
             list_indices_zero_angles = np.where(np.sum(current_dependent_variable_history_array[:, 21:29], axis=1) == 0)[0]
@@ -249,22 +263,23 @@ for c_id, c in enumerate(selected_combinations):
         custom_xlim = (0, max(detumbling_time_list) * 1.05)
         # Compare the rotational velocity change
         for i, (time_array, om_array) in enumerate(zip(time_arrays_list, omega_deg_s_arrays_list)):
+            print(z_orders[i])
             plt.figure(plot_id*1000 + c_id*100 + 1)
-            plt.plot(time_array, om_array[:, 0], label=f'{plot_label[i]}', color=color_list[i])
+            plt.plot(time_array, om_array[:, 0], label=f'{plot_label[i]}', color=color_list[i], zorder=z_orders[i])#, linewidth=1)
             plt.figure(plot_id*1000 + c_id*100 + 2)
-            plt.plot(time_array, om_array[:, 1], label=f'{plot_label[i]}', color=color_list[i])
+            plt.plot(time_array, om_array[:, 1], label=f'{plot_label[i]}', color=color_list[i], zorder=z_orders[i])#, linewidth=1)
             plt.figure(plot_id*1000 + c_id*100 + 3)
-            plt.plot(time_array, om_array[:, 2], label=f'{plot_label[i]}', color=color_list[i])
+            plt.plot(time_array, om_array[:, 2], label=f'{plot_label[i]}', color=color_list[i], zorder=z_orders[i])#, linewidth=1)
 
         plt.figure(plot_id*1000 + c_id*100 + 1)
 
         #plt.title(f'{str(c)}: {comparison_name}')
         plt.grid(True)
         plt.xlabel(r"$t$ [days]", fontsize=14)
-        plt.ylabel(r"$\omega_{x}$ [deg/s]", fontsize=14)
+        plt.ylabel(r"$\omega_{x, \mathcal{B}}$ [deg/s]", fontsize=14)
         plt.legend(ncol=num_legend_columns)
         plt.xlim(custom_xlim)
-        plt.savefig(f'{save_plots_dir}/omega_x.png', bbox_inches='tight')
+        plt.savefig(f'{save_plots_dir}/omega_x.png', bbox_inches='tight', dpi=600)
         plt.close()
 
         plt.figure(plot_id*1000 + c_id*100 + 2)
@@ -272,10 +287,10 @@ for c_id, c in enumerate(selected_combinations):
         #plt.title(f'{str(c)}: {comparison_name}')
         plt.grid(True)
         plt.xlabel(r"$t$ [days]", fontsize=14)
-        plt.ylabel(r"$\omega_{y}$ [deg/s]", fontsize=14)
+        plt.ylabel(r"$\omega_{y, \mathcal{B}}$ [deg/s]", fontsize=14)
         plt.legend(ncol=num_legend_columns)
         plt.xlim(custom_xlim)
-        plt.savefig(f'{save_plots_dir}/omega_y.png', bbox_inches='tight')
+        plt.savefig(f'{save_plots_dir}/omega_y.png', bbox_inches='tight', dpi=600)
         plt.close()
 
         plt.figure(plot_id*1000 + c_id*100 + 3)
@@ -283,10 +298,10 @@ for c_id, c in enumerate(selected_combinations):
         #plt.title(f'{str(c)}: {comparison_name}')
         plt.grid(True)
         plt.xlabel(r"$t$ [days]", fontsize=14)
-        plt.ylabel(r"$\omega_{z}$ [deg/s]", fontsize=14)
+        plt.ylabel(r"$\omega_{z, \mathcal{B}}$ [deg/s]", fontsize=14)
         plt.legend(ncol=num_legend_columns)
         plt.xlim(custom_xlim)
-        plt.savefig(f'{save_plots_dir}/omega_z.png', bbox_inches='tight')
+        plt.savefig(f'{save_plots_dir}/omega_z.png', bbox_inches='tight', dpi=600)
         plt.close()
 
         # compare vane angles histories

@@ -25,12 +25,21 @@ all_single_axis_combinations = (list(itertools.product(omega_list_single, [0], [
                                 + list(itertools.product([0], [0], omega_list_single)))
 
 # double axis
-omega_list_double = [-100, -85, -70, -55, -40, -30, -20, -10, 100, 85, 70, 55, 40, 30, 20, 10]
+omega_list_double = [100, 85, 70, 55, 40, 30, 20, 10]   # -100, -85, -70, -55, -40, -30, -20, -10,
 all_double_axis_combinations = []
 for omega in omega_list_double:
     all_double_axis_combinations.append((omega, omega, 0))
     all_double_axis_combinations.append((0, omega, omega))
     all_double_axis_combinations.append((omega, 0, omega))
+    all_double_axis_combinations.append((omega, -omega, 0))
+    all_double_axis_combinations.append((0, omega, -omega))
+    all_double_axis_combinations.append((omega, 0, -omega))
+    all_double_axis_combinations.append((-omega, omega, 0))
+    all_double_axis_combinations.append((0, -omega, omega))
+    all_double_axis_combinations.append((-omega, 0, omega))
+    all_double_axis_combinations.append((-omega, -omega, 0))
+    all_double_axis_combinations.append((0, -omega, -omega))
+    all_double_axis_combinations.append((-omega, 0, -omega))
 
 # triple axis
 omega_list_triple = [-85, -70, -55, -40, -30, -20, -10, 85, 70, 55, 40, 30, 20, 10]
@@ -41,7 +50,8 @@ for omega in omega_list_triple:
     if ((omega, omega, omega) not in sampled_triple_axis_combinations):
         sampled_triple_axis_combinations.append((omega, omega, omega))
 
-all_combinations = all_single_axis_combinations + all_double_axis_combinations + sampled_triple_axis_combinations
+#all_combinations = all_single_axis_combinations + all_double_axis_combinations + sampled_triple_axis_combinations
+all_combinations = all_single_axis_combinations + all_double_axis_combinations
 print(len(all_combinations))
 
 print(f"hello from rank {rank}")

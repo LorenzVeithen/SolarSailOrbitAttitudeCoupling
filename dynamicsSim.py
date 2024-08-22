@@ -145,7 +145,9 @@ class sailCoupledDynamicsProblem:
         self.sail_craft.setBodies(bodies)
         return bodies, vehicle_target_settings
 
-    def define_dependent_variables(self, attitude_control_system_object, keplerian_bool=False):
+    def define_dependent_variables(self, attitude_control_system_object,
+                                   keplerian_bool=False,
+                                   VV_bool=False):
         # DEPENDENT VARIABLES
         attitude_control_system_object.initialise_actuator_states_dictionary()
         first_attitude_control_dependent_variable_array = (
@@ -159,6 +161,20 @@ class sailCoupledDynamicsProblem:
                     propagation_setup.dependent_variable.custom_dependent_variable(
                         attitude_control_system_object.get_attitude_control_system_actuators_states,
                         np.shape(first_attitude_control_dependent_variable_array)[0]),  # Vane deflections
+                    ]
+        elif (VV_bool):
+            return [propagation_setup.dependent_variable.keplerian_state('ACS3', 'Earth'),
+                    propagation_setup.dependent_variable.received_irradiance_shadow_function("ACS3", "Sun"),
+                    propagation_setup.dependent_variable.single_acceleration(
+                        propagation_setup.acceleration.radiation_pressure_type, "ACS3", "Sun"),
+                    propagation_setup.dependent_variable.single_torque(
+                        propagation_setup.torque.radiation_pressure_type, "ACS3", "Sun"),
+                    propagation_setup.dependent_variable.relative_position("Sun", "ACS3"),
+                    propagation_setup.dependent_variable.relative_position("Sun", "Earth"),
+                    propagation_setup.dependent_variable.total_torque("ACS3"),
+                    propagation_setup.dependent_variable.custom_dependent_variable(
+                        attitude_control_system_object.get_attitude_control_system_actuators_states,
+                        np.shape(first_attitude_control_dependent_variable_array)[0]),       # Vane deflections
                     ]
         else:
             return [propagation_setup.dependent_variable.keplerian_state('ACS3', 'Earth'),
@@ -226,9 +242,9 @@ class sailCoupledDynamicsProblem:
             torque_settings_on_sail = dict()
 
         elif (theoretical_detumbling_bool):
-            optimalDetumblingTorque = lambda t, bd=bodies, tau_m=1e-4: (
+            optimalDetumblingTorque = lambda t, bd=bodies, tau_m=0.2: (
                 attitude_control_system_object.computeBodyFrameTorqueForDetumbling(bd, tau_m,
-                  desired_rotational_velocity_vector=np.array([0., 0., 0])))
+                  desired_rotational_velocity_vector=np.array([0., 0., 0.])))
 
             torque_settings_on_sail = dict(
                                             Sun=[propagation_setup.torque.radiation_pressure()],

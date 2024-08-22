@@ -164,7 +164,6 @@ class sail_attitude_control_systems:
 
         inertiaTensorTimesAngularVelocity = np.dot(sail_craft_inertia_tensor, omega_tilted)
         predictedTimeToRest = np.linalg.norm(inertiaTensorTimesAngularVelocity)/tau_max
-
         if ((predictedTimeToRest < timeToPassivateACS) and (timeToPassivateACS != 0)):
             tau_target = (timeToPassivateACS - predictedTimeToRest)/timeToPassivateACS  # Linearly decreasing the torque applied such that the ACS is turned OFF smoothly
         else:
@@ -245,6 +244,8 @@ class sail_attitude_control_systems:
 
                         sail_sun_distance = np.linalg.norm(bodies.get_body(self.sail_craft_name).position - bodies.get_body("Sun").position)
                         current_solar_irradiance = Sun_luminosity/(4 * np.pi * sail_sun_distance**2) # W
+                        print(current_solar_irradiance)
+
                         required_body_torque = self.computeBodyFrameTorqueForDetumbling(bodies,
                                                                                         5e-5,   # TODO: make this a general variable
                                                                                         desired_rotational_velocity_vector=desired_sail_body_frame_inertial_rotational_velocity,
@@ -443,6 +444,7 @@ class sail_attitude_control_systems:
         for i in range(len(self.vane_panels_coordinates_list)):
             _, vane_area, _ = compute_panel_geometrical_properties(self.vane_panels_coordinates_list[i])
             vanes_areas.append(vane_area)
+
         self.vanes_areas_list = vanes_areas
         self.vane_material_areal_density = vanes_material_areal_density
         self.ACS_mass = sum(vanes_areas) * vanes_material_areal_density

@@ -8,9 +8,9 @@ import os
 from tudatpy.util import compare_results, result2array
 import time
 
-BIG_PLOTS = False
-Maps_2D = True
-COMPARISON_PLOTS = True
+BIG_PLOTS = True
+Maps_2D = False
+COMPARISON_PLOTS = False
 
 thinning_factor = 1
 keplerian_keys = ['sma', 'ecc', "inc", "aop", "raan", "tranom"]
@@ -35,6 +35,15 @@ labels_change_list = [r"$\Delta a$ [km]",
                 r"$\Delta \theta$ [deg]",
                 r'$\Delta r_a$ [km]',
                 r'$\Delta r_p$ [km]']
+
+labels_change_final_list = [r"$\Delta a_{f}$ [km]",
+                r"$\Delta e_{f}$ [-]",
+                r"$\Delta i_{f}$ [deg]",
+                r"$\Delta \omega_{f}$, [deg]",
+                r"$\Delta \Omega_{f}$ [deg]",
+                r"$\Delta \theta_{f}$ [deg]",
+                r'$\Delta r_{a, f}$ [km]',
+                r'$\Delta r_{p, f}$ [km]']
 
 labels_change_percent_list = [r"$\Delta a$ [%]",
                 r"$\Delta e$ [%]",
@@ -353,13 +362,14 @@ def get_dataset_data(current_dataset):
 color_list = ["#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#F0E442"]
 my_cmap = plt.get_cmap('plasma')
 cmap = plt.colormaps["plasma"]
-plot_mode = 3
+plot_mode = 5
 percentage_bool = False
 if (plot_mode == 1): # Just a single dataset
-    datasets_list = [f'/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False',
+    datasets_list = [f'/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False',
                      f'/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
-                     f'/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_single_ideal_opt_model_shadow_False']
-    labels_optical_list = ['O-SRP', 'DI-SRP', 'SI-SRP']
+                     f'/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_ACS3_opt_model_shadow_False'
+                     ]
+    labels_optical_list = ['SI-SRP', 'DI-SRP', 'O-SRP']
     Comparison_label = 'optical_sun_pointing'
 elif (plot_mode == 2):
     datasets_list = [f'/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
@@ -377,12 +387,16 @@ elif (plot_mode == 4):
     datasets_list = [f'/Sun_Pointing/LEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
                  f'/Sun_Pointing/MEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',
                  f'/Sun_Pointing/GEO_ecc_0.0_inc_0.0/NoAsymetry_data_double_ideal_opt_model_shadow_False',]
-    percentage_bool = True
+    #percentage_bool = True
     labels_optical_list = [r'LEO', r'MEO', r'GEO']
     Comparison_label = 'orbital_regime'
+elif (plot_mode == 5):
+    datasets_list = [f'/Sun_Pointing/LEO_ecc_0.0_inc_98.0/NoAsymetry_data_double_ideal_opt_model_shadow_False']
+    labels_optical_list = ['DI-SRP']
+    Comparison_label = 'None'
 
 num_fine = 100000
-t_fine = np.linspace(0, 30, num_fine)
+t_fine = np.linspace(0, 29, num_fine)
 
 
 for data_id, dataset in enumerate(datasets_list):
@@ -428,13 +442,13 @@ for data_id, dataset in enumerate(datasets_list):
                                                              & (current_all_data_array[:, 3] == 0))[0], :]
         plt.figure()
         plt.plot(current_processed_dict['sun_pointing_time_array'],
-                 current_processed_dict[f'sun_pointing_{variables_list[i]}_array'], label='Sun-pointing', linestyle='-', color=color_list[0])
+                 current_processed_dict[f'sun_pointing_{variables_list[i]}_array'], label=r'$||\vec{\omega}_{\mathcal{B}}|| = 0$', linestyle='-', color=color_list[0])
         for p_id in range(len(nonzero_omega_x_data[:, 0])):
             plt.plot(nonzero_omega_x_data[p_id, 8], nonzero_omega_x_data[p_id, 11 + i], alpha=0.2, linestyle='-', color=color_list[1])
-        plt.plot([], [], alpha=1, linestyle='-', color=color_list[1], label=r'$\omega_{x, 0} \neq 0, \omega_{y, 0} = 0, \omega_{z, 0} = 0$')
+        plt.plot([], [], alpha=0.2, linestyle='-', color=color_list[1], label=r'$||\vec{\omega}_{\mathcal{B}}|| = \omega_{x, \mathcal{B}}$')
         for p_id in range(len(nonzero_omega_y_data[:, 0])):
             plt.plot(nonzero_omega_y_data[p_id, 8], nonzero_omega_y_data[p_id, 11 + i], alpha=0.2, linestyle='-', color=color_list[2])
-        plt.plot([], [], alpha=1, linestyle='-', color=color_list[2], label=r'$\omega_{y, 0} \neq 0, \omega_{x, 0} = 0, \omega_{z, 0} = 0$')
+        plt.plot([], [], alpha=0.2, linestyle='-', color=color_list[2], label=r'$||\vec{\omega}_{\mathcal{B}}|| = \omega_{y, \mathcal{B}}$')
         plt.legend()
         plt.xlabel(r'$t$ [days]', fontsize=14)
         plt.ylabel(labels_list[i], fontsize=14)
@@ -442,6 +456,7 @@ for data_id, dataset in enumerate(datasets_list):
         plt.savefig(current_save_plot_dir + '/' + variables_list[i] + '_single_axis_history_comparison_to_initial.png',
                     dpi=600,
                     bbox_inches='tight')
+
         plt.close()
         print(len(nonzero_omega_x_data[:, 0]))
         print(len(nonzero_omega_y_data[:, 0]))
@@ -449,12 +464,12 @@ for data_id, dataset in enumerate(datasets_list):
         if (Maps_2D):   # of the current dataset, not of a comparison
             print('2D Maps and Density maps')
             f, ax = plt.subplots()
-            ax.set_xlabel(r'$\omega_{x}$ [deg/s]', fontsize=14)
-            ax.set_ylabel(r'$\omega_{y}$ [deg/s]', fontsize=14)
+            ax.set_xlabel(r'$\omega_{x, \mathcal{B}}$ [deg/s]', fontsize=14)
+            ax.set_ylabel(r'$\omega_{y, \mathcal{B}}$ [deg/s]', fontsize=14)
             tpc = ax.tripcolor(current_last_comp_array[:, 0], current_last_comp_array[:, 1], current_last_comp_array[:, i + 2],
                                shading='flat', cmap=my_cmap)
             cbar = f.colorbar(tpc)
-            cbar.set_label(labels_change_list[i], rotation=270, labelpad=13, fontsize=14)
+            cbar.set_label(labels_change_final_list[i], rotation=270, labelpad=13, fontsize=14)
             plt.savefig(current_save_plot_dir + '/' + variables_list[i] + '_2D.png',
                         dpi=600, bbox_inches='tight')
             plt.close()
@@ -552,8 +567,9 @@ if (COMPARISON_PLOTS):
     for i in range(8):
         plt.figure(1000 + i)
         plt.plot([], [], color='k', linestyle='-', label='min')
-        plt.plot([], [], color='k', linestyle='--', label='max')
         plt.plot([], [], color='k', linestyle='-.', label='median')
+        plt.plot([], [], color='k', linestyle='--', label='max')
+
         #plt.plot([], [], color='k', linestyle=':', label=r'$+1-\sigma$')
         #plt.plot([], [], color='k', linestyle='-', dashes=[8, 4, 2, 4, 2, 4], label=r'$-1-\sigma$')
         plt.legend(ncol=2)
@@ -568,7 +584,7 @@ if (COMPARISON_PLOTS):
 
 
 
-
+plt.show()
 
 
 

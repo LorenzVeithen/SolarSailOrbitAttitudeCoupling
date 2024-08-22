@@ -49,10 +49,10 @@ else:
     coefficients_file_differentiator = ''
 
 # Define solar sail - see constants file
-vanes_optical_properties = [np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)
+#vanes_optical_properties = [np.array([0., 0., 1., 1., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)
 #vanes_optical_properties = [np.array([0., 0., 1., 0., 0., 0., 2/3, 2/3, 1., 1.])] * len(vanes_origin_list)
-#vanes_optical_properties = [np.array([0.1, 0.57, 0.74, 0.23, 0.16, 0.2, 2/3, 2/3, 0.03, 0.6])] * len(vanes_origin_list)
-vane_optical_model_str = "double_ideal_optical_model"
+vanes_optical_properties = [np.array([0.1, 0.57, 0.74, 0.23, 0.16, 0.2, 2/3, 2/3, 0.03, 0.6])] * len(vanes_origin_list)
+vane_optical_model_str = "ACS3_optical_model"
 sh_comp = 1 # Define whether to work with or without shadow effects
 vane_id = 1
 cdir = f"{AMS_directory}/Datasets/{vane_optical_model_str}/vane_{vane_id}"
@@ -182,8 +182,8 @@ if (COMPUTE_ELLIPSES):
                 AMS_points = np.hstack((Ty, Tz))
                 numerical_hull = ConvexHull(AMS_points)
                 numerical_hull_points = numerical_hull.points[numerical_hull.vertices]
-                plot_labels = [r'$\tilde{T}_{y}$ [-]',
-                               r'$\tilde{T}_{z}$ [-]']
+                plot_labels = [r'$\tilde{T}_{y, \mathcal{B}}$ [-]',
+                               r'$\tilde{T}_{z, \mathcal{B}}$ [-]']
             case 'TxyTz':
                 AMS_points = np.hstack((np.sqrt(Tx**2 + Ty**2), Tz))
                 numerical_hull = ConvexHull(AMS_points)
@@ -274,12 +274,12 @@ if (COMPUTE_ELLIPSES):
             plt.grid(True)
             plt.scatter(AMS_points[:, 0], AMS_points[:, 1], s=1, color='grey', label="Vane points")
             for simplex in numerical_hull.simplices:
-                plt.plot(AMS_points[simplex, 0], AMS_points[simplex, 1], 'k--')
+                plt.plot(AMS_points[simplex, 0], AMS_points[simplex, 1], 'k--', zorder=1*5)
             plt.plot([], [], 'k--', label="Convex Hull")
-            plt.plot(x_chosen_hull, y_chosen_hull, 'g', linewidth=2, linestyle=':', label="Fitted ellipse")
-            plt.plot(x_opt, y_opt, 'b', label="Optimised ellipse")
+            plt.plot(x_chosen_hull, y_chosen_hull, 'g', linewidth=2, linestyle=':', label="Fitted ellipse", zorder=2*5)
+            plt.plot(x_opt, y_opt, 'b', linestyle='-.', label="Optimised ellipse", zorder=4*5)
             if (FOURIER_ELLIPSE_AVAILABLE):
-                plt.plot(x_fourier, y_fourier, color='r', linestyle='-.', label="Fourier ellipse")
+                plt.plot(x_fourier, y_fourier, color='r', label="Fourier ellipse", zorder=3*5)
             plt.scatter(numerical_hull_points[:, 0], numerical_hull_points[:, 1], color='orange', s=15, label='Hull points')
             plt.xlabel(plot_labels[0], fontsize=14)
             plt.ylabel(plot_labels[1], fontsize=14)

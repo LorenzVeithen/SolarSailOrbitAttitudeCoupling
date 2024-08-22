@@ -15,6 +15,7 @@ color_list = ["#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7"]
 line_style_loop = ["-", "--", "-.", ":", "-", "--"]
 # attitude control system object
 vane_optical_model_str = "ACS3_optical_model"
+#vanes_optical_properties = [np.array([0.0, 0.0, 1, 1, 0.0, 0.0, 2/3, 2/3, 0.03, 0.6])] * 4
 vanes_optical_properties = [np.array([0.1, 0.57, 0.74, 0.23, 0.16, 0.2, 2/3, 2/3, 0.03, 0.6])] * 4
 
 include_shadow = False
@@ -138,7 +139,7 @@ for case_id in range(2):
         Ty = sy(free_vane_angle)
         Tz = sz(free_vane_angle)
 
-        plt.plot(Ty, Tz, label=rf'$\alpha_s = {round(alpha_s_deg, 1)}°$, $\beta_s = {round(beta_s_deg, 1)}°$',
+        plt.plot(Ty, Tz, label=r'$\alpha_{s, \mathcal{B}}$' + f'= {round(alpha_s_deg, 1)}°, ' + r'$\beta_{s, \mathcal{B}}$' + f'= {round(beta_s_deg, 1)}°',
                  color=color_list[c_id],
                  linestyle=line_style_loop[c_id])
         plt.scatter(sy.c[::10], sz.c[::10],
@@ -149,8 +150,8 @@ for case_id in range(2):
         #            color=color_list[c_id],
         #            linestyle="-.")
 
-    plt.xlabel(r"$\tilde{T}_{y}$ [-]", fontsize=14)
-    plt.ylabel(r"$\tilde{T}_{z}$ [-]", fontsize=14)
+    plt.xlabel(r"$\tilde{T}_{y, \mathcal{B}}$ [-]", fontsize=14)
+    plt.ylabel(r"$\tilde{T}_{z, \mathcal{B}}$ [-]", fontsize=14)
     plt.grid(True)
     plt.legend(ncol=1, loc='lower right')
     plt.savefig(Project_directory + f'/0_FinalPlots/Misc/1DoF_AMS_{case_id}_sh_{include_shadow}',

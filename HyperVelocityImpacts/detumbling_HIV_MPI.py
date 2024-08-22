@@ -13,16 +13,16 @@ n_processes = size
 # argv[0] is the executable
 optical_model_mode = int(sys.argv[1])  # 0: ACS3 optical model, 1: double-sided  ideal model, 2: single-sided ideal model
 sma_ecc_inc_combination_mode = 0   # see below for the combinations
-include_shadow_b = 1     #0: False (no shadow), 1: True (with shadow)
+include_shadow_b = 0     #0: False (no shadow), 1: True (with shadow)
 optical_mode_str = ["ACS3_optical_model", "double_ideal_optical_model", "single_ideal_optical_model"][optical_model_mode]
 
 
-omega_list = np.arange(0, 3600, 10)  # rotations per hour
+omega_list = np.arange(0, 1000, 10)  # rotations per hour
 
 all_combinations = []
 for omega in omega_list:
     all_combinations.append((omega, omega, omega))
-    all_combinations.append((omega, omega, 0))
+    #all_combinations.append((omega, omega, 0))
 
 random.shuffle(all_combinations)
 print(f"hello from rank {rank}")

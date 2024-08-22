@@ -84,9 +84,9 @@ for c in omega_combinations:
     detumbling_times_list.append(current_detumbling_time_hours)
 
     fig, ax = plt.subplots()
-    ax.plot(current_time_array_hours / 24, omega_x_array_deg_s, label=r'$\omega_{x}$', color=colors_list[0])
-    ax.plot(current_time_array_hours / 24, omega_y_array_deg_s, label=r'$\omega_{y}$', color=colors_list[1])
-    ax.plot(current_time_array_hours / 24, omega_z_array_deg_s, label=r'$\omega_{z}$', color=colors_list[2])
+    ax.plot(current_time_array_hours / 24, omega_x_array_deg_s, label=r'$\omega_{x, \mathcal{B}}$', color=colors_list[0])
+    ax.plot(current_time_array_hours / 24, omega_y_array_deg_s, label=r'$\omega_{y, \mathcal{B}}$', color=colors_list[1])
+    ax.plot(current_time_array_hours / 24, omega_z_array_deg_s, label=r'$\omega_{z, \mathcal{B}}$', color=colors_list[2])
 
     if (c == (0.0, 0.0, -120.0)):
         x1, x2, y1, y2 = 6.5, current_detumbling_time_hours/24, -0.05, 0.05  # subregion of the original image
@@ -101,7 +101,7 @@ for c in omega_combinations:
 
     plt.grid(True)
     plt.xlabel(r'$t$ [days]', fontsize=14)
-    plt.ylabel(r'$\vec{\omega}$ components [deg/s]', fontsize=14)
+    plt.ylabel(r'$\vec{\omega}_{\mathcal{B}}$ components [deg/s]', fontsize=14)
     plt.xlim((0, current_detumbling_time_hours/24))
     plt.legend()
     plt.savefig(

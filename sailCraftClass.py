@@ -1,4 +1,4 @@
-from constants import sail_mass, sail_I, sail_nominal_CoM
+#from constants import sail_mass, sail_I, sail_nominal_CoM
 import numpy as np
 from MiscFunctions import compute_panel_geometrical_properties
 
